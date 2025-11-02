@@ -63,7 +63,10 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/map_styles/osm_bright.json
+    - assets/map_styles/osm_bright2.json
     - assets/map_styles/style.json
+    - assets/map_styles/style2.json
+    - assets/map_styles/liberty.json
     - assets/img/emoji.jpg
 
   #   - images/a_dot_ham.jpeg
