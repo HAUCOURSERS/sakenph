@@ -13,9 +13,9 @@ class _HomePage extends State<HomePage> {
     
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.blue,
         title: ListTile(
           title: Text("Test"),
