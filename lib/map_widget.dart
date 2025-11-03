@@ -21,7 +21,8 @@ class _MapWidget extends State<MapWidget> {
   MapLibreMapController? _controller;
   String mapStyle = "";
 
-  String? styleJson;
+  
+
   Future<void> _loadStyle() async {
     final json = await rootBundle.loadString('assets/map_styles/osm_bright2.json');
 
@@ -34,7 +35,40 @@ class _MapWidget extends State<MapWidget> {
       _loadStyle();
     }
 
- Future<Position> _determinePosition() async {
+  Future<void> addTerminalLayers() async {
+    final terminalList = await DatabaseService().terminalList;
+
+    for (Terminal t in terminalList) {
+      await _controller?.addSource(
+        'source_${t.id}',
+        GeojsonSourceProperties(
+          data: {
+            'type': 'FeatureCollection',
+            'features': [
+              {
+                'type': 'Feature',
+                'geometry': {
+                  'type': 'Point',
+                  'coordinates': [t.longitude, t.latitude],
+                },
+              },
+            ],
+          },
+        ),
+      );
+
+      await _controller?.addLayer(
+        'source_${t.id}',
+        'layer_${t.id}',
+        const SymbolLayerProperties(
+          iconImage: 'bus',
+          iconSize: 1.5,
+        ),
+      );
+    }
+  }
+
+ Future<Position> determinePosition() async {
     bool serviceEnabled;
     LocationPermission permission;
 
@@ -166,38 +200,7 @@ class _MapWidget extends State<MapWidget> {
             });
           }
         },
-        onStyleLoadedCallback: () async {
-          final terminalList = await DatabaseService().terminalList;
-
-          for (Terminal t in terminalList) {
-            await _controller?.addSource(
-              'source_${t.id}',
-              GeojsonSourceProperties(
-                data: {
-                  'type': 'FeatureCollection',
-                  'features': [
-                    {
-                      'type': 'Feature',
-                      'geometry': {
-                        'type': 'Point',
-                        'coordinates': [t.longitude, t.latitude],
-                      },
-                    },
-                  ],
-                },
-              ),
-            );
-
-            await _controller?.addLayer(
-              'source_${t.id}',
-              'layer_${t.id}',
-              const SymbolLayerProperties(
-                iconImage: 'bus',
-                iconSize: 1.5,
-              ),
-            );
-          }
-        },
+        onStyleLoadedCallback: addTerminalLayers,
         initialCameraPosition: const CameraPosition(
           target: LatLng(15, 120.55),
           zoom: 10,
