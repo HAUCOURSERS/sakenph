@@ -35,6 +35,109 @@ class _MapWidget extends State<MapWidget> {
       _loadStyle();
     }
 
+  Future<void> clickedTLayer(String layerId) async {
+    print("In function:");
+    if (context.mounted) {
+    print("Context is mounted");
+
+      int terminalId = int.parse(layerId.replaceAll('layer_', ""));
+      final Terminal tappedTerminal = await DatabaseService().getTerminalById(terminalId);
+    print("Terminal retrieved");
+
+      final sheetController = Scaffold.of(context).showBottomSheet(
+        (context) {
+          return Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(32),
+                color: const Color.fromARGB(255, 227, 241, 253)
+              ),
+              width: MediaQuery.of(context).size.width,
+              height: 300, 
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Column(
+                    children: [
+                      Text('Jeepney Terminal'),
+                      Text(tappedTerminal.name)
+                    ],
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    }, 
+                    child: Container(
+                      width: 320,
+                      decoration: BoxDecoration(
+                        color: Colors.blue, 
+                        borderRadius: BorderRadius.circular(32)
+                      ),
+                      padding: EdgeInsets.all(10),
+                      child: Text(
+                        "Add Terminal",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                        ),
+                      )
+                    )
+                  )
+                
+                ],
+              )
+            );
+        }
+      );
+    print("Bottom sheet shown");
+
+
+      sheetController.closed.then((E) {
+        _controller?.removeLayer('layer_selectedPoint');
+        _controller?.removeSource('source_selectedPoint');
+      });
+    }
+  }
+
+  void addLayers() {
+    addTerminalLayers();
+    addTodaLayers();
+  }
+
+  Future<void> addTodaLayers() async {
+    final todaList = await DatabaseService().todaList;
+
+    for (Terminal t in todaList) {
+      await _controller?.addSource(
+        'source_${t.id}',
+        GeojsonSourceProperties(
+          data: {
+            'type': 'FeatureCollection',
+            'features': [
+              {
+                'type': 'Feature',
+                'geometry': {
+                  'type': 'Point',
+                  'coordinates': [t.longitude, t.latitude],
+                },
+              },
+            ],
+          },
+        ),
+      );
+
+      await _controller?.addLayer(
+        'source_${t.id}',
+        'layer_${t.id}',
+        const SymbolLayerProperties(
+          iconImage: 'toda',
+          iconSize: 0.25,
+        ),
+        minzoom: 12
+      );
+    }
+  }
+
   Future<void> addTerminalLayers() async {
     final terminalList = await DatabaseService().terminalList;
 
@@ -64,6 +167,7 @@ class _MapWidget extends State<MapWidget> {
           iconImage: 'bus',
           iconSize: 1.5,
         ),
+        minzoom: 8
       );
     }
   }
@@ -112,8 +216,21 @@ class _MapWidget extends State<MapWidget> {
     return MapLibreMap(
         styleString: mapStyle,
         
-        onMapCreated: (c) {
+        onMapCreated: (c) async {
+          determinePosition();
+
           _controller = c;
+          _controller!.onFeatureTapped.add((point, coordinates, id, layerId, annotation) {
+            clickedTLayer(layerId);
+          },);
+
+          final ByteData bytes = await rootBundle.load('assets/img/toda.png');
+          final Uint8List list = bytes.buffer.asUint8List();
+          _controller!.addImage('toda', list);
+
+          final ByteData bytes2 = await rootBundle.load('assets/img/mapmarker.png');
+          final Uint8List list2 = bytes2.buffer.asUint8List();
+          _controller!.addImage('mapmarker', list2);
         },
         onMapLongClick: (point, coordinates) async {
 
@@ -142,9 +259,10 @@ class _MapWidget extends State<MapWidget> {
             'source_selectedPoint',
             'layer_selectedPoint',
             const SymbolLayerProperties(
-              iconImage: 'circle_stroked',
-              iconSize: 1.5,
+              iconImage: 'mapmarker',
+              iconSize: 0.4,
             ),
+            minzoom: 8,
           );
           
           if (context.mounted) {
@@ -200,10 +318,10 @@ class _MapWidget extends State<MapWidget> {
             });
           }
         },
-        onStyleLoadedCallback: addTerminalLayers,
+        onStyleLoadedCallback: addLayers,
         initialCameraPosition: const CameraPosition(
-          target: LatLng(15, 120.55),
-          zoom: 10,
+          target: LatLng(15.0283971, 120.6292148),
+          zoom: 9,
         ),
       );
   }
