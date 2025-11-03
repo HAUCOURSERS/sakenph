@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakenph/auth_service.dart';
 import 'package:sakenph/map_widget.dart';
+import 'package:sakenph/settings_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,6 +22,7 @@ class _HomePage extends State<HomePage> {
           title: Text("Test"),
           trailing: PopupMenuButton(
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              PopupMenuItem<String>(value: 'Settings', child: Text('Settings')),
               PopupMenuItem<String>(value: 'Log out', child: Text('Log out')),
             ],
             onSelected: (value) async {
@@ -30,6 +32,10 @@ class _HomePage extends State<HomePage> {
                 } catch (e) {
                   return;
                 }
+              } else if (value=='Settings') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => SettingsPage()),
+                );
               }
             }
           )
