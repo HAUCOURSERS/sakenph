@@ -1627,7 +1627,7 @@
           ]
         ],
         "text-offset": [0, 0.6],
-        "text-size": 12,
+        "text-size": 8,
         "text-max-width": 9,
         "text-line-height": 1.55,
         "symbol-avoid-edges": true
@@ -1649,7 +1649,8 @@
         "all",
         ["==", "$type", "Point"],
         ["<=", "rank", 14],
-        ["has", "name"]
+        ["has", "name"],
+        ["!=", "class", "bus"]
       ],
       "layout": {
         "text-padding": 2,
@@ -1671,7 +1672,7 @@
           ]
         ],
         "text-offset": [0, 0.6],
-        "text-size": 12,
+        "text-size": 8,
         "text-max-width": 9,
         "text-line-height": 1.55,
         "symbol-avoid-edges": true

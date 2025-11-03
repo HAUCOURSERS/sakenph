@@ -66,6 +66,9 @@ flutter:
     - assets/map_styles/osm_bright.json
     - assets/map_styles/osm_bright2.json
     - assets/map_styles/liberty.json
+    - assets/img/toda.png
+    - assets/img/mapmarker.png
+
 
   #   - images/a_dot_ham.jpeg
 
