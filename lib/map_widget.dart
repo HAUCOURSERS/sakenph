@@ -1,13 +1,14 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:sakenph/auth_service.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
-    import 'dart:math';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
 import 'package:sakenph/database_service.dart';
+import 'package:sakenph/ors_api.dart';
 import 'package:sakenph/terminal_class.dart';
+import 'dart:developer';
 
 class MapWidget extends StatefulWidget {
 
@@ -89,9 +90,6 @@ class _MapWidget extends State<MapWidget> {
             );
         }
       );
-    print("Bottom sheet shown");
-
-
       sheetController.closed.then((E) {
         _controller?.removeLayer('layer_selectedPoint');
         _controller?.removeSource('source_selectedPoint');
@@ -178,8 +176,6 @@ class _MapWidget extends State<MapWidget> {
 
     // Test if location services are enabled.
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    print("EYY DID U DO SOMETHING");
-
     if (!serviceEnabled) {
       // Location services are not enabled don't continue
       // accessing the position and request users of the 
@@ -188,7 +184,6 @@ class _MapWidget extends State<MapWidget> {
     }
 
     permission = await Geolocator.checkPermission();
-    print("HEllo");
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
@@ -217,7 +212,9 @@ class _MapWidget extends State<MapWidget> {
         styleString: mapStyle,
         
         onMapCreated: (c) async {
-          determinePosition();
+          Position gpsLocation = await determinePosition();
+
+         
 
           _controller = c;
           _controller!.onFeatureTapped.add((point, coordinates, id, layerId, annotation) {
@@ -231,6 +228,39 @@ class _MapWidget extends State<MapWidget> {
           final ByteData bytes2 = await rootBundle.load('assets/img/mapmarker.png');
           final Uint8List list2 = bytes2.buffer.asUint8List();
           _controller!.addImage('mapmarker', list2);
+          _controller!.setSymbolIconAllowOverlap(true);
+
+
+           log('${gpsLocation.longitude}, ${gpsLocation.latitude}');
+
+          await _controller?.addSource(
+            'source_currentLocation',
+            GeojsonSourceProperties(
+              data: {
+                'type': 'FeatureCollection',
+                'features': [
+                  {
+                    'type': 'Feature',
+                    'geometry': {
+                      'type': 'Point',
+                      'coordinates': [gpsLocation.longitude, gpsLocation.latitude],
+                    },
+                  },
+                ],
+              },
+            ),
+          );
+
+          await _controller?.addLayer(
+            'source_currentLocation',
+            'layer_currentLocation',
+            const SymbolLayerProperties(
+              iconImage: 'mapmarker',
+              iconSize: 0.4,
+            ),
+            minzoom: 8,
+          );
+          
         },
         onMapLongClick: (point, coordinates) async {
 
@@ -284,6 +314,53 @@ class _MapWidget extends State<MapWidget> {
                             Text('${coordinates.latitude}, ${coordinates.longitude}')
                           ],
                         ),
+                        TextButton(
+                          onPressed: () async {
+                            Navigator.pop(context);
+
+                            var test = await http.get(OpenRouteService().getRoute('120.59007831390122,15.182698929441157', '120.57995791303243,15.166703930958025'));
+
+                            final data = jsonDecode(test.body);
+
+
+                            _controller!.addSource(
+                              'the_route',
+                              GeojsonSourceProperties(
+                                data: {
+                                  'type': 'FeatureCollection',
+                                  'features': data['features'],
+                                },
+                              ),
+                            );
+
+                            _controller!.addLayer(
+                              'the_route', 
+                              'the_route_layer', 
+                              const LineLayerProperties(
+                                lineColor: "#FF0000",
+                                lineWidth: 4.0,
+                                lineOpacity: 0.8,
+                              ),
+                            );
+                          }, 
+                          child: Container(
+                            width: 320,
+                            decoration: BoxDecoration(
+                              color: Colors.blue, 
+                              borderRadius: BorderRadius.circular(32)
+                            ),
+                            padding: EdgeInsets.all(10),
+                            child: Text(
+                              "How to get there ???",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                              ),
+                            )
+                          )
+                        ),
+
                         TextButton(
                           onPressed: () {
                             Navigator.pop(context);

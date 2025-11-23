@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:sakenph/auth_service.dart';
 import 'package:sakenph/map_widget.dart';
+import 'package:sakenph/ors_api.dart';
 import 'package:sakenph/settings_page.dart';
+import 'package:http/http.dart' as http;
+import 'dart:developer';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -41,6 +44,12 @@ class _HomePage extends State<HomePage> {
           )
         ),
       ),
+      floatingActionButton: FloatingActionButton(onPressed: () async {
+
+        var response = await http.get(OpenRouteService().getRoute('120.59007831390122,15.182698929441157', '120.57995791303243,15.166703930958025'));
+
+        log(response.body);
+      }),
       body: MapWidget()
     );
   }
