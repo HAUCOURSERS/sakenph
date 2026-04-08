@@ -1,16 +1,9 @@
 # sakenph
 
-A new Flutter project.
+Commuter Guide Application with Multimodal Transport using A* and Yen's Algorithm
 
-## Getting Started
+## Features
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+• Show public transport routes for Mabalacat and Angeles City
+• Identify jeepney and tricycle stops and terminals
+• A̶u̶t̶o̶m̶a̶t̶i̶c̶ ̶f̶a̶r̶e̶ ̶c̶a̶l̶c̶u̶l̶a̶t̶i̶o̶n̶
