@@ -23,7 +23,7 @@ class _HomePage extends State<HomePage> {
   }
 
   Future<Map<String, dynamic>> fetchData() async {
-    String localIp = "192.168.100.7";
+    String localIp = "127.0.0.1";
     final response = await http.get(Uri.parse('http://${localIp}:8000/flutterTest'));
 
     if (response.statusCode == 200) {
