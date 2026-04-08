@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sakenph/auth_service.dart';
 import 'package:sakenph/map_widget.dart';
-import 'package:sakenph/ors_api.dart';
 import 'package:sakenph/settings_page.dart';
 import 'package:http/http.dart' as http;
 import 'dart:developer';
@@ -26,16 +24,9 @@ class _HomePage extends State<HomePage> {
           trailing: PopupMenuButton(
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
               PopupMenuItem<String>(value: 'Settings', child: Text('Settings')),
-              PopupMenuItem<String>(value: 'Log out', child: Text('Log out')),
             ],
             onSelected: (value) async {
-              if (value=='Log out') {
-                try {
-                  await AuthService().signOut();
-                } catch (e) {
-                  return;
-                }
-              } else if (value=='Settings') {
+              if (value=='Settings') {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (context) => SettingsPage()),
                 );
@@ -45,12 +36,43 @@ class _HomePage extends State<HomePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(onPressed: () async {
-
-        var response = await http.get(OpenRouteService().getRoute('120.59007831390122,15.182698929441157', '120.57995791303243,15.166703930958025'));
-
-        log(response.body);
       }),
-      body: MapWidget()
+      body: Stack(
+        children: [
+          
+          MapWidget(),
+          Center(
+            child: Column(
+              children: [
+                Container(
+                  width: 320, height: 40,
+                  margin: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey, width:1),
+                    color: const Color.fromARGB(255, 227, 241, 255),
+                    borderRadius: BorderRadius.circular(32)
+                  ),
+                  child: Center(
+                    child: Text("From:"),
+                  )
+                ),
+                Container(
+                  width: 320, height: 40,
+                  margin: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey, width:1),
+                    color: const Color.fromARGB(255, 227, 241, 255),
+                    borderRadius: BorderRadius.circular(32)
+                  ),
+                  child: Center(
+                    child: Text("To:"),
+                  )
+                ),
+              ],
+            ),
+          )
+        ],
+      )
     );
   }
 }

@@ -1,12 +1,10 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:http/http.dart' as http;
 import 'package:sakenph/database_service.dart';
-import 'package:sakenph/ors_api.dart';
 import 'package:sakenph/terminal_class.dart';
 import 'dart:developer';
 
@@ -23,7 +21,7 @@ class _MapWidget extends State<MapWidget> {
   String mapStyle = "";
 
   
-
+  // Loads custom map style from assets based on Stadia Map's OSM Bright style
   Future<void> _loadStyle() async {
     final json = await rootBundle.loadString('assets/map_styles/osm_bright2.json');
 
@@ -36,6 +34,7 @@ class _MapWidget extends State<MapWidget> {
       _loadStyle();
     }
 
+  // UNUSED FUNCTION FOR NOW: used when clicked on a TODA Terminal icon
   Future<void> clickedTLayer(String layerId) async {
     print("In function:");
     if (context.mounted) {
@@ -97,6 +96,7 @@ class _MapWidget extends State<MapWidget> {
     }
   }
 
+  // Function used
   void addLayers() {
     addTerminalLayers();
     addTodaLayers();
@@ -178,8 +178,6 @@ class _MapWidget extends State<MapWidget> {
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       // Location services are not enabled don't continue
-      // accessing the position and request users of the 
-      // App to enable the location services.
       return Future.error('Location services are disabled.');
     }
 
@@ -212,27 +210,30 @@ class _MapWidget extends State<MapWidget> {
         styleString: mapStyle,
         
         onMapCreated: (c) async {
+
+          // Gets point of current location of GPS
           Position gpsLocation = await determinePosition();
 
-         
-
           _controller = c;
-          _controller!.onFeatureTapped.add((point, coordinates, id, layerId, annotation) {
-            clickedTLayer(layerId);
-          },);
 
+          // Function that triggers when you click on a TODA icon
+          // _controller!.onFeatureTapped.add((point, coordinates, id, layerId, annotation) {
+          //   clickedTLayer(layerId);
+          // },);
+
+          // Load tricycle icon to list of icons
           final ByteData bytes = await rootBundle.load('assets/img/toda.png');
           final Uint8List list = bytes.buffer.asUint8List();
           _controller!.addImage('toda', list);
 
+          // Load map marker (GPS Location) icon to list of icons
           final ByteData bytes2 = await rootBundle.load('assets/img/mapmarker.png');
           final Uint8List list2 = bytes2.buffer.asUint8List();
           _controller!.addImage('mapmarker', list2);
           _controller!.setSymbolIconAllowOverlap(true);
 
 
-           log('${gpsLocation.longitude}, ${gpsLocation.latitude}');
-
+          // ----------- Add Source & Layer of current location ------------- //
           await _controller?.addSource(
             'source_currentLocation',
             GeojsonSourceProperties(
@@ -260,13 +261,18 @@ class _MapWidget extends State<MapWidget> {
             ),
             minzoom: 8,
           );
+          // ------------------------------------------------------------------ //
           
         },
+
+        // onMapLongClick adds a point on the map and shows a bottom sheet when user long presses on a spot somewhere in the map
         onMapLongClick: (point, coordinates) async {
 
+          // Remove layer and source of pin if there is one currently on the map
           _controller?.removeLayer('layer_selectedPoint');
           _controller?.removeSource('source_selectedPoint');
 
+          // --- Add source and layer of long press pin --- //
           await _controller?.addSource(
             'source_selectedPoint',
             GeojsonSourceProperties(
@@ -294,108 +300,24 @@ class _MapWidget extends State<MapWidget> {
             ),
             minzoom: 8,
           );
+          // ---------------------------------------------- //
           
-          if (context.mounted) {
-            final sheetController = Scaffold.of(context).showBottomSheet(
-              (context) {
-                return Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(32),
-                      color: const Color.fromARGB(255, 227, 241, 253)
-                    ),
-                    width: MediaQuery.of(context).size.width,
-                    height: 300, 
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        Column(
-                          children: [
-                            Text('Point'),
-                            Text('${coordinates.latitude}, ${coordinates.longitude}')
-                          ],
-                        ),
-                        TextButton(
-                          onPressed: () async {
-                            Navigator.pop(context);
-
-                            var test = await http.get(OpenRouteService().getRoute('120.59007831390122,15.182698929441157', '120.57995791303243,15.166703930958025'));
-
-                            final data = jsonDecode(test.body);
+          // -- Function that shows destination text box that automatically defaults to coordinates or street name when long pressed, similar to GMaps -- //
 
 
-                            _controller!.addSource(
-                              'the_route',
-                              GeojsonSourceProperties(
-                                data: {
-                                  'type': 'FeatureCollection',
-                                  'features': data['features'],
-                                },
-                              ),
-                            );
 
-                            _controller!.addLayer(
-                              'the_route', 
-                              'the_route_layer', 
-                              const LineLayerProperties(
-                                lineColor: "#FF0000",
-                                lineWidth: 4.0,
-                                lineOpacity: 0.8,
-                              ),
-                            );
-                          }, 
-                          child: Container(
-                            width: 320,
-                            decoration: BoxDecoration(
-                              color: Colors.blue, 
-                              borderRadius: BorderRadius.circular(32)
-                            ),
-                            padding: EdgeInsets.all(10),
-                            child: Text(
-                              "How to get there ???",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                              ),
-                            )
-                          )
-                        ),
 
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          }, 
-                          child: Container(
-                            width: 320,
-                            decoration: BoxDecoration(
-                              color: Colors.blue, 
-                              borderRadius: BorderRadius.circular(32)
-                            ),
-                            padding: EdgeInsets.all(10),
-                            child: Text(
-                              "Add Terminal",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                              ),
-                            )
-                          )
-                        )
-                      
-                      ],
-                    )
-                  );
-              }
-            );
 
-            sheetController.closed.then((E) {
-              _controller?.removeLayer('layer_selectedPoint');
-              _controller?.removeSource('source_selectedPoint');
-            });
-          }
+          // -------------------------------------------------------------------------------------------------------------------------------------------- //
+
+          // Used to remove long press pin icon from map
+          // _controller?.removeLayer('layer_selectedPoint');
+          // _controller?.removeSource('source_selectedPoint');
+
         },
-        onStyleLoadedCallback: addLayers,
+        // onStyleLoadedCallback: addLayers, (COMMENTED OUT UNTIL WE FIGURE OUT IF TO DISPLAY JEEPNEY AND TRICYCLE TERMINALS)
+
+        // Defaults to partial zoom of Pampanga
         initialCameraPosition: const CameraPosition(
           target: LatLng(15.0283971, 120.6292148),
           zoom: 9,
