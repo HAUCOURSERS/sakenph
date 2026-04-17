@@ -6,8 +6,7 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:http/http.dart' as http;
 import 'package:sakenph/database_service.dart';
 import 'package:sakenph/terminal_class.dart';
-import 'package:sakenph/classes/RouteSegment.dart';
-import 'package:sakenph/classes/RouteResponse.dart';
+import 'package:sakenph/classes/json_response.dart';
 
 class MapWidget extends StatefulWidget {
 
@@ -184,7 +183,7 @@ class _MapWidget extends State<MapWidget> {
     // Position gpsLocation = await determinePosition();
 
 
-    final response = await http.get(Uri.parse('http://$localIp:8000/shortest_path?src=${15.132608495251404},${120.58926719239084}&dest=${dest.latitude},${dest.longitude}'));
+    final response = await http.get(Uri.parse('http://$localIp:8000/shortest_path?src=${15.168578676755713},${120.584939093007}&dest=${dest.latitude},${dest.longitude}'));
     
     if (response.statusCode == 200) {
       final Map<String, dynamic> json = jsonDecode(response.body);
@@ -207,17 +206,17 @@ class _MapWidget extends State<MapWidget> {
         String layerId = "route-$sourceLayerId";  routeLayerIds.add(layerId);
 
         LineLayerProperties layerStyle;
-        if (route.type == 'walk') {
+        if (route.mode.type == 'walk') {
           // Blue dotted lines to indicate walking route
           layerStyle = LineLayerProperties(
-            lineColor: '#2005ed',
+            lineColor: route.mode.details.color,
             lineWidth: 3.0,
             lineDasharray: [1,1]
           );
         } else {
           // Solid lines to indicate vehicle route
           layerStyle = LineLayerProperties(
-            lineColor: '#821df5',
+            lineColor: route.mode.details.color,
             lineWidth: 3.0,
           );
         }
