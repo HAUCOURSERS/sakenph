@@ -14,6 +14,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePage extends State<HomePage> {
   late Future<Map<dynamic, dynamic>> json;
+  String originName = '';
+  String destName = '';
 
   @override
   void initState() {
@@ -22,8 +24,21 @@ class _HomePage extends State<HomePage> {
 
   }
 
+  Future<String> reverseGeocode({required double longitude, required double latitude}) async {
+    final response = await http.get(Uri.parse('https://nominatim.openstreetmap.org/reverse?lat=$latitude&lon=$longitude&format=jsonv2'));
+
+    if (response.statusCode == 200) {
+      Map<String, dynamic> jsonObject = jsonDecode(response.body);
+
+      return jsonObject['display_name'];
+    } else {
+      throw Exception('Failed to load JSON');
+    }
+  }
+
+
   Future<Map<String, dynamic>> fetchData() async {
-    String localIp = "127.0.0.1";
+    String localIp = "192.168.100.7";
     final response = await http.get(Uri.parse('http://${localIp}:8000/flutterTest'));
 
     if (response.statusCode == 200) {
