@@ -20,6 +20,8 @@ class MapWidget extends StatefulWidget {
 class _MapWidget extends State<MapWidget> {
   MapLibreMapController? _controller;
   String mapStyle = "";
+
+  // Keeps track of sourceIds and routeIds created from rendering a route
   List<String> routeSourceIds = [];
   List<String> routeLayerIds = [];
 
@@ -174,19 +176,21 @@ class _MapWidget extends State<MapWidget> {
     }
   }
 
+  // Function that calls result from shortestPathTest() in backend and renders the path
+  // TO DO:
+  // shortestPath() should also have src parameter, it should be retrieved from a separate coordinates value from the source/dest TextBox
   Future<void> shortestPath(LatLng dest) async {
     String localIp = "192.168.100.7";
     // Position gpsLocation = await determinePosition();
 
-    //  print('http://$localIp:8000/shortest_path?src=${gpsLocation.latitude},${gpsLocation.longitude}&dest=${dest.latitude},${dest.longitude}');
-    //  final response = await http.get(Uri.parse('http://$localIp:8000/shortest_path?src=${gpsLocation.latitude},${gpsLocation.longitude}&dest=${dest.latitude},${dest.longitude}'));
 
-    final response = await http.get(Uri.parse('http://$localIp:8000/shortest_path?src=${15.178158364385455},${120.58740608258177}&dest=${dest.latitude},${dest.longitude}'));
+    final response = await http.get(Uri.parse('http://$localIp:8000/shortest_path?src=${15.132608495251404},${120.58926719239084}&dest=${dest.latitude},${dest.longitude}'));
     
     if (response.statusCode == 200) {
       final Map<String, dynamic> json = jsonDecode(response.body);
       final RouteResponse multimodalRoute = RouteResponse.fromJson(json);
 
+      // Removes all existing route sources and layers to avoid duplicates
       for (String i in routeLayerIds) {
         _controller?.removeLayer(i);
       }
@@ -196,7 +200,7 @@ class _MapWidget extends State<MapWidget> {
       }
       routeSourceIds.clear();
 
-
+      // Renders a separate and preferably distinguishable line for each route
       int sourceLayerId = 1;
       for (RouteSegment route in multimodalRoute.route) {
         String sourceId = "route-$sourceLayerId"; routeSourceIds.add(sourceId);
@@ -204,18 +208,22 @@ class _MapWidget extends State<MapWidget> {
 
         LineLayerProperties layerStyle;
         if (route.type == 'walk') {
+          // Blue dotted lines to indicate walking route
           layerStyle = LineLayerProperties(
             lineColor: '#2005ed',
             lineWidth: 3.0,
             lineDasharray: [1,1]
           );
         } else {
+          // Solid lines to indicate vehicle route
           layerStyle = LineLayerProperties(
             lineColor: '#821df5',
             lineWidth: 3.0,
           );
         }
 
+        // Defines the specific geometry of the route line
+        // route.geometry is a list of coordinate pairs that form a line
         await _controller!.addGeoJsonSource(
           sourceId,
           {
@@ -232,19 +240,20 @@ class _MapWidget extends State<MapWidget> {
             ]
         });
 
+        // Defines the style of the line
         await _controller!.addLineLayer(
           sourceId, 
           layerId, 
           layerStyle
         );
 
-        
         sourceLayerId++;
       }
 
     }
   }
 
+  // Uses geolocator package to get current location
  Future<Position> determinePosition() async {
     bool serviceEnabled;
     LocationPermission permission;
@@ -287,7 +296,7 @@ class _MapWidget extends State<MapWidget> {
         onMapCreated: (c) async {
 
           // Gets point of current location of GPS
-          // Position gpsLocation = await determinePosition();
+          Position gpsLocation = await determinePosition();
 
           _controller = c;
 
@@ -319,7 +328,7 @@ class _MapWidget extends State<MapWidget> {
                     'type': 'Feature',
                     'geometry': {
                       'type': 'Point',
-                      'coordinates': [120.58740608258177, 15.178158364385455],
+                      'coordinates': [gpsLocation.longitude, gpsLocation.latitude],
                     },
                   },
                 ],
@@ -340,9 +349,9 @@ class _MapWidget extends State<MapWidget> {
           
         },
 
-        // onMapLongClick adds a point on the map and shows a bottom sheet when user long presses on a spot somewhere in the map
         onMapLongClick: (point, coordinates) async {
 
+          // Calculates and displays shortest path to point where user long presses
           shortestPath(coordinates);
 
           // Remove layer and source of pin if there is one currently on the map
@@ -350,44 +359,36 @@ class _MapWidget extends State<MapWidget> {
           _controller?.removeSource('source_selectedPoint');
 
           // --- Add source and layer of long press pin --- //
-          await _controller?.addSource(
-            'source_selectedPoint',
-            GeojsonSourceProperties(
-              data: {
-                'type': 'FeatureCollection',
-                'features': [
-                  {
-                    'type': 'Feature',
-                    'geometry': {
-                      'type': 'Point',
-                      'coordinates': [coordinates.longitude, coordinates.latitude],
-                    },
-                  },
-                ],
-              },
-            ),
-          );
+          // await _controller?.addSource(
+          //   'source_selectedPoint',
+          //   GeojsonSourceProperties(
+          //     data: {
+          //       'type': 'FeatureCollection',
+          //       'features': [
+          //         {
+          //           'type': 'Feature',
+          //           'geometry': {
+          //             'type': 'Point',
+          //             'coordinates': [coordinates.longitude, coordinates.latitude],
+          //           },
+          //         },
+          //       ],
+          //     },
+          //   ),
+          // );
 
-          await _controller?.addLayer(
-            'source_selectedPoint',
-            'layer_selectedPoint',
-            const SymbolLayerProperties(
-              iconImage: 'mapmarker',
-              iconSize: 0.4,
-            ),
-            minzoom: 8,
-          );
+          // await _controller?.addLayer(
+          //   'source_selectedPoint',
+          //   'layer_selectedPoint',
+          //   const SymbolLayerProperties(
+          //     iconImage: 'mapmarker',
+          //     iconSize: 0.4,
+          //   ),
+          //   minzoom: 8,
+          // );
 
-          
           // ---------------------------------------------- //
           
-          // -- Function that shows destination text box that automatically defaults to coordinates or street name when long pressed, similar to GMaps -- //
-
-
-
-
-
-          // -------------------------------------------------------------------------------------------------------------------------------------------- //
 
           // Used to remove long press pin icon from map
           // _controller?.removeLayer('layer_selectedPoint');
