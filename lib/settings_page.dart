@@ -15,23 +15,23 @@ class _SettingsPage extends State<SettingsPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blue,
-        title: Text('Settings')
+        title: Text('Navigation Settings'),
       ),
       body: Column(
         children: [
           ListTile(
             title: Text('Tricycles'),
             trailing: Switch(
-              value: toggleToda, 
+              value: toggleToda,
               onChanged: (value) {
                 setState(() {
                   toggleToda = value;
                 });
               },
             ),
-          )
+          ),
         ],
-      )
+      ),
     );
   }
 }
