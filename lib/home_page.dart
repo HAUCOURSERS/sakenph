@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:maplibre_gl/maplibre_gl.dart' show LatLng;
+import 'package:sakenph/classes/nominatim_response.dart';
+import 'package:sakenph/functions/functions_home_page.dart'
+    show searchPlaces, fetchData;
 import 'package:sakenph/map_widget.dart';
 import 'package:sakenph/settings_page.dart';
-import 'package:http/http.dart' as http;
-import 'dart:developer';
-import 'dart:convert';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,41 +14,41 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePage extends State<HomePage> {
+  final GlobalKey<MapWidgetState> _mapKey = GlobalKey<MapWidgetState>();
+
   late Future<Map<dynamic, dynamic>> json;
   String originName = '';
   String destName = '';
+
+  /// Whether to display the dropdown visual
+  bool _showDropdownFor_toLocation = false;
+  bool _isLoading = true;
+  List<NominatimPlace> _toLocationResults = [];
+
+  /// Calls Nominatim Public API to do searches. This function has to be inside of this
+  /// state class to perform setState() calls.
+  void querySearchPlaces(String query) async {
+    print("[TEMP] searchPlaces() called!");
+
+    setState(() {
+      _isLoading = true;
+      _toLocationResults = [];
+    });
+
+    final results = await searchPlaces(query);
+
+    setState(() {
+      _isLoading = false;
+      _toLocationResults = results;
+    });
+  }
 
   @override
   void initState() {
     super.initState();
     json = fetchData();
-
   }
 
-  Future<String> reverseGeocode({required double longitude, required double latitude}) async {
-    final response = await http.get(Uri.parse('https://nominatim.openstreetmap.org/reverse?lat=$latitude&lon=$longitude&format=jsonv2'));
-
-    if (response.statusCode == 200) {
-      Map<String, dynamic> jsonObject = jsonDecode(response.body);
-
-      return jsonObject['display_name'];
-    } else {
-      throw Exception('Failed to load JSON');
-    }
-  }
-
-
-  Future<Map<String, dynamic>> fetchData() async {
-    String localIp = "192.168.100.7";
-    final response = await http.get(Uri.parse('http://${localIp}:8000/flutterTest'));
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to load JSON');
-    }
-  }
-    
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,81 +56,145 @@ class _HomePage extends State<HomePage> {
         automaticallyImplyLeading: false,
         backgroundColor: Colors.blue,
         title: ListTile(
-          title: Text("Test"),
+          title: Text("SakenPH"),
           trailing: PopupMenuButton(
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
               PopupMenuItem<String>(value: 'Settings', child: Text('Settings')),
             ],
             onSelected: (value) async {
-              if (value=='Settings') {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => SettingsPage()),
-                );
+              if (value == 'Settings') {
+                Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (context) => SettingsPage()));
               }
-            }
-          )
+            },
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(onPressed: () async {
-      }),
+      floatingActionButton: FloatingActionButton(onPressed: () async {}),
       body: Stack(
         children: [
-          
-          MapWidget(),
+          MapWidget(key: _mapKey),
           Center(
             child: Column(
               children: [
+                /// From Location
                 Container(
-                  width: 320, height: 40,
+                  width: 320,
+                  height: 40,
                   margin: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey, width:1),
+                    border: Border.all(color: Colors.grey, width: 1),
                     color: const Color.fromARGB(255, 227, 241, 255),
-                    borderRadius: BorderRadius.circular(32)
+                    borderRadius: BorderRadius.circular(32),
                   ),
-                  child: Center(
-                    child: Text("From:"),
-                  )
+                  child: Padding(
+                    padding: EdgeInsetsGeometry.all(5),
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: "Enter From Location: Hardcoded for now",
+                      ),
+                    ),
+                  ),
                 ),
+
+                /// To Location
                 Container(
-                  width: 320, height: 40,
+                  width: 320,
                   margin: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey, width:1),
+                    border: Border.all(color: Colors.grey, width: 1),
                     color: const Color.fromARGB(255, 227, 241, 255),
-                    borderRadius: BorderRadius.circular(32)
+                    borderRadius: BorderRadius.circular(32),
                   ),
-                  child: Center(
-                    child: Text("To:"),
-                  )
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: EdgeInsetsGeometry.all(5),
+                        child: TextField(
+                          onSubmitted: (value) {
+                            setState(() {
+                              _showDropdownFor_toLocation = true;
+                            });
+                            querySearchPlaces(value);
+                          },
+                          decoration: InputDecoration(
+                            hintText: "Enter To Location:",
+                          ),
+                        ),
+                      ),
+
+                      if (_showDropdownFor_toLocation)
+                        ConstrainedBox(
+                          constraints: BoxConstraints(maxHeight: 200),
+                          child: _isLoading
+                              // show loading indicator while waiting
+                              ? Center(child: CircularProgressIndicator())
+                              // show results once returned
+                              : ListView.separated(
+                                  shrinkWrap: true,
+                                  padding: EdgeInsets.all(5),
+                                  itemCount: _toLocationResults.length,
+                                  separatorBuilder: (context, index) =>
+                                      Divider(color: Colors.grey, height: 1),
+                                  itemBuilder: (context, index) {
+                                    final place = _toLocationResults[index];
+                                    return GestureDetector(
+                                      onTap: () {
+                                        //print(place.displayName);
+                                        final lat = place.lat;
+                                        final lon = place.lon;
+                                        _mapKey.currentState?.selectDestination(
+                                          LatLng(lat, lon),
+                                        );
+                                        setState(() {
+                                          _showDropdownFor_toLocation =
+                                              false; // close dropdown on select
+                                        });
+                                      },
+                                      child: Container(
+                                        height: 40,
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                        ),
+                                        child: Text(place.name),
+                                      ),
+                                    );
+                                  },
+                                ),
+                        ),
+                    ],
+                  ),
                 ),
 
                 Container(
-                  width: 320, height: 40,
+                  width: 320,
+                  height: 40,
                   margin: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey, width:1),
+                    border: Border.all(color: Colors.grey, width: 1),
                     color: const Color.fromARGB(255, 227, 241, 255),
-                    borderRadius: BorderRadius.circular(32)
+                    borderRadius: BorderRadius.circular(32),
                   ),
                   child: Center(
                     child: FutureBuilder(
-                      future: json, 
+                      future: json,
                       builder: (context, snapshot) {
                         if (snapshot.hasData) {
                           return Text(snapshot.data!['key']);
                         } else {
                           return Text('${snapshot.error}');
                         }
-                      }
-                      ),
-                  )
+                      },
+                    ),
+                  ),
                 ),
               ],
             ),
-          )
+          ),
         ],
-      )
+      ),
     );
   }
 }

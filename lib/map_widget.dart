@@ -9,14 +9,16 @@ import 'package:sakenph/terminal_class.dart';
 import 'package:sakenph/classes/json_response.dart';
 
 class MapWidget extends StatefulWidget {
+  /// Method exposer
+  final Function(LatLng)? onDestinationSelected;
 
-  const MapWidget({super.key});
+  const MapWidget({super.key, this.onDestinationSelected});
 
   @override
-  State<MapWidget> createState() => _MapWidget();
+  State<MapWidget> createState() => MapWidgetState();
 }
 
-class _MapWidget extends State<MapWidget> {
+class MapWidgetState extends State<MapWidget> {
   MapLibreMapController? _controller;
   String mapStyle = "";
 
@@ -24,76 +26,76 @@ class _MapWidget extends State<MapWidget> {
   List<String> routeSourceIds = [];
   List<String> routeLayerIds = [];
 
-
-  
   // Loads custom map style from assets based on Stadia Map's OSM Bright style
   Future<void> _loadStyle() async {
-    final json = await rootBundle.loadString('assets/map_styles/osm_bright2.json');
+    final json = await rootBundle.loadString(
+      'assets/map_styles/osm_bright2.json',
+    );
 
     setState(() => mapStyle = json);
   }
 
-    @override
-    void initState() {
-      super.initState();
-      _loadStyle();
-    }
+  /// Method exposer
+  void selectDestination(LatLng coords) {
+    shortestPath(coords); // run the path
+    widget.onDestinationSelected?.call(coords); // notify parent if needed
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStyle();
+    //addLayers();
+  }
 
   // UNUSED FUNCTION FOR NOW: used when clicked on a TODA Terminal icon
   Future<void> clickedTLayer(String layerId) async {
     print("In function:");
     if (context.mounted) {
-    print("Context is mounted");
+      print("Context is mounted");
 
       int terminalId = int.parse(layerId.replaceAll('layer_', ""));
-      final Terminal tappedTerminal = await DatabaseService().getTerminalById(terminalId);
-    print("Terminal retrieved");
-
-      final sheetController = Scaffold.of(context).showBottomSheet(
-        (context) {
-          return Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(32),
-                color: const Color.fromARGB(255, 227, 241, 253)
-              ),
-              width: MediaQuery.of(context).size.width,
-              height: 300, 
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Column(
-                    children: [
-                      Text('Jeepney Terminal'),
-                      Text(tappedTerminal.name)
-                    ],
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    }, 
-                    child: Container(
-                      width: 320,
-                      decoration: BoxDecoration(
-                        color: Colors.blue, 
-                        borderRadius: BorderRadius.circular(32)
-                      ),
-                      padding: EdgeInsets.all(10),
-                      child: Text(
-                        "Add Terminal",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                        ),
-                      )
-                    )
-                  )
-                
-                ],
-              )
-            );
-        }
+      final Terminal tappedTerminal = await DatabaseService().getTerminalById(
+        terminalId,
       );
+      print("Terminal retrieved");
+
+      final sheetController = Scaffold.of(context).showBottomSheet((context) {
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(32),
+            color: const Color.fromARGB(255, 227, 241, 253),
+          ),
+          width: MediaQuery.of(context).size.width,
+          height: 300,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              Column(
+                children: [Text('Jeepney Terminal'), Text(tappedTerminal.name)],
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Container(
+                  width: 320,
+                  decoration: BoxDecoration(
+                    color: Colors.blue,
+                    borderRadius: BorderRadius.circular(32),
+                  ),
+                  padding: EdgeInsets.all(10),
+                  child: Text(
+                    "Add Terminal",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white, fontSize: 24),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      });
       sheetController.closed.then((E) {
         _controller?.removeLayer('layer_selectedPoint');
         _controller?.removeSource('source_selectedPoint');
@@ -101,7 +103,7 @@ class _MapWidget extends State<MapWidget> {
     }
   }
 
-  // Function used
+  /// Function used. (Currently unused?)
   void addLayers() {
     addTerminalLayers();
     addTodaLayers();
@@ -132,11 +134,8 @@ class _MapWidget extends State<MapWidget> {
       await _controller?.addLayer(
         'source_${t.id}',
         'layer_${t.id}',
-        const SymbolLayerProperties(
-          iconImage: 'toda',
-          iconSize: 0.25,
-        ),
-        minzoom: 12
+        const SymbolLayerProperties(iconImage: 'toda', iconSize: 0.25),
+        minzoom: 12,
       );
     }
   }
@@ -166,11 +165,8 @@ class _MapWidget extends State<MapWidget> {
       await _controller?.addLayer(
         'source_${t.id}',
         'layer_${t.id}',
-        const SymbolLayerProperties(
-          iconImage: 'bus',
-          iconSize: 1.5,
-        ),
-        minzoom: 8
+        const SymbolLayerProperties(iconImage: 'bus', iconSize: 1.5),
+        minzoom: 8,
       );
     }
   }
@@ -179,12 +175,16 @@ class _MapWidget extends State<MapWidget> {
   // TO DO:
   // shortestPath() should also have src parameter, it should be retrieved from a separate coordinates value from the source/dest TextBox
   Future<void> shortestPath(LatLng dest) async {
-    String localIp = "192.168.100.7";
+    print("[TEMP] shortestPath() Method Called!");
+    String localIp = "192.168.68.58";
     // Position gpsLocation = await determinePosition();
 
+    final response = await http.get(
+      Uri.parse(
+        'http://$localIp:8000/shortest_path?src=${15.168578676755713},${120.584939093007}&dest=${dest.latitude},${dest.longitude}',
+      ),
+    );
 
-    final response = await http.get(Uri.parse('http://$localIp:8000/shortest_path?src=${15.168578676755713},${120.584939093007}&dest=${dest.latitude},${dest.longitude}'));
-    
     if (response.statusCode == 200) {
       final Map<String, dynamic> json = jsonDecode(response.body);
       final RouteResponse multimodalRoute = RouteResponse.fromJson(json);
@@ -202,8 +202,10 @@ class _MapWidget extends State<MapWidget> {
       // Renders a separate and preferably distinguishable line for each route
       int sourceLayerId = 1;
       for (RouteSegment route in multimodalRoute.route) {
-        String sourceId = "route-$sourceLayerId"; routeSourceIds.add(sourceId);
-        String layerId = "route-$sourceLayerId";  routeLayerIds.add(layerId);
+        String sourceId = "route-$sourceLayerId";
+        routeSourceIds.add(sourceId);
+        String layerId = "route-$sourceLayerId";
+        routeLayerIds.add(layerId);
 
         LineLayerProperties layerStyle;
         if (route.mode.type == 'walk') {
@@ -211,7 +213,7 @@ class _MapWidget extends State<MapWidget> {
           layerStyle = LineLayerProperties(
             lineColor: route.mode.details.color,
             lineWidth: 3.0,
-            lineDasharray: [1,1]
+            lineDasharray: [1, 1],
           );
         } else {
           // Solid lines to indicate vehicle route
@@ -223,37 +225,27 @@ class _MapWidget extends State<MapWidget> {
 
         // Defines the specific geometry of the route line
         // route.geometry is a list of coordinate pairs that form a line
-        await _controller!.addGeoJsonSource(
-          sourceId,
-          {
-            'type': 'FeatureCollection',
-            'features': [
-              {
-                'type': 'Feature',
-                'properties': {},
-                'geometry': {
-                  'type': 'LineString',
-                  'coordinates': route.geometry
-                }
-              }
-            ]
+        await _controller!.addGeoJsonSource(sourceId, {
+          'type': 'FeatureCollection',
+          'features': [
+            {
+              'type': 'Feature',
+              'properties': {},
+              'geometry': {'type': 'LineString', 'coordinates': route.geometry},
+            },
+          ],
         });
 
         // Defines the style of the line
-        await _controller!.addLineLayer(
-          sourceId, 
-          layerId, 
-          layerStyle
-        );
+        await _controller!.addLineLayer(sourceId, layerId, layerStyle);
 
         sourceLayerId++;
       }
-
     }
   }
 
   // Uses geolocator package to get current location
- Future<Position> determinePosition() async {
+  Future<Position> determinePosition() async {
     bool serviceEnabled;
     LocationPermission permission;
 
@@ -270,137 +262,135 @@ class _MapWidget extends State<MapWidget> {
       if (permission == LocationPermission.denied) {
         // Permissions are denied, next time you could try
         // requesting permissions again (this is also where
-        // Android's shouldShowRequestPermissionRationale 
+        // Android's shouldShowRequestPermissionRationale
         // returned true. According to Android guidelines
         // your App should show an explanatory UI now.
         return Future.error('Location permissions are denied');
       }
     }
-    
+
     if (permission == LocationPermission.deniedForever) {
-      // Permissions are denied forever, handle appropriately. 
+      // Permissions are denied forever, handle appropriately.
       return Future.error(
-        'Location permissions are permanently denied, we cannot request permissions.');
-    } 
+        'Location permissions are permanently denied, we cannot request permissions.',
+      );
+    }
 
     // When we reach here, permissions are granted and we can
     // continue accessing the position of the device.
     return await Geolocator.getCurrentPosition();
   }
+
   @override
   Widget build(BuildContext context) {
     return MapLibreMap(
-        styleString: mapStyle,
-        
-        onMapCreated: (c) async {
+      styleString: mapStyle,
 
-          // Gets point of current location of GPS
-          Position gpsLocation = await determinePosition();
+      onMapCreated: (c) async {
+        // Gets point of current location of GPS
+        Position gpsLocation = await determinePosition();
 
-          _controller = c;
+        _controller = c;
 
-          // Function that triggers when you click on a TODA icon
-          // _controller!.onFeatureTapped.add((point, coordinates, id, layerId, annotation) {
-          //   clickedTLayer(layerId);
-          // },);
+        // Function that triggers when you click on a TODA icon
+        // _controller!.onFeatureTapped.add((point, coordinates, id, layerId, annotation) {
+        //   clickedTLayer(layerId);
+        // },);
 
-          // Load tricycle icon to list of icons
-          final ByteData bytes = await rootBundle.load('assets/img/toda.png');
-          final Uint8List list = bytes.buffer.asUint8List();
-          _controller!.addImage('toda', list);
+        // Load tricycle icon to list of icons
+        final ByteData bytes = await rootBundle.load('assets/img/toda.png');
+        final Uint8List list = bytes.buffer.asUint8List();
+        _controller!.addImage('toda', list);
 
-          // Load map marker (GPS Location) icon to list of icons
-          final ByteData bytes2 = await rootBundle.load('assets/img/mapmarker.png');
-          final Uint8List list2 = bytes2.buffer.asUint8List();
-          _controller!.addImage('mapmarker', list2);
-          _controller!.setSymbolIconAllowOverlap(true);
+        // Load map marker (GPS Location) icon to list of icons
+        final ByteData bytes2 = await rootBundle.load(
+          'assets/img/mapmarker.png',
+        );
+        final Uint8List list2 = bytes2.buffer.asUint8List();
+        _controller!.addImage('mapmarker', list2);
+        _controller!.setSymbolIconAllowOverlap(true);
 
-
-          // ----------- Add Source & Layer of current location ------------- //
-          await _controller?.addSource(
-            'source_currentLocation',
-            GeojsonSourceProperties(
-              data: {
-                'type': 'FeatureCollection',
-                'features': [
-                  {
-                    'type': 'Feature',
-                    'geometry': {
-                      'type': 'Point',
-                      'coordinates': [gpsLocation.longitude, gpsLocation.latitude],
-                    },
+        // ----------- Add Source & Layer of current location ------------- //
+        await _controller?.addSource(
+          'source_currentLocation',
+          GeojsonSourceProperties(
+            data: {
+              'type': 'FeatureCollection',
+              'features': [
+                {
+                  'type': 'Feature',
+                  'geometry': {
+                    'type': 'Point',
+                    'coordinates': [
+                      gpsLocation.longitude,
+                      gpsLocation.latitude,
+                    ],
                   },
-                ],
-              },
-            ),
-          );
+                },
+              ],
+            },
+          ),
+        );
 
-          await _controller?.addLayer(
-            'source_currentLocation',
-            'layer_currentLocation',
-            const SymbolLayerProperties(
-              iconImage: 'mapmarker',
-              iconSize: 0.4,
-            ),
-            minzoom: 8,
-          );
-          // ------------------------------------------------------------------ //
-          
-        },
+        await _controller?.addLayer(
+          'source_currentLocation',
+          'layer_currentLocation',
+          const SymbolLayerProperties(iconImage: 'mapmarker', iconSize: 0.4),
+          minzoom: 8,
+        );
+        // ------------------------------------------------------------------ //
+      },
 
-        onMapLongClick: (point, coordinates) async {
+      onMapLongClick: (point, coordinates) async {
+        // Calculates and displays shortest path to point where user long presses
+        shortestPath(coordinates);
 
-          // Calculates and displays shortest path to point where user long presses
-          shortestPath(coordinates);
+        // Remove layer and source of pin if there is one currently on the map
+        _controller?.removeLayer('layer_selectedPoint');
+        _controller?.removeSource('source_selectedPoint');
 
-          // Remove layer and source of pin if there is one currently on the map
-          _controller?.removeLayer('layer_selectedPoint');
-          _controller?.removeSource('source_selectedPoint');
+        // --- Add source and layer of long press pin --- //
+        // await _controller?.addSource(
+        //   'source_selectedPoint',
+        //   GeojsonSourceProperties(
+        //     data: {
+        //       'type': 'FeatureCollection',
+        //       'features': [
+        //         {
+        //           'type': 'Feature',
+        //           'geometry': {
+        //             'type': 'Point',
+        //             'coordinates': [coordinates.longitude, coordinates.latitude],
+        //           },
+        //         },
+        //       ],
+        //     },
+        //   ),
+        // );
 
-          // --- Add source and layer of long press pin --- //
-          // await _controller?.addSource(
-          //   'source_selectedPoint',
-          //   GeojsonSourceProperties(
-          //     data: {
-          //       'type': 'FeatureCollection',
-          //       'features': [
-          //         {
-          //           'type': 'Feature',
-          //           'geometry': {
-          //             'type': 'Point',
-          //             'coordinates': [coordinates.longitude, coordinates.latitude],
-          //           },
-          //         },
-          //       ],
-          //     },
-          //   ),
-          // );
+        // await _controller?.addLayer(
+        //   'source_selectedPoint',
+        //   'layer_selectedPoint',
+        //   const SymbolLayerProperties(
+        //     iconImage: 'mapmarker',
+        //     iconSize: 0.4,
+        //   ),
+        //   minzoom: 8,
+        // );
 
-          // await _controller?.addLayer(
-          //   'source_selectedPoint',
-          //   'layer_selectedPoint',
-          //   const SymbolLayerProperties(
-          //     iconImage: 'mapmarker',
-          //     iconSize: 0.4,
-          //   ),
-          //   minzoom: 8,
-          // );
+        // ---------------------------------------------- //
 
-          // ---------------------------------------------- //
-          
+        // Used to remove long press pin icon from map
+        // _controller?.removeLayer('layer_selectedPoint');
+        // _controller?.removeSource('source_selectedPoint');
+      },
+      // onStyleLoadedCallback: addLayers, (COMMENTED OUT UNTIL WE FIGURE OUT IF TO DISPLAY JEEPNEY AND TRICYCLE TERMINALS)
 
-          // Used to remove long press pin icon from map
-          // _controller?.removeLayer('layer_selectedPoint');
-          // _controller?.removeSource('source_selectedPoint');
-
-        },
-        // onStyleLoadedCallback: addLayers, (COMMENTED OUT UNTIL WE FIGURE OUT IF TO DISPLAY JEEPNEY AND TRICYCLE TERMINALS)
-
-        // Defaults to partial zoom of Pampanga
-        initialCameraPosition: const CameraPosition(
-          target: LatLng(15.0283971, 120.6292148),
-          zoom: 9,
-        ),
-      );
+      // Defaults to partial zoom of Pampanga
+      initialCameraPosition: const CameraPosition(
+        target: LatLng(15.0283971, 120.6292148),
+        zoom: 9,
+      ),
+    );
   }
 }
