@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:maplibre_gl/maplibre_gl.dart' show LatLng;
 import 'package:sakenph/classes/nominatim_response.dart';
 import 'package:sakenph/functions/functions_home_page.dart'
     show searchPlaces, fetchData;
 import 'package:sakenph/map_widget.dart';
+import 'package:sakenph/providers/provider_selected_loc.dart';
 import 'package:sakenph/settings_page.dart';
+import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,8 +15,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePage extends State<HomePage> {
-  final GlobalKey<MapWidgetState> _mapKey = GlobalKey<MapWidgetState>();
-
   late Future<Map<dynamic, dynamic>> json;
   String originName = '';
   String destName = '';
@@ -74,7 +73,7 @@ class _HomePage extends State<HomePage> {
       floatingActionButton: FloatingActionButton(onPressed: () async {}),
       body: Stack(
         children: [
-          MapWidget(key: _mapKey),
+          MapWidget(),
           Center(
             child: Column(
               children: [
@@ -142,12 +141,11 @@ class _HomePage extends State<HomePage> {
                                     final place = _toLocationResults[index];
                                     return GestureDetector(
                                       onTap: () {
-                                        //print(place.displayName);
                                         final lat = place.lat;
                                         final lon = place.lon;
-                                        _mapKey.currentState?.selectDestination(
-                                          LatLng(lat, lon),
-                                        );
+                                        context
+                                            .read<LatLongProvider>()
+                                            .setToLoc(lat, lon);
                                         setState(() {
                                           _showDropdownFor_toLocation =
                                               false; // close dropdown on select

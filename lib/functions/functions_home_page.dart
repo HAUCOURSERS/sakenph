@@ -49,7 +49,7 @@ Future<String> reverseGeocode({
 /// Currently used to test connection towards backend.
 /// If connection is successful, it will return "Hello from FastAPI!"
 Future<Map<String, dynamic>> fetchData() async {
-  String localIp = "192.168.68.58";
+  String localIp = "192.168.68.63";
   final response = await http.get(
     Uri.parse('http://${localIp}:8000/flutterTest'),
   );

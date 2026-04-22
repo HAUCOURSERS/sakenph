@@ -5,20 +5,19 @@ import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:http/http.dart' as http;
 import 'package:sakenph/database_service.dart';
+import 'package:sakenph/providers/provider_selected_loc.dart';
 import 'package:sakenph/terminal_class.dart';
 import 'package:sakenph/classes/json_response.dart';
+import 'package:provider/provider.dart';
 
 class MapWidget extends StatefulWidget {
-  /// Method exposer
-  final Function(LatLng)? onDestinationSelected;
-
-  const MapWidget({super.key, this.onDestinationSelected});
+  const MapWidget({super.key});
 
   @override
-  State<MapWidget> createState() => MapWidgetState();
+  State<MapWidget> createState() => _MapWidget();
 }
 
-class MapWidgetState extends State<MapWidget> {
+class _MapWidget extends State<MapWidget> {
   MapLibreMapController? _controller;
   String mapStyle = "";
 
@@ -33,12 +32,6 @@ class MapWidgetState extends State<MapWidget> {
     );
 
     setState(() => mapStyle = json);
-  }
-
-  /// Method exposer
-  void selectDestination(LatLng coords) {
-    shortestPath(coords); // run the path
-    widget.onDestinationSelected?.call(coords); // notify parent if needed
   }
 
   @override
@@ -176,7 +169,7 @@ class MapWidgetState extends State<MapWidget> {
   // shortestPath() should also have src parameter, it should be retrieved from a separate coordinates value from the source/dest TextBox
   Future<void> shortestPath(LatLng dest) async {
     print("[TEMP] shortestPath() Method Called!");
-    String localIp = "192.168.68.58";
+    String localIp = "192.168.68.63";
     // Position gpsLocation = await determinePosition();
 
     final response = await http.get(
@@ -283,6 +276,11 @@ class MapWidgetState extends State<MapWidget> {
 
   @override
   Widget build(BuildContext context) {
+    LatLng? selectedToLoc = context.read<LatLongProvider>().toLoc;
+    if (selectedToLoc != null) {
+      shortestPath(selectedToLoc);
+    }
+
     return MapLibreMap(
       styleString: mapStyle,
 
