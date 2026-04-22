@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 // import 'package:sakenph/login_register.dart';
 import 'package:sakenph/home_page.dart';
 // import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:sakenph/providers/provider_selected_loc.dart';
 
 void main() async {
   // WidgetsFlutterBinding.ensureInitialized();
@@ -12,7 +14,12 @@ void main() async {
   //   anonKey: 'sb_publishable_M6rcjMdAMWceiBpMkQQOVg_ejVFeKK7'
   // );
 
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [ChangeNotifierProvider(create: (_) => LatLongProvider())],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
