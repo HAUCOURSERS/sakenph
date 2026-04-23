@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:sakenph/classes/nominatim_response.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:sakenph/globals/global_vars.dart' as global_vars show localIP;
+
 /// Calls Nominatim Public API to do searches
 Future<List<NominatimPlace>> searchPlaces(String query) async {
   final uri = Uri.parse('https://nominatim.openstreetmap.org/search').replace(
@@ -49,7 +51,7 @@ Future<String> reverseGeocode({
 /// Currently used to test connection towards backend.
 /// If connection is successful, it will return "Hello from FastAPI!"
 Future<Map<String, dynamic>> fetchData() async {
-  String localIp = "192.168.68.63";
+  String localIp = global_vars.localIP;
   final response = await http.get(
     Uri.parse('http://${localIp}:8000/flutterTest'),
   );

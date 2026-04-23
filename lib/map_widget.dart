@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:http/http.dart' as http;
 import 'package:sakenph/database_service.dart';
+import 'package:sakenph/globals/global_vars.dart' as global_vars show localIP;
 import 'package:sakenph/providers/provider_selected_loc.dart';
 import 'package:sakenph/terminal_class.dart';
 import 'package:sakenph/classes/json_response.dart';
@@ -167,14 +168,14 @@ class _MapWidget extends State<MapWidget> {
   // Function that calls result from shortestPathTest() in backend and renders the path
   // TO DO:
   // shortestPath() should also have src parameter, it should be retrieved from a separate coordinates value from the source/dest TextBox
-  Future<void> shortestPath(LatLng dest) async {
+  Future<void> shortestPath(LatLng origin, LatLng dest) async {
     print("[TEMP] shortestPath() Method Called!");
-    String localIp = "192.168.68.63";
+    String localIp = global_vars.localIP;
     // Position gpsLocation = await determinePosition();
 
     final response = await http.get(
       Uri.parse(
-        'http://$localIp:8000/shortest_path?src=${15.168578676755713},${120.584939093007}&dest=${dest.latitude},${dest.longitude}',
+        'http://$localIp:8000/shortest_path?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
       ),
     );
 
@@ -276,9 +277,11 @@ class _MapWidget extends State<MapWidget> {
 
   @override
   Widget build(BuildContext context) {
+    /// Right now, map should only display shortest path once the
+    LatLng? selectedFromLoc = context.read<LatLongProvider>().fromLoc;
     LatLng? selectedToLoc = context.read<LatLongProvider>().toLoc;
-    if (selectedToLoc != null) {
-      shortestPath(selectedToLoc);
+    if (selectedFromLoc != null && selectedToLoc != null) {
+      shortestPath(selectedFromLoc, selectedToLoc);
     }
 
     return MapLibreMap(
@@ -341,7 +344,7 @@ class _MapWidget extends State<MapWidget> {
 
       onMapLongClick: (point, coordinates) async {
         // Calculates and displays shortest path to point where user long presses
-        shortestPath(coordinates);
+        shortestPath(context.read<LatLongProvider>().fromLoc!, coordinates);
 
         // Remove layer and source of pin if there is one currently on the map
         _controller?.removeLayer('layer_selectedPoint');
