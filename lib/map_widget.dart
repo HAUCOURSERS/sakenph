@@ -173,9 +173,10 @@ class _MapWidget extends State<MapWidget> {
     String localIp = global_vars.localIP;
     // Position gpsLocation = await determinePosition();
 
+    print('http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}');
     final response = await http.get(
       Uri.parse(
-        'http://$localIp:8000/shortest_path?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
+        'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
       ),
     );
 
@@ -192,49 +193,94 @@ class _MapWidget extends State<MapWidget> {
         _controller?.removeSource(i);
       }
       routeSourceIds.clear();
+      final List<String> keys = multimodalRoute.routes.keys.toList();
 
-      // Renders a separate and preferably distinguishable line for each route
       int sourceLayerId = 1;
-      for (RouteSegment route in multimodalRoute.route) {
-        String sourceId = "route-$sourceLayerId";
-        routeSourceIds.add(sourceId);
-        String layerId = "route-$sourceLayerId";
-        routeLayerIds.add(layerId);
+      for (String result in keys) {
+        for (RouteSegment route in multimodalRoute.routes[result]!) {
+          String sourceId = "route-$sourceLayerId";
+          routeSourceIds.add(sourceId);
+          String layerId = "route-$sourceLayerId";
+          routeLayerIds.add(layerId);
 
-        LineLayerProperties layerStyle;
-        if (route.mode.type == 'walk') {
-          // Blue dotted lines to indicate walking route
-          layerStyle = LineLayerProperties(
-            lineColor: route.mode.details.color,
-            lineWidth: 3.0,
-            lineDasharray: [1, 1],
-          );
-        } else {
-          // Solid lines to indicate vehicle route
-          layerStyle = LineLayerProperties(
-            lineColor: route.mode.details.color,
-            lineWidth: 3.0,
-          );
+          LineLayerProperties layerStyle;
+          if (route.mode.type == 'walk') {
+            // Blue dotted lines to indicate walking route
+            layerStyle = LineLayerProperties(
+              lineColor: route.mode.details.color,
+              lineWidth: 3.0,
+              lineDasharray: [1, 1],
+            );
+          } else {
+            // Solid lines to indicate vehicle route
+            layerStyle = LineLayerProperties(
+              lineColor: route.mode.details.color,
+              lineWidth: 3.0,
+            );
+          }
+
+          // Defines the specific geometry of the route line
+          // route.geometry is a list of coordinate pairs that form a line
+          await _controller!.addGeoJsonSource(sourceId, {
+            'type': 'FeatureCollection',
+            'features': [
+              {
+                'type': 'Feature',
+                'properties': {},
+                'geometry': {'type': 'LineString', 'coordinates': route.geometry},
+              },
+            ],
+          });
+
+          // Defines the style of the line
+          await _controller!.addLineLayer(sourceId, layerId, layerStyle);
+
+          sourceLayerId++;
         }
-
-        // Defines the specific geometry of the route line
-        // route.geometry is a list of coordinate pairs that form a line
-        await _controller!.addGeoJsonSource(sourceId, {
-          'type': 'FeatureCollection',
-          'features': [
-            {
-              'type': 'Feature',
-              'properties': {},
-              'geometry': {'type': 'LineString', 'coordinates': route.geometry},
-            },
-          ],
-        });
-
-        // Defines the style of the line
-        await _controller!.addLineLayer(sourceId, layerId, layerStyle);
-
-        sourceLayerId++;
       }
+
+      // // Renders a separate and preferably distinguishable line for each route
+      // int sourceLayerId = 1;
+      // for (RouteSegment route in multimodalRoute.route) {
+      //   String sourceId = "route-$sourceLayerId";
+      //   routeSourceIds.add(sourceId);
+      //   String layerId = "route-$sourceLayerId";
+      //   routeLayerIds.add(layerId);
+
+      //   LineLayerProperties layerStyle;
+      //   if (route.mode.type == 'walk') {
+      //     // Blue dotted lines to indicate walking route
+      //     layerStyle = LineLayerProperties(
+      //       lineColor: route.mode.details.color,
+      //       lineWidth: 3.0,
+      //       lineDasharray: [1, 1],
+      //     );
+      //   } else {
+      //     // Solid lines to indicate vehicle route
+      //     layerStyle = LineLayerProperties(
+      //       lineColor: route.mode.details.color,
+      //       lineWidth: 3.0,
+      //     );
+      //   }
+
+      //   // Defines the specific geometry of the route line
+      //   // route.geometry is a list of coordinate pairs that form a line
+      //   await _controller!.addGeoJsonSource(sourceId, {
+      //     'type': 'FeatureCollection',
+      //     'features': [
+      //       {
+      //         'type': 'Feature',
+      //         'properties': {},
+      //         'geometry': {'type': 'LineString', 'coordinates': route.geometry},
+      //       },
+      //     ],
+      //   });
+
+      //   // Defines the style of the line
+      //   await _controller!.addLineLayer(sourceId, layerId, layerStyle);
+
+      //   sourceLayerId++;
+      // }
     }
   }
 

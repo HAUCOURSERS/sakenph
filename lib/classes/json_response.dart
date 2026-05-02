@@ -43,15 +43,21 @@ class RouteSegment {
 }
 
 class RouteResponse {
-  final List<RouteSegment> route;
+  final Map<String, List<RouteSegment>> routes;
 
-  RouteResponse({required this.route});
+  RouteResponse({required this.routes});
 
   factory RouteResponse.fromJson(Map<String, dynamic> json) {
+    final routesJson = json['routes'] as Map<String, dynamic>;
     return RouteResponse(
-      route: (json['route'] as List)
-          .map((segment) => RouteSegment.fromJson(segment))
-          .toList(),
+      routes: routesJson.map(
+        (key, value) => MapEntry(
+          key,
+          (value as List)
+              .map((segment) => RouteSegment.fromJson(segment))
+              .toList(),
+        ),
+      ),
     );
   }
 }
