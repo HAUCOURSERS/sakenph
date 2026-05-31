@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:sakenph/classes/nominatim_response.dart';
-import 'package:sakenph/functions/functions_home_page.dart'
-    show searchPlaces, fetchData;
+import 'package:sakenph/features/home_page/functions.dart'
+    show fetchData, handleLocationPermission, searchPlaces;
 import 'package:sakenph/map_widget.dart';
 import 'package:sakenph/providers/provider_selected_loc.dart';
 import 'package:sakenph/settings_page.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -57,6 +59,14 @@ class _HomePage extends State<HomePage> {
     json = fetchData();
   }
 
+  Future<Position> getUserLoc() async {
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+    return position;
+  }
+  // not needed atm
+  /*
   GestureDetector suggestionGestureBuilder(int index, _LocationSource source) {
     final place = _toLocationResults[index];
     return GestureDetector(
@@ -91,160 +101,146 @@ class _HomePage extends State<HomePage> {
     );
   }
 
+ */
+
+  bool _showUserResultsHolder = false;
+
   @override
   Widget build(BuildContext context) {
+    handleLocationPermission(context);
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.blue,
-        title: ListTile(
-          title: Text("SakenPH"),
-          trailing: PopupMenuButton(
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              PopupMenuItem<String>(value: 'Settings', child: Text('Settings')),
-            ],
-            onSelected: (value) async {
-              if (value == 'Settings') {
-                Navigator.of(
-                  context,
-                ).push(MaterialPageRoute(builder: (context) => SettingsPage()));
-              }
-            },
-          ),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(onPressed: () async {}),
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           MapWidget(),
-          Center(
-            child: Column(
+          IgnorePointer(
+            ignoring: !_showUserResultsHolder,
+            child: AnimatedOpacity(
+              opacity: _showUserResultsHolder ? 1.0 : 0.0,
+              duration: Duration(milliseconds: 200),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () async {
+                  setState(() {
+                    _showUserResultsHolder = false;
+                  });
+                },
+                child: PopScope(
+                  canPop: !_showUserResultsHolder,
+                  onPopInvokedWithResult: (didPop, result) {
+                    if (!didPop) {
+                      setState(() {
+                        print("[TEMP] PopScope triggered!");
+                        _showUserResultsHolder = false;
+                      });
+                    }
+                  },
+                  child: Container(
+                    color: Colors.white,
+                    child: ListView(
+                      children: [
+                        SizedBox(height: 60),
+                        Align(
+                          child: GestureDetector(
+                            onTap: () async {
+                              Position position =
+                                  await Geolocator.getCurrentPosition(
+                                    desiredAccuracy: LocationAccuracy.low,
+                                  );
+                              print(
+                                "[TEMP] Obtained Location: " +
+                                    position.latitude.toString() +
+                                    " | " +
+                                    position.longitude.toString(),
+                              );
+                              setState(() {
+                                context.read<LatLongProvider>().setFromLoc(
+                                  position.latitude,
+                                  position.longitude,
+                                );
+                              });
+                            },
+                            child: Container(
+                              width: MediaQuery.of(context).size.width * 0.95,
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: Colors.black,
+                                  width: 1.0,
+                                ),
+                              ),
+                              padding: EdgeInsets.all(10),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.location_on),
+                                  Text(" Click to use your location"),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Stack(
               children: [
-                /// From Location
-                Container(
-                  width: 320,
-                  margin: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey, width: 1),
-                    color: const Color.fromARGB(255, 227, 241, 255),
-                    borderRadius: BorderRadius.circular(32),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Padding(
-                        padding: EdgeInsetsGeometry.all(5),
-                        child: TextField(
-                          controller: _fromTextController,
-                          onSubmitted: (value) {
-                            setState(() {
-                              _showDropdownFor_fromLocation = true;
-                            });
-                            querySearchPlaces(value);
-                          },
-                          decoration: InputDecoration(
-                            hintText: "Enter From Location:",
+                Positioned.fill(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: SizedBox(
+                      width: MediaQuery.of(context).size.width * 0.95,
+                      child: Column(
+                        children: [
+                          TextField(
+                            style: TextStyle(fontSize: 18),
+                            onTap: () {
+                              setState(() {
+                                print("[TEMP] TextStyle onTap() Triggered");
+                                _showUserResultsHolder = true;
+                              });
+                            },
+                            decoration: InputDecoration(
+                              prefixIcon: Container(
+                                child: _showUserResultsHolder == false
+                                    ? Icon(Icons.search)
+                                    : GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _showUserResultsHolder = false;
+                                          });
+                                        },
+                                        child: Icon(Icons.arrow_back),
+                                      ),
+                              ),
+                              hintText: "Your Location",
+                              suffixIcon: GestureDetector(
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => SettingsPage(),
+                                    ),
+                                  );
+                                },
+                                child: Container(child: Icon(Icons.settings)),
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: 0,
+                                horizontal: 5,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              fillColor: Colors.white,
+                              filled: true,
+                            ),
                           ),
-                        ),
+                          SizedBox(height: 10),
+                        ],
                       ),
-
-                      if (_showDropdownFor_fromLocation)
-                        ConstrainedBox(
-                          constraints: BoxConstraints(maxHeight: 200),
-                          child: _isLoading
-                              // show loading indicator while waiting
-                              ? Center(child: CircularProgressIndicator())
-                              // show results once returned
-                              : ListView.separated(
-                                  shrinkWrap: true,
-                                  padding: EdgeInsets.all(5),
-                                  itemCount: _toLocationResults.length,
-                                  separatorBuilder: (context, index) =>
-                                      Divider(color: Colors.grey, height: 1),
-                                  itemBuilder: (context, index) {
-                                    return suggestionGestureBuilder(
-                                      index,
-                                      _LocationSource.FROM,
-                                    );
-                                  },
-                                ),
-                        ),
-                    ],
-                  ),
-                ),
-
-                /// To Location
-                Container(
-                  width: 320,
-                  margin: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey, width: 1),
-                    color: const Color.fromARGB(255, 227, 241, 255),
-                    borderRadius: BorderRadius.circular(32),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Padding(
-                        padding: EdgeInsetsGeometry.all(5),
-                        child: TextField(
-                          onSubmitted: (value) {
-                            setState(() {
-                              _showDropdownFor_toLocation = true;
-                            });
-                            querySearchPlaces(value);
-                          },
-                          decoration: InputDecoration(
-                            hintText: "Enter To Location:",
-                          ),
-                          controller: _toTextController,
-                        ),
-                      ),
-
-                      if (_showDropdownFor_toLocation)
-                        ConstrainedBox(
-                          constraints: BoxConstraints(maxHeight: 200),
-                          child: _isLoading
-                              // show loading indicator while waiting
-                              ? Center(child: CircularProgressIndicator())
-                              // show results once returned
-                              : ListView.separated(
-                                  shrinkWrap: true,
-                                  padding: EdgeInsets.all(5),
-                                  itemCount: _toLocationResults.length,
-                                  separatorBuilder: (context, index) =>
-                                      Divider(color: Colors.grey, height: 1),
-                                  itemBuilder: (context, index) {
-                                    return suggestionGestureBuilder(
-                                      index,
-                                      _LocationSource.TO,
-                                    );
-                                  },
-                                ),
-                        ),
-                    ],
-                  ),
-                ),
-
-                Container(
-                  width: 320,
-                  height: 40,
-                  margin: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey, width: 1),
-                    color: const Color.fromARGB(255, 227, 241, 255),
-                    borderRadius: BorderRadius.circular(32),
-                  ),
-                  child: Center(
-                    child: FutureBuilder(
-                      future: json,
-                      builder: (context, snapshot) {
-                        if (snapshot.hasData) {
-                          return Text(snapshot.data!['key']);
-                        } else {
-                          return Text('${snapshot.error}');
-                        }
-                      },
                     ),
                   ),
                 ),
