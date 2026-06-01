@@ -3,6 +3,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:sakenph/classes/nominatim_response.dart';
 import 'package:sakenph/features/home_page/functions.dart'
     show fetchData, handleLocationPermission, searchPlaces;
+import 'package:sakenph/features/home_page/other_widgets.dart';
 import 'package:sakenph/map_widget.dart';
 import 'package:sakenph/providers/provider_selected_loc.dart';
 import 'package:sakenph/settings_page.dart';
@@ -188,61 +189,20 @@ class _HomePage extends State<HomePage> {
           SafeArea(
             child: Stack(
               children: [
-                Positioned.fill(
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: SizedBox(
-                      width: MediaQuery.of(context).size.width * 0.95,
-                      child: Column(
-                        children: [
-                          TextField(
-                            style: TextStyle(fontSize: 18),
-                            onTap: () {
-                              setState(() {
-                                print("[TEMP] TextStyle onTap() Triggered");
-                                _showUserResultsHolder = true;
-                              });
-                            },
-                            decoration: InputDecoration(
-                              prefixIcon: Container(
-                                child: _showUserResultsHolder == false
-                                    ? Icon(Icons.search)
-                                    : GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            _showUserResultsHolder = false;
-                                          });
-                                        },
-                                        child: Icon(Icons.arrow_back),
-                                      ),
-                              ),
-                              hintText: "Your Location",
-                              suffixIcon: GestureDetector(
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => SettingsPage(),
-                                    ),
-                                  );
-                                },
-                                child: Container(child: Icon(Icons.settings)),
-                              ),
-                              contentPadding: EdgeInsets.symmetric(
-                                vertical: 0,
-                                horizontal: 5,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              fillColor: Colors.white,
-                              filled: true,
-                            ),
-                          ),
-                          SizedBox(height: 10),
-                        ],
-                      ),
-                    ),
-                  ),
+                FromLocationSearchBar(
+                  showUserResultsHolder: _showUserResultsHolder,
+                  onSearchTap: () {
+                    setState(() {
+                      print("Open Func Triggered");
+                      _showUserResultsHolder = true;
+                    });
+                  },
+                  onBackTap: () {
+                    setState(() {
+                      print("Close Func Triggered");
+                      _showUserResultsHolder = false;
+                    });
+                  },
                 ),
               ],
             ),
