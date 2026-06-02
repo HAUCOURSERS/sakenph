@@ -6,6 +6,8 @@ import 'package:sakenph/features/home_page/functions.dart'
 import 'package:sakenph/features/home_page/other_widgets.dart';
 import 'package:sakenph/map_widget.dart';
 import 'package:sakenph/providers/provider_selected_loc.dart';
+import 'package:sakenph/providers/provider_system_vars.dart'
+    show SystemVariablesProvider;
 import 'package:sakenph/settings_page.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
@@ -22,8 +24,6 @@ enum _LocationSource { FROM, TO }
 
 class _HomePage extends State<HomePage> {
   late Future<Map<dynamic, dynamic>> json;
-  String originName = '';
-  String destName = '';
 
   final TextEditingController _fromTextController = TextEditingController();
   final TextEditingController _toTextController = TextEditingController();
@@ -104,8 +104,6 @@ class _HomePage extends State<HomePage> {
 
  */
 
-  bool _showUserResultsHolder = false;
-
   @override
   Widget build(BuildContext context) {
     handleLocationPermission(context);
@@ -113,100 +111,16 @@ class _HomePage extends State<HomePage> {
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
+          /// Renders the map
           MapWidget(),
-          IgnorePointer(
-            ignoring: !_showUserResultsHolder,
-            child: AnimatedOpacity(
-              opacity: _showUserResultsHolder ? 1.0 : 0.0,
-              duration: Duration(milliseconds: 200),
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () async {
-                  setState(() {
-                    _showUserResultsHolder = false;
-                  });
-                },
-                child: PopScope(
-                  canPop: !_showUserResultsHolder,
-                  onPopInvokedWithResult: (didPop, result) {
-                    if (!didPop) {
-                      setState(() {
-                        print("[TEMP] PopScope triggered!");
-                        _showUserResultsHolder = false;
-                      });
-                    }
-                  },
-                  child: Container(
-                    color: Colors.white,
-                    child: ListView(
-                      children: [
-                        SizedBox(height: 60),
-                        Align(
-                          child: GestureDetector(
-                            onTap: () async {
-                              Position position =
-                                  await Geolocator.getCurrentPosition(
-                                    desiredAccuracy: LocationAccuracy.low,
-                                  );
-                              print(
-                                "[TEMP] Obtained Location: " +
-                                    position.latitude.toString() +
-                                    " | " +
-                                    position.longitude.toString(),
-                              );
-                              setState(() {
-                                context.read<LatLongProvider>().setFromLoc(
-                                  position.latitude,
-                                  position.longitude,
-                                );
-                              });
-                            },
-                            child: Container(
-                              width: MediaQuery.of(context).size.width * 0.95,
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: Colors.black,
-                                  width: 1.0,
-                                ),
-                              ),
-                              padding: EdgeInsets.all(10),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.location_on),
-                                  Text(" Click to use your location"),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Stack(
-              children: [
-                FromLocationSearchBar(
-                  showUserResultsHolder: _showUserResultsHolder,
-                  onSearchTap: () {
-                    setState(() {
-                      print("Open Func Triggered");
-                      _showUserResultsHolder = true;
-                    });
-                  },
-                  onBackTap: () {
-                    setState(() {
-                      print("Close Func Triggered");
-                      _showUserResultsHolder = false;
-                    });
-                  },
-                ),
-              ],
-            ),
-          ),
+
+          /// Renders the background widget where other features and widgets
+          /// could appear based on the current logic
+          BackgroundWidget(),
+
+          /// Renders widgets that are intended to only show up within the safe
+          /// area and to show up above the other widgets
+          SafeArea(child: Stack(children: [FromLocationSearchBar()])),
         ],
       ),
     );
