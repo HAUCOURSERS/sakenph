@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart'
     show Position, Geolocator, LocationAccuracy;
+import 'package:sakenph/providers/provider_selected_loc.dart';
+import 'package:sakenph/providers/provider_system_vars.dart';
 import 'package:sakenph/settings_page.dart' show SettingsPage;
+import 'package:provider/provider.dart';
 
+/// A textfield widget that is used by the user to input their origin location
 class FromLocationSearchBar extends StatelessWidget {
-  final bool showUserResultsHolder;
-  final VoidCallback onSearchTap;
-  final VoidCallback onBackTap;
-
-  const FromLocationSearchBar({
-    super.key,
-    required this.showUserResultsHolder,
-    required this.onSearchTap,
-    required this.onBackTap,
-  });
+  const FromLocationSearchBar({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -26,14 +21,27 @@ class FromLocationSearchBar extends StatelessWidget {
             children: [
               TextField(
                 style: TextStyle(fontSize: 18),
-                onTap: onSearchTap, // ✅ callback from parent
+                onTap: () {
+                  context
+                      .read<SystemVariablesProvider>()
+                      .setBackgroundWidgetVisibility(true);
+                },
                 decoration: InputDecoration(
-                  prefixIcon: showUserResultsHolder == false
-                      ? Icon(Icons.search)
-                      : GestureDetector(
-                          onTap: onBackTap, // ✅ callback from parent
+                  /// Expected to change state whether the background widget is
+                  /// visible or not
+                  prefixIcon:
+                      context.select<SystemVariablesProvider, bool>(
+                        (varval) => (varval.backgroundWidgetVisibility),
+                      )
+                      ? GestureDetector(
+                          onTap: () {
+                            context
+                                .read<SystemVariablesProvider>()
+                                .setBackgroundWidgetVisibility(false);
+                          },
                           child: Icon(Icons.arrow_back),
-                        ),
+                        )
+                      : Icon(Icons.search),
                   hintText: "Your Location",
                   suffixIcon: GestureDetector(
                     onTap: () {
@@ -65,78 +73,87 @@ class FromLocationSearchBar extends StatelessWidget {
 
 /// This widget is used to hide the map and to show its contents. Contents depend
 /// on the current state of setting the "From" and "To" locations
-class BackWidget extends StatelessWidget {
-  final bool showUserResultsHolder;
-  final VoidCallback hideResultsHolder;
-
-  const BackWidget({
-    super.key,
-    required this.showUserResultsHolder,
-    required this.hideResultsHolder,
-  });
+class BackgroundWidget extends StatelessWidget {
+  const BackgroundWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      ignoring: !showUserResultsHolder,
+      ignoring: !context.select<SystemVariablesProvider, bool>(
+        (varval) => (varval.backgroundWidgetVisibility),
+      ),
       child: AnimatedOpacity(
-        opacity: showUserResultsHolder ? 1.0 : 0.0,
+        opacity:
+            context.read<SystemVariablesProvider>().backgroundWidgetVisibility
+            ? 1.0
+            : 0.0,
         duration: Duration(milliseconds: 200),
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: hideResultsHolder,
+
+          /// The intention for this is that if the user presses anywhere in the
+          /// background widget, it would hide it. Think of it as a way to help
+          /// users easily close down the background widget
+          onTap: () {
+            context
+                .read<SystemVariablesProvider>()
+                .setBackgroundWidgetVisibility(false);
+          },
           child: PopScope(
-            canPop: !showUserResultsHolder,
+            canPop: !context
+                .read<SystemVariablesProvider>()
+                .backgroundWidgetVisibility,
             onPopInvokedWithResult: (didPop, result) {
+              print("[TEMP] Popping Attempt Occurred");
               if (!didPop) {
-                hideResultsHolder;
+                context
+                    .read<SystemVariablesProvider>()
+                    .setBackgroundWidgetVisibility(false);
               }
             },
             child: Container(
               color: Colors.white,
-              child: ListView(
+              child: ViewForRequestingUserLoc(),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Widget to use when you're requesting for the user's origin destination
+///
+
+class ViewForRequestingUserLoc extends StatelessWidget {
+  const ViewForRequestingUserLoc({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      children: [
+        SizedBox(height: 60),
+        Align(
+          child: GestureDetector(
+            onTap: () {
+              print("[TEMP] Will save user current loc");
+            },
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.9,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.black, width: 1.0),
+              ),
+              padding: EdgeInsets.all(10),
+              child: Row(
                 children: [
-                  SizedBox(height: 60),
-                  Align(
-                    child: GestureDetector(
-                      onTap: () async {
-                        Position position = await Geolocator.getCurrentPosition(
-                          desiredAccuracy: LocationAccuracy.low,
-                        );
-                        print(
-                          "[TEMP] Obtained Location: " +
-                              position.latitude.toString() +
-                              " | " +
-                              position.longitude.toString(),
-                        );
-                        setState(() {
-                          context.read<LatLongProvider>().setFromLoc(
-                            position.latitude,
-                            position.longitude,
-                          );
-                        });
-                      },
-                      child: Container(
-                        width: MediaQuery.of(context).size.width * 0.95,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.black, width: 1.0),
-                        ),
-                        padding: EdgeInsets.all(10),
-                        child: Row(
-                          children: [
-                            Icon(Icons.location_on),
-                            Text(" Click to use your location"),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                  Icon(Icons.location_on),
+                  Text(" Click to use your location"),
                 ],
               ),
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 }

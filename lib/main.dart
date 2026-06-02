@@ -5,6 +5,7 @@ import 'package:sakenph/home_page.dart';
 // import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/providers/provider_selected_loc.dart';
+import 'package:sakenph/providers/provider_system_vars.dart';
 
 void main() async {
   // WidgetsFlutterBinding.ensureInitialized();
@@ -16,7 +17,10 @@ void main() async {
 
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => LatLongProvider())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => LatLongProvider()),
+        ChangeNotifierProvider(create: (_) => SystemVariablesProvider()),
+      ],
       child: const MyApp(),
     ),
   );
