@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart'
     show LoadingAnimationWidget;
 import 'package:provider/provider.dart';
+import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/providers/provider_search_results.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
 /// This widget is used to hide the map and to show its contents. Contents depend
@@ -12,12 +14,12 @@ class BackgroundWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      ignoring: !context.select<SystemVariablesProvider, bool>(
-        (varval) => (varval.backgroundWidgetVisibility),
-      ),
+      ignoring: false,
       child: AnimatedOpacity(
         opacity:
-            context.read<SystemVariablesProvider>().backgroundWidgetVisibility
+            context.select<SystemVariablesProvider, bool>(
+              (val) => val.backgroundWidgetVisibility,
+            )
             ? 1.0
             : 0.0,
         duration: Duration(milliseconds: 200),
@@ -37,7 +39,6 @@ class BackgroundWidget extends StatelessWidget {
                 .read<SystemVariablesProvider>()
                 .backgroundWidgetVisibility,
             onPopInvokedWithResult: (didPop, result) {
-              print("[TEMP] Popping Attempt Occurred");
               if (!didPop) {
                 context
                     .read<SystemVariablesProvider>()
@@ -46,12 +47,28 @@ class BackgroundWidget extends StatelessWidget {
             },
             child: Container(
               color: Colors.white,
-              child: ViewForRequestingUserLoc(),
+              child: _BackgroundWidgetContentRenderer(),
             ),
           ),
         ),
       ),
     );
+  }
+}
+
+/// Relies on the value of [SystemVariablesProvider.backWidgetCurrentState] to
+/// decide what to render.
+class _BackgroundWidgetContentRenderer extends StatelessWidget {
+  const _BackgroundWidgetContentRenderer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    switch (context.read<SystemVariablesProvider>().backWidgetCurrentState) {
+      case SystemStateEnum.gatheringFromLoc:
+        return ViewForRequestingUserLoc();
+    }
+
+    return Container();
   }
 }
 
@@ -63,7 +80,55 @@ class ViewForRequestingUserLoc extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
+    final searchProvider = context.watch<SearchResultsProvider>();
+
+    final bool isFromLocResultsEmpty = searchProvider.fromLocResults.isEmpty;
+    final bool isTextfieldEmpty = searchProvider.isFromLocTextfieldEmpty;
+
+    /// For building the choices in places
+    Widget toShowSuggestionResults = isFromLocResultsEmpty
+        ? Column(
+            children: [
+              SizedBox(height: 70),
+              Align(
+                child: LoadingAnimationWidget.discreteCircle(
+                  color: Colors.black,
+                  size: 100,
+                ),
+              ),
+            ],
+          )
+        : Expanded(
+            child: ListView.builder(
+              itemBuilder: (context, index) => GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  print("[TEMP] onTap occurred");
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.black, width: 1),
+                    ),
+                  ),
+                  child: ListTile(
+                    title: Text(
+                      context
+                          .read<SearchResultsProvider>()
+                          .fromLocResults[index]
+                          .displayName,
+                    ),
+                  ),
+                ),
+              ),
+              itemCount: context
+                  .read<SearchResultsProvider>()
+                  .fromLocResults
+                  .length,
+            ),
+          );
+
+    return Column(
       children: [
         SizedBox(height: 60),
         Align(
@@ -72,7 +137,7 @@ class ViewForRequestingUserLoc extends StatelessWidget {
               print("[TEMP] Will save user current loc");
             },
             child: Container(
-              width: MediaQuery.of(context).size.width * 0.9,
+              width: MediaQuery.sizeOf(context).width * 0.9,
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.black, width: 1.0),
               ),
@@ -86,13 +151,8 @@ class ViewForRequestingUserLoc extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(height: 60),
-        Align(
-          child: LoadingAnimationWidget.discreteCircle(
-            color: Colors.black,
-            size: 100,
-          ),
-        ),
+        SizedBox(height: 10),
+        if (!isTextfieldEmpty) toShowSuggestionResults,
       ],
     );
   }

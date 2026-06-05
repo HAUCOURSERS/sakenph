@@ -1,9 +1,13 @@
+import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart'
     show Position, Geolocator, LocationAccuracy;
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:sakenph/api/nominatim.dart';
 import 'package:sakenph/features/background_widget/widgets.dart'
     show ViewForRequestingUserLoc;
+import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/providers/provider_search_results.dart';
 import 'package:sakenph/providers/provider_selected_loc.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 import 'package:sakenph/pages/settings_page.dart' show SettingsPage;
@@ -34,10 +38,10 @@ class _ForegroundWidgetContentRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    switch (context.select<SystemVariablesProvider, String>(
+    switch (context.select<SystemVariablesProvider, SystemStateEnum>(
       (value) => value.backWidgetCurrentState,
     )) {
-      case "GATHERING_FROMLOC":
+      case SystemStateEnum.gatheringFromLoc:
         return FromLocationSearchBar();
     }
 
@@ -55,12 +59,33 @@ class FromLocationSearchBar extends StatelessWidget {
       child: Align(
         alignment: Alignment.topCenter,
         child: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.95,
+          width: MediaQuery.sizeOf(context).width * 0.95,
           child: Column(
             children: [
               TextField(
                 onChanged: (value) {
-                  print("Current val: " + value);
+                  context
+                      .read<SearchResultsProvider>()
+                      .tryToEraseFromLocResults();
+                  context
+                      .read<SearchResultsProvider>()
+                      .setIsFromLocTextfieldEmpty(value.isEmpty);
+                  if (value.isNotEmpty) {
+                    EasyDebounce.debounce(
+                      DebounceIdEnum.nominatim_fromLocationSearch.toString(),
+                      Duration(seconds: 1),
+                      () async {
+                        context.read<SearchResultsProvider>().setFromLocResults(
+                          await searchPlaces(value),
+                        );
+                      },
+                    );
+                  } else {
+                    /// Covers the use case of: If the user clears out the entire textfield section
+                    EasyDebounce.cancel(
+                      DebounceIdEnum.nominatim_fromLocationSearch.toString(),
+                    );
+                  }
                 },
                 style: TextStyle(fontSize: 18),
                 onTap: () {
