@@ -1,15 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:sakenph/classes/nominatim_response.dart';
-import 'package:sakenph/features/home_page/functions.dart'
+import 'package:sakenph/features/background_widget/widgets.dart';
+import 'package:sakenph/features/foreground_widget/functions.dart'
     show fetchData, handleLocationPermission, searchPlaces;
-import 'package:sakenph/features/home_page/other_widgets.dart';
+import 'package:sakenph/features/foreground_widget/widgets.dart';
 import 'package:sakenph/map_widget.dart';
-import 'package:sakenph/providers/provider_selected_loc.dart';
-import 'package:sakenph/providers/provider_system_vars.dart'
-    show SystemVariablesProvider;
-import 'package:sakenph/settings_page.dart';
-import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 
 class HomePage extends StatefulWidget {
@@ -25,16 +19,12 @@ enum _LocationSource { FROM, TO }
 class _HomePage extends State<HomePage> {
   late Future<Map<dynamic, dynamic>> json;
 
-  final TextEditingController _fromTextController = TextEditingController();
-  final TextEditingController _toTextController = TextEditingController();
-
   /// Whether to display the dropdown visual
   // ignore: non_constant_identifier_names
   bool _showDropdownFor_fromLocation = false;
   // ignore: non_constant_identifier_names
   bool _showDropdownFor_toLocation = false;
   bool _isLoading = true;
-  List<NominatimPlace> _toLocationResults = [];
 
   /// Calls Nominatim Public API to do searches. This function has to be inside of this
   /// state class to perform setState() calls.
@@ -43,14 +33,12 @@ class _HomePage extends State<HomePage> {
 
     setState(() {
       _isLoading = true;
-      _toLocationResults = [];
     });
 
     final results = await searchPlaces(query);
 
     setState(() {
       _isLoading = false;
-      _toLocationResults = results;
     });
   }
 
@@ -108,6 +96,7 @@ class _HomePage extends State<HomePage> {
   Widget build(BuildContext context) {
     handleLocationPermission(context);
     return Scaffold(
+      appBar: AppBar(toolbarHeight: 0),
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
@@ -120,7 +109,10 @@ class _HomePage extends State<HomePage> {
 
           /// Renders widgets that are intended to only show up within the safe
           /// area and to show up above the other widgets
-          SafeArea(child: Stack(children: [FromLocationSearchBar()])),
+          ForegroundWidget(),
+          //SafeArea(
+          //  child: Stack(children: [ForegroundWidget()]),
+          //),
         ],
       ),
     );
