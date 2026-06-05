@@ -17,10 +17,6 @@ class SystemVariablesProvider with ChangeNotifier {
   String _originName = '';
   String _destName = '';
   bool _backgroundWidgetVisibility = false;
-
-  /// Used to tell the BackWidget what to show
-  /// - "GATHERING_FROMLOC" : show widgets relevant for gathering
-  ///
   String _backWidgetCurrentState = "GATHERING_FROMLOC";
 
   // =======================================================================================
@@ -30,6 +26,10 @@ class SystemVariablesProvider with ChangeNotifier {
   String get originName => _originName;
   String get destName => _destName;
   bool get backgroundWidgetVisibility => _backgroundWidgetVisibility;
+
+  /// Used to tell the BackWidget what to show
+  /// - "GATHERING_FROMLOC" : show widgets relevant for gathering
+  ///
   String get backWidgetCurrentState => _backWidgetCurrentState;
 
   // =======================================================================================
@@ -48,6 +48,12 @@ class SystemVariablesProvider with ChangeNotifier {
 
   void setBackgroundWidgetVisibility(bool val) {
     _backgroundWidgetVisibility = val;
+
+    // It's better to put the unfocus method here since any occurence in the
+    // code that requests for removing the background widget's visibility is
+    // likely when the user isn't actively using the textfield.
+    if (!val) FocusManager.instance.primaryFocus?.unfocus();
+
     notifyListeners();
   }
 

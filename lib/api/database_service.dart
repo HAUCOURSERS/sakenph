@@ -1,4 +1,4 @@
-import 'package:sakenph/terminal_class.dart';
+import 'package:sakenph/classes/terminal_class.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DatabaseService {
@@ -7,19 +7,13 @@ class DatabaseService {
   // List<Terminal> get _terminalLists {
   //   List<Terminal> list;
 
-    
   //   return list;
   // }
 
-
   Future<List<Terminal>> get terminalList async {
     List<Terminal> list = [];
-    
-    final data = await database
-      .from('terminals')
-      .select()
-      .eq('type', 'jeep');
 
+    final data = await database.from('terminals').select().eq('type', 'jeep');
 
     for (var terminal in data) {
       list.add(
@@ -28,8 +22,8 @@ class DatabaseService {
           name: terminal['terminal_name'],
           longitude: terminal['longitude'],
           latitude: terminal['latitude'],
-          type: terminal['type']
-        )
+          type: terminal['type'],
+        ),
       );
     }
 
@@ -38,12 +32,11 @@ class DatabaseService {
 
   Future<List<Terminal>> get todaList async {
     List<Terminal> list = [];
-    
-    final data = await database
-      .from('terminals')
-      .select()
-      .eq('type', 'tricycle');
 
+    final data = await database
+        .from('terminals')
+        .select()
+        .eq('type', 'tricycle');
 
     for (var terminal in data) {
       list.add(
@@ -52,8 +45,8 @@ class DatabaseService {
           name: terminal['terminal_name'],
           longitude: terminal['longitude'],
           latitude: terminal['latitude'],
-          type: terminal['type']
-        )
+          type: terminal['type'],
+        ),
       );
     }
 
@@ -61,10 +54,7 @@ class DatabaseService {
   }
 
   Future<Terminal> getTerminalById(int id) async {
-    final data = await database
-      .from('terminals')
-      .select()
-      .eq('id', id);
+    final data = await database.from('terminals').select().eq('id', id);
 
     final terminal = data[0];
     return Terminal(
@@ -72,7 +62,7 @@ class DatabaseService {
       name: terminal['terminal_name'],
       longitude: terminal['longitude'],
       latitude: terminal['latitude'],
-      type: terminal['type']
+      type: terminal['type'],
     );
   }
 }

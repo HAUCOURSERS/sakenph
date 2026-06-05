@@ -4,10 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:http/http.dart' as http;
-import 'package:sakenph/database_service.dart';
+import 'package:sakenph/api/database_service.dart';
 import 'package:sakenph/globals/global_vars.dart' as global_vars show localIP;
 import 'package:sakenph/providers/provider_selected_loc.dart';
-import 'package:sakenph/terminal_class.dart';
+import 'package:sakenph/classes/terminal_class.dart';
 import 'package:sakenph/classes/json_response.dart';
 import 'package:provider/provider.dart';
 
@@ -173,7 +173,9 @@ class _MapWidget extends State<MapWidget> {
     String localIp = global_vars.localIP;
     // Position gpsLocation = await determinePosition();
 
-    print('http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}');
+    print(
+      'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
+    );
     final response = await http.get(
       Uri.parse(
         'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
@@ -227,7 +229,10 @@ class _MapWidget extends State<MapWidget> {
               {
                 'type': 'Feature',
                 'properties': {},
-                'geometry': {'type': 'LineString', 'coordinates': route.geometry},
+                'geometry': {
+                  'type': 'LineString',
+                  'coordinates': route.geometry,
+                },
               },
             ],
           });
