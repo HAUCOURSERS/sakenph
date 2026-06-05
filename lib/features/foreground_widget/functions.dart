@@ -8,28 +8,6 @@ import 'package:http/http.dart' as http;
 
 import 'package:sakenph/globals/global_vars.dart' as global_vars show localIP;
 
-/// Calls Nominatim Public API to do searches
-Future<List<NominatimPlace>> searchPlaces(String query) async {
-  final uri = Uri.parse('https://nominatim.openstreetmap.org/search').replace(
-    queryParameters: {
-      'q': query,
-      'countrycodes': 'PH',
-      'format': 'json',
-      'limit': '10',
-    },
-  );
-
-  final response = await http.get(uri, headers: {'User-Agent': 'SakenPH/1.0'});
-
-  if (response.statusCode == 200) {
-    final List<dynamic> jsonList = jsonDecode(response.body);
-    //print(jsonDecode(response.body));
-    return jsonList.map((e) => NominatimPlace.fromJson(e)).toList();
-  } else {
-    throw Exception('Failed to load places');
-  }
-}
-
 /// Currently has no uses
 Future<String> reverseGeocode({
   required double longitude,

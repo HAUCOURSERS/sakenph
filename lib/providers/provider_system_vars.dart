@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sakenph/globals/enums.dart';
 
 /// This context provider is mainly used to be shared across the entire app.
 /// For example, you want to create a variable and have it accessible in parts
@@ -17,7 +18,7 @@ class SystemVariablesProvider with ChangeNotifier {
   String _originName = '';
   String _destName = '';
   bool _backgroundWidgetVisibility = false;
-  String _backWidgetCurrentState = "GATHERING_FROMLOC";
+  SystemStateEnum _backWidgetCurrentState = SystemStateEnum.gatheringFromLoc;
 
   // =======================================================================================
   // =======================================================================================
@@ -25,12 +26,10 @@ class SystemVariablesProvider with ChangeNotifier {
 
   String get originName => _originName;
   String get destName => _destName;
-  bool get backgroundWidgetVisibility => _backgroundWidgetVisibility;
 
-  /// Used to tell the BackWidget what to show
-  /// - "GATHERING_FROMLOC" : show widgets relevant for gathering
-  ///
-  String get backWidgetCurrentState => _backWidgetCurrentState;
+  /// If the value of this variable is false, the Background Widget will bee unrendered
+  bool get backgroundWidgetVisibility => _backgroundWidgetVisibility;
+  SystemStateEnum get backWidgetCurrentState => _backWidgetCurrentState;
 
   // =======================================================================================
   // =======================================================================================
@@ -57,7 +56,7 @@ class SystemVariablesProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void setBackWidgetCurrentState(String val) {
+  void setBackWidgetCurrentState(SystemStateEnum val) {
     _backWidgetCurrentState = val;
     notifyListeners();
   }
