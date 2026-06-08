@@ -15,17 +15,12 @@ class SystemVariablesProvider with ChangeNotifier {
   // =======================================================================================
   // =======================================================================================
 
-  String _originName = '';
-  String _destName = '';
   bool _backgroundWidgetVisibility = false;
   SystemStateEnum _backWidgetCurrentState = SystemStateEnum.gatheringFromLoc;
 
   // =======================================================================================
   // =======================================================================================
   // =======================================================================================
-
-  String get originName => _originName;
-  String get destName => _destName;
 
   /// If the value of this variable is false, the Background Widget will bee unrendered
   bool get backgroundWidgetVisibility => _backgroundWidgetVisibility;
@@ -34,16 +29,6 @@ class SystemVariablesProvider with ChangeNotifier {
   // =======================================================================================
   // =======================================================================================
   // =======================================================================================
-
-  void setOriginName(String val) {
-    _originName = val;
-    notifyListeners();
-  }
-
-  void setDestName(String val) {
-    _destName = val;
-    notifyListeners();
-  }
 
   void setBackgroundWidgetVisibility(bool val) {
     _backgroundWidgetVisibility = val;

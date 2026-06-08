@@ -25,15 +25,6 @@ class _HomePage extends State<HomePage> {
     json = fetchData();
   }
 
-  /*
-  Future<Position> getUserLoc() async {
-    Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-    return position;
-  }
-  */
-
   @override
   Widget build(BuildContext context) {
     handleLocationPermission(context);

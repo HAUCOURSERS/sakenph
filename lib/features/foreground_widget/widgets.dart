@@ -7,7 +7,7 @@ import 'package:sakenph/api/nominatim.dart';
 import 'package:sakenph/features/background_widget/widgets.dart'
     show ViewForRequestingUserLoc;
 import 'package:sakenph/globals/enums.dart';
-import 'package:sakenph/providers/provider_search_results.dart';
+import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_selected_loc.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 import 'package:sakenph/pages/settings_page.dart' show SettingsPage;
@@ -42,7 +42,16 @@ class _ForegroundWidgetContentRenderer extends StatelessWidget {
       (value) => value.backWidgetCurrentState,
     )) {
       case SystemStateEnum.gatheringFromLoc:
-        return FromLocationSearchBar();
+      case SystemStateEnum.gatheringToLoc:
+        return context
+                .read<SearchDetailsProvider>()
+                .fromLocController
+                .text
+                .isEmpty
+            ? _FromLocationSearchBar()
+            : Column(
+                children: [_FromLocationSearchBar(), _ToLocationSearchBar()],
+              );
     }
 
     return Container();
@@ -50,88 +59,161 @@ class _ForegroundWidgetContentRenderer extends StatelessWidget {
 }
 
 /// A textfield widget that is used by the user to input their origin location
-class FromLocationSearchBar extends StatelessWidget {
-  const FromLocationSearchBar({super.key});
+class _FromLocationSearchBar extends StatelessWidget {
+  const _FromLocationSearchBar({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Positioned.fill(
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: SizedBox(
-          width: MediaQuery.sizeOf(context).width * 0.95,
-          child: Column(
-            children: [
-              TextField(
-                onChanged: (value) {
-                  context
-                      .read<SearchResultsProvider>()
-                      .tryToEraseFromLocResults();
-                  context
-                      .read<SearchResultsProvider>()
-                      .setIsFromLocTextfieldEmpty(value.isEmpty);
-                  if (value.isNotEmpty) {
-                    EasyDebounce.debounce(
-                      DebounceIdEnum.nominatim_fromLocationSearch.toString(),
-                      Duration(seconds: 1),
-                      () async {
-                        context.read<SearchResultsProvider>().setFromLocResults(
-                          await searchPlaces(value),
-                        );
-                      },
-                    );
-                  } else {
-                    /// Covers the use case of: If the user clears out the entire textfield section
-                    EasyDebounce.cancel(
-                      DebounceIdEnum.nominatim_fromLocationSearch.toString(),
-                    );
-                  }
-                },
-                style: TextStyle(fontSize: 18),
-                onTap: () {
-                  context
-                      .read<SystemVariablesProvider>()
-                      .setBackgroundWidgetVisibility(true);
-                },
-                decoration: InputDecoration(
-                  /// Expected to change state whether the background widget is
-                  /// visible or not
-                  prefixIcon:
-                      context.select<SystemVariablesProvider, bool>(
-                        (varval) => (varval.backgroundWidgetVisibility),
-                      )
-                      ? GestureDetector(
-                          onTap: () {
-                            context
-                                .read<SystemVariablesProvider>()
-                                .setBackgroundWidgetVisibility(false);
-                          },
-                          child: Icon(Icons.arrow_back),
-                        )
-                      : Icon(Icons.search),
-                  hintText: "Your Location",
-                  suffixIcon: GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => SettingsPage()),
+    return Align(
+      alignment: Alignment.topCenter,
+      child: SizedBox(
+        width: MediaQuery.sizeOf(context).width * 0.95,
+        child: Column(
+          children: [
+            TextField(
+              controller: context
+                  .read<SearchDetailsProvider>()
+                  .fromLocController,
+              onChanged: (value) {
+                context
+                    .read<SearchDetailsProvider>()
+                    .tryToEraseFromLocResults();
+                context
+                    .read<SearchDetailsProvider>()
+                    .setIsFromLocTextfieldEmpty(value.isEmpty);
+                if (value.isNotEmpty) {
+                  EasyDebounce.debounce(
+                    DebounceIdEnum.nominatim_fromLocationSearch.toString(),
+                    Duration(seconds: 1),
+                    () async {
+                      context.read<SearchDetailsProvider>().setFromLocResults(
+                        await searchPlaces(value),
                       );
                     },
-                    child: Icon(Icons.settings),
-                  ),
-                  contentPadding: EdgeInsets.symmetric(
-                    vertical: 0,
-                    horizontal: 5,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  fillColor: Colors.white,
-                  filled: true,
+                  );
+                } else {
+                  /// Covers the use case of: If the user clears out the entire textfield section
+                  EasyDebounce.cancel(
+                    DebounceIdEnum.nominatim_fromLocationSearch.toString(),
+                  );
+                }
+              },
+              style: TextStyle(fontSize: 18),
+              onTap: () {
+                context
+                    .read<SystemVariablesProvider>()
+                    .setBackgroundWidgetVisibility(true);
+                context
+                    .read<SystemVariablesProvider>()
+                    .setBackWidgetCurrentState(
+                      SystemStateEnum.gatheringFromLoc,
+                    );
+              },
+              decoration: InputDecoration(
+                /// Expected to change state whether the background widget is
+                /// visible or not
+                prefixIcon:
+                    context.select<SystemVariablesProvider, bool>(
+                      (varval) => (varval.backgroundWidgetVisibility),
+                    )
+                    ? GestureDetector(
+                        onTap: () {
+                          context
+                              .read<SystemVariablesProvider>()
+                              .setBackgroundWidgetVisibility(false);
+                        },
+                        child: Icon(Icons.arrow_back),
+                      )
+                    : Icon(Icons.search),
+                hintText: "Your Location",
+                suffixIcon: GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => SettingsPage()),
+                    );
+                  },
+                  child: Icon(Icons.settings),
                 ),
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: 0,
+                  horizontal: 5,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                fillColor: Colors.white,
+                filled: true,
               ),
-              SizedBox(height: 10),
-            ],
-          ),
+            ),
+            SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ToLocationSearchBar extends StatelessWidget {
+  const _ToLocationSearchBar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: SizedBox(
+        width: MediaQuery.sizeOf(context).width * 0.95,
+        child: Column(
+          children: [
+            TextField(
+              focusNode: context.read<SearchDetailsProvider>().toLocFocusNode,
+              controller: context.read<SearchDetailsProvider>().toLocController,
+              onChanged: (value) {
+                context
+                    .read<SearchDetailsProvider>()
+                    .tryToEraseFromLocResults();
+                context
+                    .read<SearchDetailsProvider>()
+                    .setIsFromLocTextfieldEmpty(value.isEmpty);
+                if (value.isNotEmpty) {
+                  EasyDebounce.debounce(
+                    DebounceIdEnum.nominatim_fromLocationSearch.toString(),
+                    Duration(seconds: 1),
+                    () async {
+                      context.read<SearchDetailsProvider>().setFromLocResults(
+                        await searchPlaces(value),
+                      );
+                    },
+                  );
+                } else {
+                  /// Covers the use case of: If the user clears out the entire textfield section
+                  EasyDebounce.cancel(
+                    DebounceIdEnum.nominatim_fromLocationSearch.toString(),
+                  );
+                }
+              },
+              style: TextStyle(fontSize: 18),
+              onTap: () {
+                context
+                    .read<SystemVariablesProvider>()
+                    .setBackgroundWidgetVisibility(true);
+              },
+              decoration: InputDecoration(
+                /// Expected to change state whether the background widget is
+                /// visible or not
+                hintText: "Your Destination",
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: 0,
+                  horizontal: 48,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                fillColor: Colors.white,
+                filled: true,
+              ),
+            ),
+            SizedBox(height: 10),
+          ],
         ),
       ),
     );

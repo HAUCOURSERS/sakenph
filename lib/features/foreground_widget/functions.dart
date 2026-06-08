@@ -6,7 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:sakenph/classes/nominatim_response.dart';
 import 'package:http/http.dart' as http;
 
-import 'package:sakenph/globals/global_vars.dart' as global_vars show localIP;
+import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
 
 /// Currently has no uses
 Future<String> reverseGeocode({

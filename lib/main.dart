@@ -5,7 +5,7 @@ import 'package:flutter/services.dart' show SystemChrome, SystemUiOverlayStyle;
 import 'package:sakenph/home_page.dart';
 // import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:sakenph/providers/provider_search_results.dart';
+import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_selected_loc.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
@@ -22,7 +22,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => LatLongProvider()),
         ChangeNotifierProvider(create: (_) => SystemVariablesProvider()),
-        ChangeNotifierProvider(create: (_) => SearchResultsProvider()),
+        ChangeNotifierProvider(create: (_) => SearchDetailsProvider()),
       ],
       child: const MyApp(),
     ),

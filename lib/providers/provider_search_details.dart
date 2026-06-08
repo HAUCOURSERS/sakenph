@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:sakenph/classes/nominatim_response.dart' show NominatimPlace;
 
-class SearchResultsProvider extends ChangeNotifier {
+class SearchDetailsProvider extends ChangeNotifier {
   bool isLoading = false;
   List<NominatimPlace> fromLocResults = [];
   bool isFromLocTextfieldEmpty = true; // Textfield is empty on default
+
+  /// For logic to be able to edit the contents of the textfields
+  TextEditingController fromLocController = TextEditingController();
+  TextEditingController toLocController = TextEditingController();
+
+  FocusNode toLocFocusNode = FocusNode();
+
+  NominatimPlace? selectedOriginLocation;
+  NominatimPlace? selectedDestinationLocation;
 
   /// Used to help the background widget to decide whether to display the widget that holds
   /// the loading icon and the results ListView
