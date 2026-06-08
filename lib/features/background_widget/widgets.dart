@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart'
     show LoadingAnimationWidget;
 import 'package:provider/provider.dart';
+import 'package:sakenph/classes/nominatim_response.dart';
 import 'package:sakenph/globals/enums.dart';
-import 'package:sakenph/providers/provider_search_results.dart';
+import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
 /// This widget is used to hide the map and to show its contents. Contents depend
@@ -13,15 +14,14 @@ class BackgroundWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    bool backgroundWidgetVisibility = context
+        .select<SystemVariablesProvider, bool>(
+          (val) => val.backgroundWidgetVisibility,
+        );
     return IgnorePointer(
-      ignoring: false,
+      ignoring: !backgroundWidgetVisibility,
       child: AnimatedOpacity(
-        opacity:
-            context.select<SystemVariablesProvider, bool>(
-              (val) => val.backgroundWidgetVisibility,
-            )
-            ? 1.0
-            : 0.0,
+        opacity: backgroundWidgetVisibility ? 1.0 : 0.0,
         duration: Duration(milliseconds: 200),
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -63,9 +63,14 @@ class _BackgroundWidgetContentRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    switch (context.read<SystemVariablesProvider>().backWidgetCurrentState) {
+    switch (context.select<SystemVariablesProvider, SystemStateEnum>(
+      (val) => val.backWidgetCurrentState,
+    )) {
       case SystemStateEnum.gatheringFromLoc:
         return ViewForRequestingUserLoc();
+      case SystemStateEnum.gatheringToLoc:
+        // TODO: Handle this case.
+        return Container();
     }
 
     return Container();
@@ -80,10 +85,13 @@ class ViewForRequestingUserLoc extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final searchProvider = context.watch<SearchResultsProvider>();
-
-    final bool isFromLocResultsEmpty = searchProvider.fromLocResults.isEmpty;
-    final bool isTextfieldEmpty = searchProvider.isFromLocTextfieldEmpty;
+    final bool isFromLocResultsEmpty = context
+        .select<SearchDetailsProvider, bool>(
+          (value) => value.fromLocResults.isEmpty,
+        );
+    final bool isTextfieldEmpty = context.select<SearchDetailsProvider, bool>(
+      (value) => value.isFromLocTextfieldEmpty,
+    );
 
     /// For building the choices in places
     Widget toShowSuggestionResults = isFromLocResultsEmpty
@@ -100,29 +108,13 @@ class ViewForRequestingUserLoc extends StatelessWidget {
           )
         : Expanded(
             child: ListView.builder(
-              itemBuilder: (context, index) => GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  print("[TEMP] onTap occurred");
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(color: Colors.black, width: 1),
-                    ),
-                  ),
-                  child: ListTile(
-                    title: Text(
-                      context
-                          .read<SearchResultsProvider>()
-                          .fromLocResults[index]
-                          .displayName,
-                    ),
-                  ),
-                ),
+              itemBuilder: (context, index) => _SearchResultRenderer(
+                nomiPlace: context
+                    .read<SearchDetailsProvider>()
+                    .fromLocResults[index],
               ),
               itemCount: context
-                  .read<SearchResultsProvider>()
+                  .read<SearchDetailsProvider>()
                   .fromLocResults
                   .length,
             ),
@@ -131,10 +123,27 @@ class ViewForRequestingUserLoc extends StatelessWidget {
     return Column(
       children: [
         SizedBox(height: 60),
+        if (context
+            .read<SearchDetailsProvider>()
+            .fromLocController
+            .text
+            .isNotEmpty)
+          SizedBox(height: 60),
         Align(
           child: GestureDetector(
             onTap: () {
-              print("[TEMP] Will save user current loc");
+              /*
+              context.read<SearchResultsProvider>().fromLocController.text =
+                  "Your Current Location";
+              context.read<SystemVariablesProvider>().setBackWidgetCurrentState(
+                SystemStateEnum.gatheringToLoc,
+              );
+              context
+                  .read<SearchResultsProvider>()
+                  .toLocFocusNode
+                  .requestFocus();
+                  */
+                  context.read<SearchDetailsProvider>().setFromLocResults(resultList)
             },
             child: Container(
               width: MediaQuery.sizeOf(context).width * 0.9,
@@ -145,7 +154,10 @@ class ViewForRequestingUserLoc extends StatelessWidget {
               child: Row(
                 children: [
                   Icon(Icons.location_on),
-                  Text(" Click to use your location"),
+                  Text(
+                    " Click to use your location",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                  ),
                 ],
               ),
             ),
@@ -154,6 +166,80 @@ class ViewForRequestingUserLoc extends StatelessWidget {
         SizedBox(height: 10),
         if (!isTextfieldEmpty) toShowSuggestionResults,
       ],
+    );
+  }
+}
+
+/// Takes in information of a [NominatimPlace] object and creates a widget for
+/// ListView out of it.
+///
+/// Can be reused if needed
+class _SearchResultRenderer extends StatefulWidget {
+  final NominatimPlace nomiPlace;
+  const _SearchResultRenderer({super.key, required this.nomiPlace});
+
+  @override
+  State<_SearchResultRenderer> createState() => _SearchResultRendererState();
+}
+
+class _SearchResultRendererState extends State<_SearchResultRenderer> {
+  bool _showColor = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      color: _showColor ? Colors.grey.shade400 : Colors.transparent,
+      duration: Duration(milliseconds: 200),
+      child: GestureDetector(
+        onTap: () async {
+          if (widget.nomiPlace.name != "No Places Found") {
+            context.read<SearchDetailsProvider>().fromLocController.text =
+                widget.nomiPlace.name;
+            context.read<SystemVariablesProvider>().setBackWidgetCurrentState(
+              SystemStateEnum.gatheringToLoc,
+            );
+          }
+          setState(() {
+            _showColor = true;
+          });
+          await Future.delayed(Duration(milliseconds: 50));
+          setState(() {
+            _showColor = false;
+          });
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: Colors.black, width: 1)),
+          ),
+          child: ListTile(
+            title: Row(
+              children: [
+                Icon(Icons.location_on),
+                SizedBox(width: 10, height: 0),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.nomiPlace.name,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        widget.nomiPlace.displayName,
+                        style: TextStyle(fontSize: 12),
+                        textAlign: TextAlign.left,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
