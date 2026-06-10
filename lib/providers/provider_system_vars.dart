@@ -11,24 +11,26 @@ class SystemVariablesProvider with ChangeNotifier {
   ///
   /// - Josef Miko
 
-  // =======================================================================================
-  // =======================================================================================
-  // =======================================================================================
-
   bool _backgroundWidgetVisibility = false;
-  SystemStateEnum _backWidgetCurrentState = SystemStateEnum.gatheringFromLoc;
 
-  // =======================================================================================
-  // =======================================================================================
-  // =======================================================================================
+  /// Changes depending on app logic. The value of this variable decides what the widgets
+  /// such as the Foreground and the Background widgets display
+  SystemState _appCurrentState = SystemState.gatheringFromLoc;
+  Color _backgroundWidgetColor =
+      Colors.white; // Default. May be changed by app logic
+
+  // /////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Getters
+  // /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   /// If the value of this variable is false, the Background Widget will bee unrendered
   bool get backgroundWidgetVisibility => _backgroundWidgetVisibility;
-  SystemStateEnum get backWidgetCurrentState => _backWidgetCurrentState;
+  SystemState get backWidgetCurrentState => _appCurrentState;
+  Color get backgroundWidgetColor => _backgroundWidgetColor;
 
-  // =======================================================================================
-  // =======================================================================================
-  // =======================================================================================
+  // /////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Functions
+  // /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   void setBackgroundWidgetVisibility(bool val) {
     _backgroundWidgetVisibility = val;
@@ -41,8 +43,13 @@ class SystemVariablesProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void setBackWidgetCurrentState(SystemStateEnum val) {
-    _backWidgetCurrentState = val;
+  void setAppCurrentState(SystemState val) {
+    _appCurrentState = val;
+    notifyListeners();
+  }
+
+  void setBackgroundWidgetColor(Color color) {
+    _backgroundWidgetColor = color;
     notifyListeners();
   }
 }
