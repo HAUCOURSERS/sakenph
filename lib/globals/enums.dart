@@ -11,4 +11,5 @@ enum DebounceIdEnum {
   /// Uses Nominatim API to get place suggestions based on provided value
   nominatim_fromLocationSearch,
   nominatim_toLocationSearch,
+  getCurrentLocation,
 }

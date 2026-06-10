@@ -43,17 +43,6 @@ Future<Map<String, dynamic>> fetchData() async {
   }
 }
 
-/// This function is made to turn a multi-line widget into a single
-/// method call for code cleanliness.
-Widget loadingDisplay() {
-  return GestureDetector(
-    onTap: () {
-      print("Wahh");
-    },
-    child: Container(height: 30, child: const Text("Loading..")),
-  );
-}
-
 /// To get location perms
 Future<bool> handleLocationPermission(BuildContext context) async {
   if (!context.mounted) return false;

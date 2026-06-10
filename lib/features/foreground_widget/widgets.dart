@@ -43,11 +43,7 @@ class _ForegroundWidgetContentRenderer extends StatelessWidget {
     )) {
       case SystemStateEnum.gatheringFromLoc:
       case SystemStateEnum.gatheringToLoc:
-        return context
-                .read<SearchDetailsProvider>()
-                .fromLocController
-                .text
-                .isEmpty
+        return context.select<SearchDetailsProvider, bool>((value) => !value.isFromLocationDetailsEmpty,)
             ? _FromLocationSearchBar()
             : Column(
                 children: [_FromLocationSearchBar(), _ToLocationSearchBar()],
@@ -71,9 +67,7 @@ class _FromLocationSearchBar extends StatelessWidget {
         child: Column(
           children: [
             TextField(
-              controller: context
-                  .read<SearchDetailsProvider>()
-                  .fromLocController,
+              controller: context.read<SearchDetailsProvider>().fromLocController,
               onChanged: (value) {
                 context
                     .read<SearchDetailsProvider>()
@@ -86,7 +80,7 @@ class _FromLocationSearchBar extends StatelessWidget {
                     DebounceIdEnum.nominatim_fromLocationSearch.toString(),
                     Duration(seconds: 1),
                     () async {
-                      context.read<SearchDetailsProvider>().setFromLocResults(
+                      context.read<SearchDetailsProvider>().setFromLocSearchResults(
                         await searchPlaces(value),
                       );
                     },
@@ -176,10 +170,10 @@ class _ToLocationSearchBar extends StatelessWidget {
                     .setIsFromLocTextfieldEmpty(value.isEmpty);
                 if (value.isNotEmpty) {
                   EasyDebounce.debounce(
-                    DebounceIdEnum.nominatim_fromLocationSearch.toString(),
+                    DebounceIdEnum.nominatim_toLocationSearch.toString(),
                     Duration(seconds: 1),
                     () async {
-                      context.read<SearchDetailsProvider>().setFromLocResults(
+                      context.read<SearchDetailsProvider>().setFromLocSearchResults(
                         await searchPlaces(value),
                       );
                     },
@@ -196,6 +190,7 @@ class _ToLocationSearchBar extends StatelessWidget {
                 context
                     .read<SystemVariablesProvider>()
                     .setBackgroundWidgetVisibility(true);
+                context.read<SystemVariablesProvider>().setBackWidgetCurrentState(SystemStateEnum.gatheringToLoc);
               },
               decoration: InputDecoration(
                 /// Expected to change state whether the background widget is
