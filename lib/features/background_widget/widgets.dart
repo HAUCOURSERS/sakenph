@@ -125,50 +125,62 @@ class ViewForRequestingUserLoc extends StatelessWidget {
         SizedBox(height: 60),
         if (context
             .read<SearchDetailsProvider>()
-            .fromLocController
-            .text
-            .isNotEmpty)
+            .isFromLocationDetailsEmpty)
           SizedBox(height: 60),
-        Align(
-          child: GestureDetector(
-            onTap: () {
-              /*
-              context.read<SearchResultsProvider>().fromLocController.text =
-                  "Your Current Location";
-              context.read<SystemVariablesProvider>().setBackWidgetCurrentState(
-                SystemStateEnum.gatheringToLoc,
-              );
-              context
-                  .read<SearchResultsProvider>()
-                  .toLocFocusNode
-                  .requestFocus();
-                  */
-                  context.read<SearchDetailsProvider>().setFromLocResults(resultList)
-            },
-            child: Container(
-              width: MediaQuery.sizeOf(context).width * 0.9,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.black, width: 1.0),
-              ),
-              padding: EdgeInsets.all(10),
-              child: Row(
-                children: [
-                  Icon(Icons.location_on),
-                  Text(
-                    " Click to use your location",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+        _UseCurrentLocationButton(),
         SizedBox(height: 10),
         if (!isTextfieldEmpty) toShowSuggestionResults,
       ],
     );
   }
 }
+
+class _UseCurrentLocationButton extends StatefulWidget {
+  @override 
+  State<_UseCurrentLocationButton> createState() => _UseCurrentLocationButtonState();
+}
+
+class _UseCurrentLocationButtonState extends State<_UseCurrentLocationButton> {
+  bool _showColor = false;
+
+  @override 
+  Widget build(BuildContext context) {
+    return Align(
+          child: AnimatedContainer(
+            duration: Duration(milliseconds: 200),
+            color:  _showColor ? Colors.grey.shade300 : Colors.transparent,
+            child: GestureDetector(
+              onTap: () async {
+                setState(() {
+                  _showColor = true;
+                });
+                context.read<SearchDetailsProvider>().setFromLocationDetails_usingCurrentLocation(context);
+                setState(() {
+                  _showColor = false;
+                });
+              },
+              child: Container(
+                width: MediaQuery.sizeOf(context).width * 0.9,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black, width: 1.0),
+                ),
+                padding: EdgeInsets.all(10),
+                child: Row(
+                  children: [
+                    Icon(Icons.location_on),
+                    Text(
+                      " Click to use your location",
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+  }
+}
+
 
 /// Takes in information of a [NominatimPlace] object and creates a widget for
 /// ListView out of it.
@@ -183,6 +195,7 @@ class _SearchResultRenderer extends StatefulWidget {
 }
 
 class _SearchResultRendererState extends State<_SearchResultRenderer> {
+  /// Used alongside AnimatedContainer to show a tapping color effect
   bool _showColor = false;
 
   @override
@@ -193,8 +206,7 @@ class _SearchResultRendererState extends State<_SearchResultRenderer> {
       child: GestureDetector(
         onTap: () async {
           if (widget.nomiPlace.name != "No Places Found") {
-            context.read<SearchDetailsProvider>().fromLocController.text =
-                widget.nomiPlace.name;
+            context.read<SearchDetailsProvider>().setFromLocationDetails(widget.nomiPlace);
             context.read<SystemVariablesProvider>().setBackWidgetCurrentState(
               SystemStateEnum.gatheringToLoc,
             );
