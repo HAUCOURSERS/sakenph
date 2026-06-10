@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:sakenph/features/background_widget/widgets.dart';
 import 'package:sakenph/features/foreground_widget/functions.dart'
-    show fetchData, handleLocationPermission, searchPlaces;
+    show fetchData, handleLocationPermission;
 import 'package:sakenph/features/foreground_widget/widgets.dart';
 import 'package:sakenph/map_widget.dart';
-import 'package:geolocator/geolocator.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,9 +11,6 @@ class HomePage extends StatefulWidget {
   @override
   State<HomePage> createState() => _HomePage();
 }
-
-/// Used to improve reusability of the GestureDetector builder
-enum _LocationSource { FROM, TO }
 
 class _HomePage extends State<HomePage> {
   late Future<Map<dynamic, dynamic>> json;

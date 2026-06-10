@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show SystemChrome, SystemUiOverlayStyle;
 // import 'package:sakenph/auth_gate.dart';
 // import 'package:sakenph/login_register.dart';
 import 'package:sakenph/home_page.dart';

@@ -1,14 +1,8 @@
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart'
-    show Position, Geolocator, LocationAccuracy;
-import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:sakenph/api/nominatim.dart';
-import 'package:sakenph/features/background_widget/widgets.dart'
-    show ViewForRequestingUserLoc;
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
-import 'package:sakenph/providers/provider_selected_loc.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 import 'package:sakenph/pages/settings_page.dart' show SettingsPage;
 import 'package:provider/provider.dart';
@@ -34,29 +28,21 @@ class _ForegroundWidgetState extends State<ForegroundWidget> {
 /// Relies on the value of [SystemVariablesProvider.backWidgetCurrentState] to
 /// decide what to render.
 class _ForegroundWidgetContentRenderer extends StatelessWidget {
-  const _ForegroundWidgetContentRenderer({super.key});
+  const _ForegroundWidgetContentRenderer();
 
   @override
   Widget build(BuildContext context) {
-    switch (context.select<SystemVariablesProvider, SystemStateEnum>(
-      (value) => value.backWidgetCurrentState,
-    )) {
-      case SystemStateEnum.gatheringFromLoc:
-      case SystemStateEnum.gatheringToLoc:
-        return context.select<SearchDetailsProvider, bool>((value) => !value.isFromLocationDetailsEmpty,)
-            ? _FromLocationSearchBar()
-            : Column(
-                children: [_FromLocationSearchBar(), _ToLocationSearchBar()],
-              );
-    }
-
-    return Container();
+    return context.select<SearchDetailsProvider, bool>(
+          (value) => !value.isFromLocationDetailsEmpty,
+        )
+        ? _FromLocationSearchBar()
+        : Column(children: [_FromLocationSearchBar(), _ToLocationSearchBar()]);
   }
 }
 
 /// A textfield widget that is used by the user to input their origin location
 class _FromLocationSearchBar extends StatelessWidget {
-  const _FromLocationSearchBar({super.key});
+  const _FromLocationSearchBar();
 
   @override
   Widget build(BuildContext context) {
@@ -67,28 +53,34 @@ class _FromLocationSearchBar extends StatelessWidget {
         child: Column(
           children: [
             TextField(
-              controller: context.read<SearchDetailsProvider>().fromLocController,
+              controller: context
+                  .read<SearchDetailsProvider>()
+                  .fromLocController,
               onChanged: (value) {
-                context
-                    .read<SearchDetailsProvider>()
-                    .tryToEraseFromLocResults();
-                context
-                    .read<SearchDetailsProvider>()
-                    .setIsFromLocTextfieldEmpty(value.isEmpty);
+                context.read<SearchDetailsProvider>().tryToEraseLocResults(
+                  SearchFieldType.from,
+                );
+                context.read<SearchDetailsProvider>().setTextfieldEmptyStatus(
+                  value.isEmpty,
+                  SearchFieldType.from,
+                );
                 if (value.isNotEmpty) {
                   EasyDebounce.debounce(
-                    DebounceIdEnum.nominatim_fromLocationSearch.toString(),
+                    DebounceId.nominatim_fromLocationSearch.toString(),
                     Duration(seconds: 1),
                     () async {
-                      context.read<SearchDetailsProvider>().setFromLocSearchResults(
-                        await searchPlaces(value),
-                      );
+                      context
+                          .read<SearchDetailsProvider>()
+                          .saveLocSearchResults(
+                            await searchPlaces(value),
+                            SearchFieldType.from,
+                          );
                     },
                   );
                 } else {
                   /// Covers the use case of: If the user clears out the entire textfield section
                   EasyDebounce.cancel(
-                    DebounceIdEnum.nominatim_fromLocationSearch.toString(),
+                    DebounceId.nominatim_fromLocationSearch.toString(),
                   );
                 }
               },
@@ -97,11 +89,9 @@ class _FromLocationSearchBar extends StatelessWidget {
                 context
                     .read<SystemVariablesProvider>()
                     .setBackgroundWidgetVisibility(true);
-                context
-                    .read<SystemVariablesProvider>()
-                    .setBackWidgetCurrentState(
-                      SystemStateEnum.gatheringFromLoc,
-                    );
+                context.read<SystemVariablesProvider>().setAppCurrentState(
+                  SystemState.gatheringFromLoc,
+                );
               },
               decoration: InputDecoration(
                 /// Expected to change state whether the background widget is
@@ -148,7 +138,7 @@ class _FromLocationSearchBar extends StatelessWidget {
 }
 
 class _ToLocationSearchBar extends StatelessWidget {
-  const _ToLocationSearchBar({super.key});
+  const _ToLocationSearchBar();
 
   @override
   Widget build(BuildContext context) {
@@ -162,26 +152,30 @@ class _ToLocationSearchBar extends StatelessWidget {
               focusNode: context.read<SearchDetailsProvider>().toLocFocusNode,
               controller: context.read<SearchDetailsProvider>().toLocController,
               onChanged: (value) {
-                context
-                    .read<SearchDetailsProvider>()
-                    .tryToEraseFromLocResults();
-                context
-                    .read<SearchDetailsProvider>()
-                    .setIsFromLocTextfieldEmpty(value.isEmpty);
+                context.read<SearchDetailsProvider>().tryToEraseLocResults(
+                  SearchFieldType.to,
+                );
+                context.read<SearchDetailsProvider>().setTextfieldEmptyStatus(
+                  value.isEmpty,
+                  SearchFieldType.to,
+                );
                 if (value.isNotEmpty) {
                   EasyDebounce.debounce(
-                    DebounceIdEnum.nominatim_toLocationSearch.toString(),
+                    DebounceId.nominatim_toLocationSearch.toString(),
                     Duration(seconds: 1),
                     () async {
-                      context.read<SearchDetailsProvider>().setFromLocSearchResults(
-                        await searchPlaces(value),
-                      );
+                      context
+                          .read<SearchDetailsProvider>()
+                          .saveLocSearchResults(
+                            await searchPlaces(value),
+                            SearchFieldType.to,
+                          );
                     },
                   );
                 } else {
                   /// Covers the use case of: If the user clears out the entire textfield section
                   EasyDebounce.cancel(
-                    DebounceIdEnum.nominatim_fromLocationSearch.toString(),
+                    DebounceId.nominatim_fromLocationSearch.toString(),
                   );
                 }
               },
@@ -190,7 +184,9 @@ class _ToLocationSearchBar extends StatelessWidget {
                 context
                     .read<SystemVariablesProvider>()
                     .setBackgroundWidgetVisibility(true);
-                context.read<SystemVariablesProvider>().setBackWidgetCurrentState(SystemStateEnum.gatheringToLoc);
+                context.read<SystemVariablesProvider>().setAppCurrentState(
+                  SystemState.gatheringToLoc,
+                );
               },
               decoration: InputDecoration(
                 /// Expected to change state whether the background widget is
