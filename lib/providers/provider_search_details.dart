@@ -1,9 +1,9 @@
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/material.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:provider/provider.dart';
-import 'package:sakenph/classes/nominatim_response.dart' show NominatimPlace;
+import 'package:sakenph/classes/nominatim_response.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
@@ -20,8 +20,50 @@ class SearchDetailsProvider extends ChangeNotifier {
 
   FocusNode toLocFocusNode = FocusNode();
 
-  Location? _selectedFromLocationDetails;
-  Location? _selectedToLocationDetails;
+  LatLng? _selectedFromLocationDetails;
+  LatLng? _selectedToLocationDetails;
+
+  /// Originally obtained in a json format. Paths may contain more than one shortest paths.
+  // 
+  // Sample output in json:
+  /*
+    {
+      "routes": {
+        "result-1": [
+          {
+            "mode": {
+              "type": "walk",
+              "details": {
+                "name": "On foot",
+                "color": "#005eff"
+              }
+            },
+            "geometry": [
+              [120.5872876, 15.1345705],
+              [120.5873933, 15.1345113],
+              [120.5874381, 15.1345798],
+              [120.5875794, 15.1348006],
+              [120.5881366, 15.1344614],
+              [120.5881806, 15.1344335],
+              [120.5884364, 15.1342726],
+              [120.5886514, 15.134151],
+              [120.5888889, 15.1340141],
+              [120.5892275, 15.1338121],
+              [120.5895063, 15.1336655],
+              [120.5897269, 15.1336267],
+              [120.5900492, 15.1336987],
+              [120.5902923, 15.1337569],
+              [120.5905847, 15.133291],
+              [120.5905788, 15.133211],
+              [120.5898783, 15.1325823],
+              [120.5899615, 15.1324832]
+            ]
+          }
+        ]
+      }
+    }
+  */
+  Map<String, dynamic>? _suggestedShortestPaths;
 
   // /////////////////////////////////////////////////////////////////////////////////////////////
   // Getters
@@ -33,7 +75,7 @@ class SearchDetailsProvider extends ChangeNotifier {
   bool get isFromLocTextfieldEmpty => _isFromLocTextfieldEmpty;
   bool get isToLocTextfieldEmpty => _isToLocTextfieldEmpty;
 
-  bool get isInfoPreparedForShortestPath => _selectedFromLocationDetails != null && _selectedToLocationDetails != null;
+  Map<String, dynamic>? get suggestedShortestPaths => _suggestedShortestPaths;
 
   // /////////////////////////////////////////////////////////////////////////////////////////////
   // Functions
@@ -131,11 +173,7 @@ class SearchDetailsProvider extends ChangeNotifier {
   /// FromLocation will be used alongside ToLocation to compute optimal route.
   void _setFromLocationDetails(double lat, double lon, String name) {
     fromLocController.text = name;
-    _selectedFromLocationDetails = Location(
-      latitude: lat,
-      longitude: lon,
-      timestamp: DateTime.now(),
-    );
+    _selectedFromLocationDetails = LatLng(lat, lon);
     toLocFocusNode.requestFocus();
     notifyListeners();
   }
@@ -164,11 +202,7 @@ class SearchDetailsProvider extends ChangeNotifier {
     BuildContext buildContext,
   ) async {
     toLocController.text = name;
-    _selectedToLocationDetails = Location(
-      latitude: lat,
-      longitude: lon,
-      timestamp: DateTime.now(),
-    );
+    _selectedToLocationDetails = LatLng(lat,lon);
     //print("From Location Details: " + _selectedFromLocationDetails.toString());
     //print("To Location Details: " + _selectedToLocationDetails.toString());
     notifyListeners();
@@ -178,6 +212,14 @@ class SearchDetailsProvider extends ChangeNotifier {
       buildContext.read<SystemVariablesProvider>().setAppCurrentState(
         SystemState.waitingForBackendResponse,
       );
+      buildContext.read<SystemVariablesProvider>().mapWidgetController.shortestPath(_selectedFromLocationDetails!, _selectedToLocationDetails!);
+      buildContext.read<SystemVariablesProvider>().setAppCurrentState(SystemState.hideWidgets);
     }
+  }
+
+  /// To save the computed shortest paths to the provider for later use
+  void saveSuggestedShortestPaths(Map<String, dynamic>? val) {
+    _suggestedShortestPaths = val;
+    notifyListeners();
   }
 }

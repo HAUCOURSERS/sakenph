@@ -12,10 +12,26 @@ import 'package:sakenph/classes/json_response.dart';
 import 'package:provider/provider.dart';
 
 class MapWidget extends StatefulWidget {
-  const MapWidget({super.key});
+  final MapWidgetController? controller;  // add thi
+  const MapWidget({super.key, required this.controller});
 
   @override
   State<MapWidget> createState() => _MapWidget();
+}
+
+class MapWidgetController {
+  _MapWidget? _state;
+
+  void _attach(_MapWidget state) => _state = state;
+  void _detach() => _state = null;
+
+  Future<void> shortestPath(LatLng origin, LatLng dest) =>
+    _state?.shortestPath(origin, dest) ?? Future.value();
+
+  Future<void> flyTo(LatLng coordinates, {double zoom = 14}) =>
+    _state?.flyTo(coordinates, zoom: zoom) ?? Future.value();
+
+  void addLayers() => _state?.addLayers();
 }
 
 class _MapWidget extends State<MapWidget> {
@@ -25,6 +41,7 @@ class _MapWidget extends State<MapWidget> {
   // Keeps track of sourceIds and routeIds created from rendering a route
   List<String> routeSourceIds = [];
   List<String> routeLayerIds = [];
+
 
   // Loads custom map style from assets based on Stadia Map's OSM Bright style
   Future<void> _loadStyle() async {
@@ -36,11 +53,24 @@ class _MapWidget extends State<MapWidget> {
   }
 
   @override
-  void initState() {9
+  void initState() {
     super.initState();
     _loadStyle();
+    widget.controller?._attach(this);
     //addLayers();
   }
+
+  @override
+  void dispose() {
+    widget.controller?._detach();       // detach on dispose
+    super.dispose();
+  }
+
+  Future<void> flyTo(LatLng coordinates, {double zoom = 14}) async {
+  await _controller?.animateCamera(
+    CameraUpdate.newLatLngZoom(coordinates, zoom),
+  );
+}
 
   // UNUSED FUNCTION FOR NOW: used when clicked on a TODA Terminal icon
   Future<void> clickedTLayer(String layerId) async {
@@ -169,6 +199,7 @@ class _MapWidget extends State<MapWidget> {
   // TO DO:
   // shortestPath() should also have src parameter, it should be retrieved from a separate coordinates value from the source/dest TextBox
   Future<void> shortestPath(LatLng origin, LatLng dest) async {
+    // TODO: Remove this print statement once done checking if the function is working as intended
     print("[TEMP] shortestPath() Method Called!");
     String localIp = global_vars.localIP;
     // Position gpsLocation = await determinePosition();
@@ -183,8 +214,10 @@ class _MapWidget extends State<MapWidget> {
     );
 
     if (response.statusCode == 200) {
+      print("[TEMP] Recieved backend response");
       final Map<String, dynamic> json = jsonDecode(response.body);
       final RouteResponse multimodalRoute = RouteResponse.fromJson(json);
+      print("[TEMP] [JSON RESPONSE] => "+json.toString());
 
       // Removes all existing route sources and layers to avoid duplicates
       for (String i in routeLayerIds) {
@@ -328,13 +361,6 @@ class _MapWidget extends State<MapWidget> {
 
   @override
   Widget build(BuildContext context) {
-    /// Right now, map should only display shortest path once the
-    LatLng? selectedFromLoc = context.read<LatLongProvider>().fromLoc;
-    LatLng? selectedToLoc = context.read<LatLongProvider>().toLoc;
-    if (selectedFromLoc != null && selectedToLoc != null) {
-      shortestPath(selectedFromLoc, selectedToLoc);
-    }
-
     return MapLibreMap(
       styleString: mapStyle,
 
