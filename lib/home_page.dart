@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sakenph/features/background_widget/widgets.dart';
 import 'package:sakenph/features/foreground_widget/functions.dart'
     show fetchData, handleLocationPermission;
 import 'package:sakenph/features/foreground_widget/widgets.dart';
 import 'package:sakenph/map_widget.dart';
+import 'package:sakenph/providers/provider_system_vars.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -30,7 +32,7 @@ class _HomePage extends State<HomePage> {
       body: Stack(
         children: [
           /// Renders the map
-          MapWidget(),
+          MapWidget(controller: context.read<SystemVariablesProvider>().mapWidgetController,),
 
           /// Renders the background widget where other features and widgets
           /// could appear based on the current logic

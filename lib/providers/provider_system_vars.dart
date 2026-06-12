@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/map_widget.dart';
 
 /// This context provider is mainly used to be shared across the entire app.
 /// For example, you want to create a variable and have it accessible in parts
 /// of the code that are distant to each other, put it here.
 class SystemVariablesProvider with ChangeNotifier {
-  /// Note to developers:
-  /// - Separate the encapsulated variables, their get and set methods for
-  /// code cleanliness
-  ///
-  /// - Josef Miko
+  // Note to developers:
+  // - Separate the encapsulated variables, their get and set methods for
+  // code cleanliness
+  //
+  // - Josef Miko
 
+  /// If <code>true</code>, the [BackgroundWidget] in home_page.dart will be visible and
+  /// the GestureDetectors in it would be functional.
   bool _backgroundWidgetVisibility = false;
+  /// A controller class that can be used to gain access to the MapWidget widget state that's rendered
+  /// in the home page widget and be able to run its methods.
+  MapWidgetController mapWidgetController = MapWidgetController();
 
   /// Changes depending on app logic. The value of this variable decides what the widgets
   /// such as the Foreground and the Background widgets display

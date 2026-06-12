@@ -4,12 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class DatabaseService {
   final database = Supabase.instance.client;
 
-  // List<Terminal> get _terminalLists {
-  //   List<Terminal> list;
-
-  //   return list;
-  // }
-
   Future<List<Terminal>> get terminalList async {
     List<Terminal> list = [];
 
