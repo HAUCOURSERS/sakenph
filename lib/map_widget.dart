@@ -6,7 +6,6 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:http/http.dart' as http;
 import 'package:sakenph/api/database_service.dart';
 import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
-import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_selected_loc.dart';
 import 'package:sakenph/classes/terminal_class.dart';
 import 'package:sakenph/classes/json_response.dart';
@@ -37,19 +36,10 @@ class _MapWidget extends State<MapWidget> {
   }
 
   @override
-  void initState() {
+  void initState() {9
     super.initState();
     _loadStyle();
     //addLayers();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final value = context.select<SearchDetailsProvider, bool>(
-      (value) => value.isInfoPreparedForShortestPath,
-    );
-    print("[TEMP] Value detected: " + value.toString());
   }
 
   // UNUSED FUNCTION FOR NOW: used when clicked on a TODA Terminal icon
