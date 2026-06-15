@@ -3,12 +3,14 @@ import 'package:loading_animation_widget/loading_animation_widget.dart'
     show LoadingAnimationWidget;
 import 'package:provider/provider.dart';
 import 'package:sakenph/classes/nominatim_response.dart';
+import 'package:sakenph/features/background_widget/functions.dart';
 import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/providers/provider_mapwidget_handler.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
 /// This widget is used to hide the map and to show its contents. Contents depend
-/// on [SystemVariablesProvider.backWidgetCurrentState] current value.
+/// on [SystemVariablesProvider.appCurrentState] current value.
 class BackgroundWidget extends StatelessWidget {
   const BackgroundWidget({super.key});
 
@@ -18,13 +20,21 @@ class BackgroundWidget extends StatelessWidget {
         .select<SystemVariablesProvider, bool>(
           (val) => val.backgroundWidgetVisibility,
         );
+    SystemState currentSystemState = context
+        .select<SystemVariablesProvider, SystemState>(
+          (val) => val.appCurrentState,
+        );
+    Color backgroundWidgetColor = context
+        .select<SystemVariablesProvider, Color>(
+          (value) => value.backgroundWidgetColor,
+        );
     return IgnorePointer(
       ignoring: !backgroundWidgetVisibility,
       child: AnimatedOpacity(
         opacity: backgroundWidgetVisibility ? 1.0 : 0.0,
         duration: Duration(milliseconds: 200),
         child: AnimatedContainer(
-          duration: Duration(milliseconds: 200),
+          duration: Duration(milliseconds: 500),
           color: context.select<SystemVariablesProvider, Color>(
             (value) => value.backgroundWidgetColor,
           ),
@@ -51,8 +61,10 @@ class BackgroundWidget extends StatelessWidget {
                 }
               },
               child: Container(
-                color: Colors.white,
-                child: _BackgroundWidgetContentRenderer(),
+                color: backgroundWidgetColor,
+                child: _BackgroundWidgetContentRenderer(
+                  currentSystemState: currentSystemState,
+                ),
               ),
             ),
           ),
@@ -62,14 +74,18 @@ class BackgroundWidget extends StatelessWidget {
   }
 }
 
-/// Relies on the value of [SystemVariablesProvider.backWidgetCurrentState] to
+/// Relies on the value of [SystemVariablesProvider.appCurrentState] to
 /// decide what to render.
 class _BackgroundWidgetContentRenderer extends StatelessWidget {
+  final SystemState currentSystemState;
+
+  const _BackgroundWidgetContentRenderer({
+    super.key,
+    required this.currentSystemState,
+  });
   @override
   Widget build(BuildContext context) {
-    switch (context.select<SystemVariablesProvider, SystemState>(
-      (val) => val.backWidgetCurrentState,
-    )) {
+    switch (currentSystemState) {
       case SystemState.gatheringFromLoc:
         return ViewForRequestingFromLocation();
       case SystemState.gatheringToLoc:
@@ -78,6 +94,10 @@ class _BackgroundWidgetContentRenderer extends StatelessWidget {
         return _WaitingForBackendResponse();
       case SystemState.hideWidgets:
         return SizedBox.shrink();
+      case SystemState.showSuggestedRoutes:
+        return _DisplaySuggestedPaths();
+      case SystemState.peekAtRoute:
+        return _PreviewWindowForSuggestedPath();
     }
   }
 }
@@ -284,10 +304,12 @@ class _SearchResultRendererState extends State<_SearchResultRenderer> {
                   SystemState.gatheringToLoc,
                 );
               case SearchFieldType.to:
-                context.read<SearchDetailsProvider>().setToLocationDetails(
-                  widget.nomiPlace,
-                  context,
-                );
+                context
+                    .read<SearchDetailsProvider>()
+                    .setToLocationDetails_andStartCalculating(
+                      widget.nomiPlace,
+                      context,
+                    );
             }
           }
           setState(() {
@@ -357,6 +379,199 @@ class __WaitingForBackendResponseState
           size: 150,
         ),
       ),
+    );
+  }
+}
+
+/// Widget that will display route choices given by backend
+class _DisplaySuggestedPaths extends StatelessWidget {
+  const _DisplaySuggestedPaths({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Meant to absorb onTap hits to prevent closure due to the main background
+    // widget's nature
+    return GestureDetector(
+      onTap: () {},
+      child: Stack(
+        children: [
+          Container(
+            color: Colors.transparent,
+            alignment: Alignment.center,
+            width: MediaQuery.sizeOf(context).width,
+            height: MediaQuery.sizeOf(context).height,
+            child: Center(child: _SuggestedPathWidgetListBuilder()),
+          ),
+          Positioned(
+            top: 150,
+            left: MediaQuery.sizeOf(context).width * 0.125,
+            right: MediaQuery.sizeOf(context).width * 0.125,
+            child: Text(
+              "Tap on a suggested path to view it on map",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white, fontSize: 30),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Builder of the widget list that contains suggested paths
+class _SuggestedPathWidgetListBuilder extends StatelessWidget {
+  const _SuggestedPathWidgetListBuilder({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    Map<String, dynamic> shortestPaths = context
+        .read<SearchDetailsProvider>()
+        .suggestedShortestPaths["routes"];
+    return Container(
+      width: MediaQuery.sizeOf(context).width * 0.8,
+      child: ListView.separated(
+        shrinkWrap: true,
+        itemBuilder: (context, index) {
+          return _SuggestedPathWidgetTemplate(choice_idx: index.toString());
+        },
+        separatorBuilder: (context, index) => SizedBox(height: 8),
+        itemCount: shortestPaths.length,
+      ),
+    );
+  }
+}
+
+/// Based widget for making suggested path widgets
+class _SuggestedPathWidgetTemplate extends StatelessWidget {
+  final String choice_idx;
+  const _SuggestedPathWidgetTemplate({super.key, required this.choice_idx});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        context.read<SystemVariablesProvider>().setAppCurrentState(
+          SystemState.peekAtRoute,
+        );
+        Map<String, dynamic> pathJSON = context
+            .read<SearchDetailsProvider>()
+            .getRouteByID("result-" + (int.parse(choice_idx) + 1).toString());
+        context.read<MapWidgetHandlerProvider>().mapWidgetController.drawPath(
+          pathJSON,
+        );
+        //context.read<MapWidgetHandlerProvider>().mapWidgetController.flyTo(
+        //  getMiddleGeometryOfPath(pathJSON),
+        //);
+      },
+      child: Container(
+        height: 100,
+        width: MediaQuery.sizeOf(context).width,
+        color: Colors.red,
+        padding: EdgeInsets.all(10),
+        child: Column(
+          children: [
+            Text(
+              "Path #" + choice_idx,
+              style: TextStyle(color: Colors.white, fontSize: 20),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Holds 2 buttons for the user to try see the path in the map.
+/// It's intentional by design that the map cannot be interacted while in this mode
+class _PreviewWindowForSuggestedPath extends StatelessWidget {
+  const _PreviewWindowForSuggestedPath({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        GestureDetector(
+          onTap: () {},
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            color: Colors.transparent,
+          ),
+        ),
+        Positioned(
+          top: MediaQuery.sizeOf(context).height * 0.75,
+          left: MediaQuery.sizeOf(context).width * 0.125,
+          right: MediaQuery.sizeOf(context).width * 0.125,
+          child: GestureDetector(
+            onTap: () {},
+            child: Container(
+              height: 200,
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      context
+                          .read<SystemVariablesProvider>()
+                          .setAppCurrentState(SystemState.showSuggestedRoutes);
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(
+                          30,
+                        ), // rounded, not circle
+                        color: Colors.grey.shade300, // perfect circle
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: Offset(0, 4), // x, y offset
+                          ),
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        "Go Back",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(
+                        30,
+                      ), // rounded, not circle
+                      color: Colors.grey.shade300, // perfect circle
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: Offset(0, 4), // x, y offset
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      "Select This Route",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

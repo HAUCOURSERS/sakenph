@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:provider/provider.dart';
+import 'package:sakenph/api/backend_service.dart';
 import 'package:sakenph/classes/nominatim_response.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
@@ -24,7 +25,7 @@ class SearchDetailsProvider extends ChangeNotifier {
   LatLng? _selectedToLocationDetails;
 
   /// Originally obtained in a json format. Paths may contain more than one shortest paths.
-  // 
+  //
   // Sample output in json:
   /*
     {
@@ -63,7 +64,7 @@ class SearchDetailsProvider extends ChangeNotifier {
       }
     }
   */
-  Map<String, dynamic>? _suggestedShortestPaths;
+  Map<String, dynamic> _suggestedShortestPaths = {};
 
   // /////////////////////////////////////////////////////////////////////////////////////////////
   // Getters
@@ -75,7 +76,8 @@ class SearchDetailsProvider extends ChangeNotifier {
   bool get isFromLocTextfieldEmpty => _isFromLocTextfieldEmpty;
   bool get isToLocTextfieldEmpty => _isToLocTextfieldEmpty;
 
-  Map<String, dynamic>? get suggestedShortestPaths => _suggestedShortestPaths;
+  /// Data is inserted usually by functions in backend_service.dart
+  Map<String, dynamic> get suggestedShortestPaths => _suggestedShortestPaths;
 
   // /////////////////////////////////////////////////////////////////////////////////////////////
   // Functions
@@ -183,11 +185,11 @@ class SearchDetailsProvider extends ChangeNotifier {
   ///
   /// After selecting the ToLocation, the lat lon of the two locations are obtained,
   /// ready for computing the shortest path
-  void setToLocationDetails(
+  void setToLocationDetails_andStartCalculating(
     NominatimPlace nomiDetails,
     BuildContext buildContext,
   ) {
-    _setToLocationDetails(
+    _setToLocationDetails_andStartCalculating(
       nomiDetails.lat,
       nomiDetails.lon,
       nomiDetails.name,
@@ -195,31 +197,60 @@ class SearchDetailsProvider extends ChangeNotifier {
     );
   }
 
-  void _setToLocationDetails(
+  void _setToLocationDetails_andStartCalculating(
     double lat,
     double lon,
     String name,
     BuildContext buildContext,
   ) async {
+    wipeSuggestedShortestPaths();
+
     toLocController.text = name;
-    _selectedToLocationDetails = LatLng(lat,lon);
-    //print("From Location Details: " + _selectedFromLocationDetails.toString());
-    //print("To Location Details: " + _selectedToLocationDetails.toString());
+    _selectedToLocationDetails = LatLng(lat, lon);
     notifyListeners();
-    await Future.delayed(Duration(milliseconds: 200));
+    await Future.delayed(
+      Duration(milliseconds: 200),
+    ); // Give time to let the user see that the ToLocation textfield was changed
+
     toLocFocusNode.unfocus();
     if (buildContext.mounted) {
       buildContext.read<SystemVariablesProvider>().setAppCurrentState(
         SystemState.waitingForBackendResponse,
       );
-      buildContext.read<SystemVariablesProvider>().mapWidgetController.shortestPath(_selectedFromLocationDetails!, _selectedToLocationDetails!);
-      buildContext.read<SystemVariablesProvider>().setAppCurrentState(SystemState.hideWidgets);
+
+      buildContext.read<SearchDetailsProvider>().saveSuggestedShortestPaths(
+        await queryForShortestPath(
+          _selectedFromLocationDetails!,
+          _selectedToLocationDetails!,
+        ),
+      );
     }
   }
 
-  /// To save the computed shortest paths to the provider for later use
-  void saveSuggestedShortestPaths(Map<String, dynamic>? val) {
-    _suggestedShortestPaths = val;
+  ///
+  void wipeSuggestedShortestPaths() {
+    print("[TEMP] SUGGESTED SHORTEST PATHS CLEARED");
+    _suggestedShortestPaths.clear();
     notifyListeners();
+  }
+
+  /// To save the computed shortest paths to the provider for later use
+  void saveSuggestedShortestPaths(Map<String, dynamic> val) {
+    _suggestedShortestPaths = val;
+    print("[TEMP] Saved suggested shortest paths");
+    notifyListeners();
+  }
+
+  /// When someone searches for shortest routes, the backend may return more than one.
+  /// When displaying data, you'd wanna just get one of the routes.
+  ///
+  /// Valid route id format => "result-<number>"
+  /// Ex: result-1, result-2, result-3
+  Map<String, dynamic> getRouteByID(String route_id) {
+    final routes = Map<String, dynamic>.from(
+      _suggestedShortestPaths['routes'] as Map<String, dynamic>,
+    );
+    routes.removeWhere((key, value) => key != route_id);
+    return {'routes': routes};
   }
 }
