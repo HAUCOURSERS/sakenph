@@ -1,24 +1,28 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:http/http.dart' as http;
+import 'package:sakenph/api/backend_service.dart';
 import 'package:sakenph/api/database_service.dart';
 import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
-import 'package:sakenph/providers/provider_selected_loc.dart';
+import 'package:sakenph/providers/provider_mapwidget_handler.dart';
 import 'package:sakenph/classes/terminal_class.dart';
 import 'package:sakenph/classes/json_response.dart';
 import 'package:provider/provider.dart';
 
+/// Holds the view for the map
 class MapWidget extends StatefulWidget {
-  final MapWidgetController? controller;  // add thi
+  final MapWidgetController? controller; // add thi
   const MapWidget({super.key, required this.controller});
 
   @override
   State<MapWidget> createState() => _MapWidget();
 }
 
+/// Means to access the MapWidget state's functions properly.
 class MapWidgetController {
   _MapWidget? _state;
 
@@ -26,10 +30,13 @@ class MapWidgetController {
   void _detach() => _state = null;
 
   Future<void> shortestPath(LatLng origin, LatLng dest) =>
-    _state?.shortestPath(origin, dest) ?? Future.value();
+      _state?.shortestPath(origin, dest) ?? Future.value();
 
   Future<void> flyTo(LatLng coordinates, {double zoom = 14}) =>
-    _state?.flyTo(coordinates, zoom: zoom) ?? Future.value();
+      _state?.flyTo(coordinates, zoom: zoom) ?? Future.value();
+
+  Future<void> drawPath(Map<String, dynamic> pathJSON) =>
+      _state?.drawPath(pathJSON) ?? Future.value();
 
   void addLayers() => _state?.addLayers();
 }
@@ -41,7 +48,6 @@ class _MapWidget extends State<MapWidget> {
   // Keeps track of sourceIds and routeIds created from rendering a route
   List<String> routeSourceIds = [];
   List<String> routeLayerIds = [];
-
 
   // Loads custom map style from assets based on Stadia Map's OSM Bright style
   Future<void> _loadStyle() async {
@@ -62,15 +68,78 @@ class _MapWidget extends State<MapWidget> {
 
   @override
   void dispose() {
-    widget.controller?._detach();       // detach on dispose
+    widget.controller?._detach(); // detach on dispose
     super.dispose();
   }
 
+  /// Uses json value obtained from backend and draws the path
+  Future<void> drawPath(Map<String, dynamic> pathJSON) async {
+    printLongString("INSPECT THIS ===============> " + pathJSON.toString());
+    final Map<String, dynamic> json = pathJSON;
+    final RouteResponse multimodalRoute = RouteResponse.fromJson(json);
+
+    // Removes all existing route sources and layers to avoid duplicates
+    for (String i in routeLayerIds) {
+      _controller?.removeLayer(i);
+    }
+    routeLayerIds.clear();
+    for (String i in routeSourceIds) {
+      _controller?.removeSource(i);
+    }
+    routeSourceIds.clear();
+    final List<String> keys = multimodalRoute.routes.keys.toList();
+
+    int sourceLayerId = 1;
+    for (String result in keys) {
+      for (RouteSegment route in multimodalRoute.routes[result]!) {
+        String sourceId = "route-$sourceLayerId";
+        routeSourceIds.add(sourceId);
+        String layerId = "route-$sourceLayerId";
+        routeLayerIds.add(layerId);
+
+        LineLayerProperties layerStyle;
+        if (route.mode.type == 'walk') {
+          // Blue dotted lines to indicate walking route
+          layerStyle = LineLayerProperties(
+            lineColor: route.mode.details.color,
+            lineWidth: 3.0,
+            lineDasharray: [1, 1],
+          );
+        } else {
+          // Solid lines to indicate vehicle route
+          layerStyle = LineLayerProperties(
+            lineColor: route.mode.details.color,
+            lineWidth: 3.0,
+          );
+        }
+
+        // Defines the specific geometry of the route line
+        // route.geometry is a list of coordinate pairs that form a line
+        await _controller!.addGeoJsonSource(sourceId, {
+          'type': 'FeatureCollection',
+          'features': [
+            {
+              'type': 'Feature',
+              'properties': {},
+              'geometry': {'type': 'LineString', 'coordinates': route.geometry},
+            },
+          ],
+        });
+
+        // Defines the style of the line
+        await _controller!.addLineLayer(sourceId, layerId, layerStyle);
+
+        sourceLayerId++;
+      }
+    }
+  }
+
+  /// Adjusts camera to go to said coordinates in the map
   Future<void> flyTo(LatLng coordinates, {double zoom = 14}) async {
-  await _controller?.animateCamera(
-    CameraUpdate.newLatLngZoom(coordinates, zoom),
-  );
-}
+    await _controller?.animateCamera(
+      CameraUpdate.newLatLngZoom(coordinates, zoom),
+    );
+  }
 
   // UNUSED FUNCTION FOR NOW: used when clicked on a TODA Terminal icon
   Future<void> clickedTLayer(String layerId) async {
@@ -198,6 +267,8 @@ class _MapWidget extends State<MapWidget> {
   // Function that calls result from shortestPathTest() in backend and renders the path
   // TO DO:
   // shortestPath() should also have src parameter, it should be retrieved from a separate coordinates value from the source/dest TextBox
+  //
+  // UNUSED FUNCTION FOR NOW: this is obsolete since parts of this function are to be used separately
   Future<void> shortestPath(LatLng origin, LatLng dest) async {
     // TODO: Remove this print statement once done checking if the function is working as intended
     print("[TEMP] shortestPath() Method Called!");
@@ -217,7 +288,6 @@ class _MapWidget extends State<MapWidget> {
       print("[TEMP] Recieved backend response");
       final Map<String, dynamic> json = jsonDecode(response.body);
       final RouteResponse multimodalRoute = RouteResponse.fromJson(json);
-      print("[TEMP] [JSON RESPONSE] => "+json.toString());
 
       // Removes all existing route sources and layers to avoid duplicates
       for (String i in routeLayerIds) {
@@ -421,7 +491,10 @@ class _MapWidget extends State<MapWidget> {
 
       onMapLongClick: (point, coordinates) async {
         // Calculates and displays shortest path to point where user long presses
-        shortestPath(context.read<LatLongProvider>().fromLoc!, coordinates);
+        shortestPath(
+          context.read<MapWidgetHandlerProvider>().fromLoc!,
+          coordinates,
+        );
 
         // Remove layer and source of pin if there is one currently on the map
         _controller?.removeLayer('layer_selectedPoint');

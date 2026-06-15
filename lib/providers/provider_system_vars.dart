@@ -15,9 +15,6 @@ class SystemVariablesProvider with ChangeNotifier {
   /// If <code>true</code>, the [BackgroundWidget] in home_page.dart will be visible and
   /// the GestureDetectors in it would be functional.
   bool _backgroundWidgetVisibility = false;
-  /// A controller class that can be used to gain access to the MapWidget widget state that's rendered
-  /// in the home page widget and be able to run its methods.
-  MapWidgetController mapWidgetController = MapWidgetController();
 
   /// Changes depending on app logic. The value of this variable decides what the widgets
   /// such as the Foreground and the Background widgets display
@@ -31,13 +28,15 @@ class SystemVariablesProvider with ChangeNotifier {
 
   /// If the value of this variable is false, the Background Widget will bee unrendered
   bool get backgroundWidgetVisibility => _backgroundWidgetVisibility;
-  SystemState get backWidgetCurrentState => _appCurrentState;
+  SystemState get appCurrentState => _appCurrentState;
   Color get backgroundWidgetColor => _backgroundWidgetColor;
 
   // /////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Functions
   // /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+  /// If false, the background widget will hide and unfocus any widget the user
+  /// is currently focused to.
   void setBackgroundWidgetVisibility(bool val) {
     _backgroundWidgetVisibility = val;
 
@@ -51,10 +50,20 @@ class SystemVariablesProvider with ChangeNotifier {
 
   void setAppCurrentState(SystemState val) {
     _appCurrentState = val;
+
+    // This system state needs the background widget to be transparent
+    // to show the path view
+    if (val == SystemState.peekAtRoute) {
+      _setBackgroundWidgetColor(Colors.transparent);
+    } else {
+      if (backgroundWidgetColor != Colors.white) {
+        _setBackgroundWidgetColor(Colors.white);
+      }
+    }
     notifyListeners();
   }
 
-  void setBackgroundWidgetColor(Color color) {
+  void _setBackgroundWidgetColor(Color color) {
     _backgroundWidgetColor = color;
     notifyListeners();
   }

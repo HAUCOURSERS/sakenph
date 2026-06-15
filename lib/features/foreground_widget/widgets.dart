@@ -25,18 +25,29 @@ class _ForegroundWidgetState extends State<ForegroundWidget> {
   }
 }
 
-/// Relies on the value of [SystemVariablesProvider.backWidgetCurrentState] to
+/// Relies on the value of [SystemVariablesProvider.appCurrentState] to
 /// decide what to render.
 class _ForegroundWidgetContentRenderer extends StatelessWidget {
   const _ForegroundWidgetContentRenderer();
 
   @override
   Widget build(BuildContext context) {
-    return context.select<SearchDetailsProvider, bool>(
-          (value) => !value.isFromLocationDetailsEmpty,
-        )
-        ? _FromLocationSearchBar()
-        : Column(children: [_FromLocationSearchBar(), _ToLocationSearchBar()]);
+    bool isFromLocDetailsEmpty = context.select<SearchDetailsProvider, bool>(
+      (value) => !value.isFromLocationDetailsEmpty,
+    );
+    SystemState systemState = context
+        .select<SystemVariablesProvider, SystemState>(
+          (value) => value.appCurrentState,
+        );
+    if (systemState != SystemState.peekAtRoute) {
+      return (isFromLocDetailsEmpty)
+          ? _FromLocationSearchBar()
+          : Column(
+              children: [_FromLocationSearchBar(), _ToLocationSearchBar()],
+            );
+    } else {
+      return SizedBox.shrink();
+    }
   }
 }
 

@@ -1,9 +1,24 @@
 /// To restrict logic choices when planning and developing what to display in the
 /// Foreground and Background widgets at the main page.
 enum SystemState {
+  /// It will only display the search results done in the FromLoc textfield
   gatheringFromLoc,
+
+  /// It will only display the search results done in the ToLoc textfield
   gatheringToLoc,
+
+  /// It will show a loading animated widget. Made to indirectly tell the user to wait for backend response.
+  /// As of this writing, it doesn't handle backend errors
   waitingForBackendResponse,
+
+  /// Displays the suggested routes received from backend
+  showSuggestedRoutes,
+
+  /// Adjust background widget visibility so the user can peek at where the route is placed.
+  /// The 2 textfields will be hidden while the app is in this state
+  peekAtRoute,
+
+  /// It removes the visibility of the background widget
   hideWidgets,
 }
 

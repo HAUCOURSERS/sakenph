@@ -7,9 +7,10 @@ import 'package:sakenph/globals/variables.dart' as global_vars;
 
 /// Attempts to get json results by submitting origin and destination [LatLng] values.
 /// Returns a nullable <code>Map&lt;String, dynamic&gt;</code> value.
-Future<Map<String, dynamic>?> queryForShortestPath(LatLng origin, LatLng dest) async {
-  // TODO: Remove this print statement once done checking if the function is working as intended
-  print("[TEMP] shortestPath() Method Called!");
+Future<Map<String, dynamic>> queryForShortestPath(
+  LatLng origin,
+  LatLng dest,
+) async {
   String localIp = global_vars.localIP;
   // Position gpsLocation = await determinePosition();
 
@@ -25,6 +26,16 @@ Future<Map<String, dynamic>?> queryForShortestPath(LatLng origin, LatLng dest) a
   if (response.statusCode == 200) {
     print("[TEMP] Recieved backend response");
     final Map<String, dynamic> json = jsonDecode(response.body);
+    //print(json['routes']['result-1'][0]['geometry'].toString());
+
+    printLongString(json.toString());
+
     return json;
-  } else return null;
+  } else
+    return {};
+}
+
+void printLongString(String text) {
+  final pattern = RegExp('.{1,800}'); // 800 chars per chunk
+  pattern.allMatches(text).forEach((match) => print(match.group(0)));
 }
