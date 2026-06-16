@@ -39,15 +39,22 @@ class _ForegroundWidgetContentRenderer extends StatelessWidget {
         .select<SystemVariablesProvider, SystemState>(
           (value) => value.appCurrentState,
         );
-    if (systemState != SystemState.peekAtRoute) {
-      return (isFromLocDetailsEmpty)
-          ? _FromLocationSearchBar()
-          : Column(
-              children: [_FromLocationSearchBar(), _ToLocationSearchBar()],
-            );
-    } else {
-      return SizedBox.shrink();
+    switch (systemState) {
+      
+      case SystemState.gatheringFromLoc:
+      case SystemState.gatheringToLoc:
+      case SystemState.waitingForBackendResponse:
+      case SystemState.showSuggestedRoutes:
+      case SystemState.hideWidgets:
+        return (isFromLocDetailsEmpty)
+            ? _FromLocationSearchBar()
+            : Column(
+                children: [_FromLocationSearchBar(), _ToLocationSearchBar()],
+              );
+      case SystemState.peekAtRoute:
+        return _PreviewWindowForSuggestedPath();
     }
+    
   }
 }
 
@@ -218,6 +225,93 @@ class _ToLocationSearchBar extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+
+/// Holds 2 buttons for the user to try see the path in the map.
+/// It's intentional by design that the map cannot be interacted while in this mode
+class _PreviewWindowForSuggestedPath extends StatelessWidget {
+  const _PreviewWindowForSuggestedPath({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned(
+          top: MediaQuery.sizeOf(context).height * 0.75,
+          left: MediaQuery.sizeOf(context).width * 0.125,
+          right: MediaQuery.sizeOf(context).width * 0.125,
+          child: GestureDetector(
+            child: Container(
+              height: 200,
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      context
+                          .read<SystemVariablesProvider>()
+                          .setAppCurrentState(SystemState.showSuggestedRoutes);
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(
+                          30,
+                        ), // rounded, not circle
+                        color: Colors.grey.shade300, // perfect circle
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: Offset(0, 4), // x, y offset
+                          ),
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        "Go Back",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(
+                        30,
+                      ), // rounded, not circle
+                      color: Colors.grey.shade300, // perfect circle
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: Offset(0, 4), // x, y offset
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      "Select This Route",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

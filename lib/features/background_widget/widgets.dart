@@ -44,10 +44,14 @@ class BackgroundWidget extends StatelessWidget {
             /// The intention for this is that if the user presses anywhere in the
             /// background widget, it would hide it. Think of it as a way to help
             /// users easily close down the background widget
+            /// 
+            /// However the app may go into a state where its peeking at the selected route. 
+            /// During this time, the auto hide will be disabled.
             onTap: () {
+              if (currentSystemState != SystemState.peekAtRoute) {
               context
                   .read<SystemVariablesProvider>()
-                  .setBackgroundWidgetVisibility(false);
+                  .setBackgroundWidgetVisibility(false);}
             },
             child: PopScope(
               canPop: !context
@@ -92,12 +96,12 @@ class _BackgroundWidgetContentRenderer extends StatelessWidget {
         return ViewForRequestingToLocation();
       case SystemState.waitingForBackendResponse:
         return _WaitingForBackendResponse();
-      case SystemState.hideWidgets:
-        return SizedBox.shrink();
       case SystemState.showSuggestedRoutes:
         return _DisplaySuggestedPaths();
+
       case SystemState.peekAtRoute:
-        return _PreviewWindowForSuggestedPath();
+      case SystemState.hideWidgets:
+        return SizedBox.shrink(); // show nothing
     }
   }
 }
@@ -503,7 +507,6 @@ class _PreviewWindowForSuggestedPath extends StatelessWidget {
           left: MediaQuery.sizeOf(context).width * 0.125,
           right: MediaQuery.sizeOf(context).width * 0.125,
           child: GestureDetector(
-            onTap: () {},
             child: Container(
               height: 200,
               child: Column(
