@@ -74,7 +74,7 @@ class _MapWidget extends State<MapWidget> {
 
   /// Uses json value obtained from backend and draws the path
   Future<void> drawPath(Map<String, dynamic> pathJSON) async {
-    printLongString("INSPECT THIS ===============> " + pathJSON.toString());
+    //printLongString("INSPECT THIS ===============> " + pathJSON.toString());
     final Map<String, dynamic> json = pathJSON;
     final RouteResponse multimodalRoute = RouteResponse.fromJson(json);
 

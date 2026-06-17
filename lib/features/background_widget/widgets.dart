@@ -447,11 +447,14 @@ class _SuggestedPathWidgetListBuilder extends StatelessWidget {
 
 /// Based widget for making suggested path widgets
 class _SuggestedPathWidgetTemplate extends StatelessWidget {
+  /// Index number in the iteration when the widgets are being built
   final String choice_idx;
   const _SuggestedPathWidgetTemplate({super.key, required this.choice_idx});
 
+
   @override
   Widget build(BuildContext context) {
+    String route_id = "result-" + (int.parse(choice_idx) + 1).toString();
     return GestureDetector(
       onTap: () {
         context.read<SystemVariablesProvider>().setAppCurrentState(
@@ -459,7 +462,8 @@ class _SuggestedPathWidgetTemplate extends StatelessWidget {
         );
         Map<String, dynamic> pathJSON = context
             .read<SearchDetailsProvider>()
-            .getRouteByID("result-" + (int.parse(choice_idx) + 1).toString());
+            .getRouteByID(route_id);
+        getMiddleGeometryOfPath(pathJSON, route_id);
         context.read<MapWidgetHandlerProvider>().mapWidgetController.drawPath(
           pathJSON,
         );
