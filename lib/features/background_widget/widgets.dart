@@ -44,14 +44,15 @@ class BackgroundWidget extends StatelessWidget {
             /// The intention for this is that if the user presses anywhere in the
             /// background widget, it would hide it. Think of it as a way to help
             /// users easily close down the background widget
-            /// 
-            /// However the app may go into a state where its peeking at the selected route. 
+            ///
+            /// However the app may go into a state where its peeking at the selected route.
             /// During this time, the auto hide will be disabled.
             onTap: () {
               if (currentSystemState != SystemState.peekAtRoute) {
-              context
-                  .read<SystemVariablesProvider>()
-                  .setBackgroundWidgetVisibility(false);}
+                context
+                    .read<SystemVariablesProvider>()
+                    .setBackgroundWidgetVisibility(false);
+              }
             },
             child: PopScope(
               canPop: !context
@@ -451,7 +452,6 @@ class _SuggestedPathWidgetTemplate extends StatelessWidget {
   final String choice_idx;
   const _SuggestedPathWidgetTemplate({super.key, required this.choice_idx});
 
-
   @override
   Widget build(BuildContext context) {
     String route_id = "result-" + (int.parse(choice_idx) + 1).toString();
@@ -463,18 +463,18 @@ class _SuggestedPathWidgetTemplate extends StatelessWidget {
         Map<String, dynamic> pathJSON = context
             .read<SearchDetailsProvider>()
             .getRouteByID(route_id);
-        getMiddleGeometryOfPath(pathJSON, route_id);
         context.read<MapWidgetHandlerProvider>().mapWidgetController.drawPath(
           pathJSON,
         );
-        //context.read<MapWidgetHandlerProvider>().mapWidgetController.flyTo(
-        //  getMiddleGeometryOfPath(pathJSON),
-        //);
+        context
+            .read<MapWidgetHandlerProvider>()
+            .mapWidgetController
+            .flyToBounds(compileCoordsIntoLatLngList(pathJSON, route_id));
       },
       child: Container(
         height: 100,
         width: MediaQuery.sizeOf(context).width,
-        color: Colors.red,
+        color: const Color.fromARGB(255, 221, 221, 221),
         padding: EdgeInsets.all(10),
         child: Column(
           children: [
