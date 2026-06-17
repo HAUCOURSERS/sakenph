@@ -1,17 +1,16 @@
 import 'dart:convert';
-import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:http/http.dart' as http;
-import 'package:sakenph/api/backend_service.dart';
 import 'package:sakenph/api/database_service.dart';
 import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
 import 'package:sakenph/providers/provider_mapwidget_handler.dart';
 import 'package:sakenph/classes/terminal_class.dart';
 import 'package:sakenph/classes/json_response.dart';
 import 'package:provider/provider.dart';
+import 'dart:math' show min, max;
 
 /// Holds the view for the map
 class MapWidget extends StatefulWidget {
@@ -32,11 +31,11 @@ class MapWidgetController {
   Future<void> shortestPath(LatLng origin, LatLng dest) =>
       _state?.shortestPath(origin, dest) ?? Future.value();
 
-  Future<void> flyTo(LatLng coordinates, {double zoom = 14}) =>
-      _state?.flyTo(coordinates, zoom: zoom) ?? Future.value();
-
   Future<void> drawPath(Map<String, dynamic> pathJSON) =>
       _state?.drawPath(pathJSON) ?? Future.value();
+
+  Future<void> flyToBounds(List<LatLng> bounds) =>
+      _state?.flyToBounds(bounds) ?? Future.value();
 
   void addLayers() => _state?.addLayers();
 }
@@ -74,7 +73,7 @@ class _MapWidget extends State<MapWidget> {
 
   /// Uses json value obtained from backend and draws the path
   Future<void> drawPath(Map<String, dynamic> pathJSON) async {
-    //printLongString("INSPECT THIS ===============> " + pathJSON.toString());
+    print("[TEMP] DRAWPATH TRIGGERED!");
     final Map<String, dynamic> json = pathJSON;
     final RouteResponse multimodalRoute = RouteResponse.fromJson(json);
 
@@ -134,10 +133,29 @@ class _MapWidget extends State<MapWidget> {
     }
   }
 
-  /// Adjusts camera to go to said coordinates in the map
-  Future<void> flyTo(LatLng coordinates, {double zoom = 14}) async {
+  // Adjusts camera based on coordinates
+  Future<void> flyToBounds(List<LatLng> coordinates) async {
+    if (coordinates.isEmpty) return;
+
+    // Find the bounding box
+    double minLat = coordinates.map((c) => c.latitude).reduce(min);
+    double maxLat = coordinates.map((c) => c.latitude).reduce(max);
+    double minLng = coordinates.map((c) => c.longitude).reduce(min);
+    double maxLng = coordinates.map((c) => c.longitude).reduce(max);
+
+    final bounds = LatLngBounds(
+      southwest: LatLng(minLat, minLng),
+      northeast: LatLng(maxLat, maxLng),
+    );
+
     await _controller?.animateCamera(
-      CameraUpdate.newLatLngZoom(coordinates, zoom),
+      CameraUpdate.newLatLngBounds(
+        bounds,
+        left: 120,
+        top: 50,
+        right: 120,
+        bottom: 250,
+      ),
     );
   }
 

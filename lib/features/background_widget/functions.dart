@@ -1,25 +1,23 @@
 import 'package:maplibre_gl/maplibre_gl.dart';
 
-LatLng getMiddleGeometryOfPath(Map<String, dynamic> path, String route_id) {
-  List<List<double>> geometryList = [];
-  /*
+/// Uses the geometry of a route, remake it into a List<LatLng> so the flyToBounds
+/// method can be used for proper zooming.
+List<LatLng> compileCoordsIntoLatLngList(
+  Map<String, dynamic> path,
+  String route_id,
+) {
+  List<LatLng> geometryList = [];
   for (final entry in path["routes"][route_id]) {
-    List<List<double>> geometryToAppend = (entry["geometry"] as List<dynamic>)
-        .map((item) => (item as List<dynamic>)
-            .map((coord) => (coord as num).toDouble())
-            .toList())
-        .toList();
-    
+    List<LatLng> geometryToAppend = (entry["geometry"] as List<dynamic>).map((
+      item,
+    ) {
+      final coords = (item as List<dynamic>)
+          .map((coord) => (coord as num).toDouble())
+          .toList();
+      return LatLng(coords[1], coords[0]); // [lng, lat] → LatLng(lat, lng)
+    }).toList();
+
     geometryList.addAll(geometryToAppend);
   }
-  */
-  for (final entry in path["routes"][route_id]) {
-    List<dynamic> geometryEntry = entry["geometry"];
-    for (final latlng_dynamic in geometryEntry) {
-      List<double> latlng = latlng_dynamic as List<double>;
-      print(latlng.toString());
-    }
-  }
-
-  return LatLng(120.5969211, 15.1554372);
+  return geometryList;
 }
