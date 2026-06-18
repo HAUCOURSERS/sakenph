@@ -454,7 +454,7 @@ class _MapWidget extends State<MapWidget> {
 
       onMapCreated: (c) async {
         // Gets point of current location of GPS
-        Position gpsLocation = await determinePosition();
+        //Position gpsLocation = await determinePosition();
 
         _controller = c;
 
@@ -477,6 +477,7 @@ class _MapWidget extends State<MapWidget> {
         _controller!.setSymbolIconAllowOverlap(true);
 
         // ----------- Add Source & Layer of current location ------------- //
+        /*
         await _controller?.addSource(
           'source_currentLocation',
           GeojsonSourceProperties(
@@ -497,6 +498,7 @@ class _MapWidget extends State<MapWidget> {
             },
           ),
         );
+        */
 
         await _controller?.addLayer(
           'source_currentLocation',
