@@ -32,44 +32,38 @@ class BackgroundWidget extends StatelessWidget {
       ignoring: !backgroundWidgetVisibility,
       child: AnimatedOpacity(
         opacity: backgroundWidgetVisibility ? 1.0 : 0.0,
-        duration: Duration(milliseconds: 200),
-        child: AnimatedContainer(
-          duration: Duration(milliseconds: 500),
-          color: context.select<SystemVariablesProvider, Color>(
-            (value) => value.backgroundWidgetColor,
-          ),
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
+        duration: Duration(milliseconds: 300),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
 
-            /// The intention for this is that if the user presses anywhere in the
-            /// background widget, it would hide it. Think of it as a way to help
-            /// users easily close down the background widget
-            ///
-            /// However the app may go into a state where its peeking at the selected route.
-            /// During this time, the auto hide will be disabled.
-            onTap: () {
-              if (currentSystemState != SystemState.peekAtRoute) {
+          /// The intention for this is that if the user presses anywhere in the
+          /// background widget, it would hide it. Think of it as a way to help
+          /// users easily close down the background widget
+          ///
+          /// However the app may go into a state where its peeking at the selected route.
+          /// During this time, the auto hide will be disabled.
+          onTap: () {
+            if (currentSystemState != SystemState.peekAtRoute) {
+              context
+                  .read<SystemVariablesProvider>()
+                  .setBackgroundWidgetVisibility(false);
+            }
+          },
+          child: PopScope(
+            canPop: !context
+                .read<SystemVariablesProvider>()
+                .backgroundWidgetVisibility,
+            onPopInvokedWithResult: (didPop, result) {
+              if (!didPop) {
                 context
                     .read<SystemVariablesProvider>()
                     .setBackgroundWidgetVisibility(false);
               }
             },
-            child: PopScope(
-              canPop: !context
-                  .read<SystemVariablesProvider>()
-                  .backgroundWidgetVisibility,
-              onPopInvokedWithResult: (didPop, result) {
-                if (!didPop) {
-                  context
-                      .read<SystemVariablesProvider>()
-                      .setBackgroundWidgetVisibility(false);
-                }
-              },
-              child: Container(
-                color: backgroundWidgetColor,
-                child: _BackgroundWidgetContentRenderer(
-                  currentSystemState: currentSystemState,
-                ),
+            child: Container(
+              color: backgroundWidgetColor,
+              child: _BackgroundWidgetContentRenderer(
+                currentSystemState: currentSystemState,
               ),
             ),
           ),
@@ -90,20 +84,32 @@ class _BackgroundWidgetContentRenderer extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
+    Widget child;
     switch (currentSystemState) {
       case SystemState.gatheringFromLoc:
-        return ViewForRequestingFromLocation();
+        child = ViewForRequestingFromLocation();
+        break;
       case SystemState.gatheringToLoc:
-        return ViewForRequestingToLocation();
+        child = ViewForRequestingToLocation();
+        break;
       case SystemState.waitingForBackendResponse:
-        return _WaitingForBackendResponse();
+        child = _WaitingForBackendResponse();
+        break;
       case SystemState.showSuggestedRoutes:
-        return _DisplaySuggestedPaths();
-
+        child = _DisplaySuggestedPaths();
+        break;
       case SystemState.peekAtRoute:
       case SystemState.hideWidgets:
-        return SizedBox.shrink(); // show nothing
+        child = SizedBox.shrink();
+        break;
     }
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      transitionBuilder: (child, animation) =>
+          FadeTransition(opacity: animation, child: child),
+      child: KeyedSubtree(key: ValueKey(currentSystemState), child: child),
+    );
   }
 }
 
@@ -439,7 +445,7 @@ class _SuggestedPathWidgetListBuilder extends StatelessWidget {
         itemBuilder: (context, index) {
           return _SuggestedPathWidgetTemplate(choice_idx: index.toString());
         },
-        separatorBuilder: (context, index) => SizedBox(height: 8),
+        separatorBuilder: (context, index) => SizedBox(height: 15),
         itemCount: shortestPaths.length,
       ),
     );
@@ -456,10 +462,7 @@ class _SuggestedPathWidgetTemplate extends StatelessWidget {
   Widget build(BuildContext context) {
     String route_id = "result-" + (int.parse(choice_idx) + 1).toString();
     return GestureDetector(
-      onTap: () {
-        context.read<SystemVariablesProvider>().setAppCurrentState(
-          SystemState.peekAtRoute,
-        );
+      onTap: () async {
         Map<String, dynamic> pathJSON = context
             .read<SearchDetailsProvider>()
             .getRouteByID(route_id);
@@ -470,115 +473,33 @@ class _SuggestedPathWidgetTemplate extends StatelessWidget {
             .read<MapWidgetHandlerProvider>()
             .mapWidgetController
             .flyToBounds(compileCoordsIntoLatLngList(pathJSON, route_id));
+        await Future.delayed(Duration(milliseconds: 50));
+        if (context.mounted) {
+          context.read<SystemVariablesProvider>().setAppCurrentState(
+            SystemState.peekAtRoute,
+          );
+        }
       },
       child: Container(
-        height: 100,
-        width: MediaQuery.sizeOf(context).width,
-        color: const Color.fromARGB(255, 221, 221, 221),
-        padding: EdgeInsets.all(10),
+        height: 150,
+        color: Colors.grey,
+        width: double.infinity,
         child: Column(
           children: [
-            Text(
-              "Path #" + choice_idx,
-              style: TextStyle(color: Colors.white, fontSize: 20),
+            Container(
+              color: Colors.red,
+              width: MediaQuery.sizeOf(context).width * 0.5,
+              height: 30,
+              child: Text(
+                "Path #$choice_idx${1}",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
+            Container(color: Colors.blue, height: 120, width: double.infinity),
           ],
         ),
       ),
-    );
-  }
-}
-
-/// Holds 2 buttons for the user to try see the path in the map.
-/// It's intentional by design that the map cannot be interacted while in this mode
-class _PreviewWindowForSuggestedPath extends StatelessWidget {
-  const _PreviewWindowForSuggestedPath({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        GestureDetector(
-          onTap: () {},
-          child: Container(
-            width: double.infinity,
-            height: double.infinity,
-            color: Colors.transparent,
-          ),
-        ),
-        Positioned(
-          top: MediaQuery.sizeOf(context).height * 0.75,
-          left: MediaQuery.sizeOf(context).width * 0.125,
-          right: MediaQuery.sizeOf(context).width * 0.125,
-          child: GestureDetector(
-            child: Container(
-              height: 200,
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      context
-                          .read<SystemVariablesProvider>()
-                          .setAppCurrentState(SystemState.showSuggestedRoutes);
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(
-                          30,
-                        ), // rounded, not circle
-                        color: Colors.grey.shade300, // perfect circle
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 8,
-                            offset: Offset(0, 4), // x, y offset
-                          ),
-                        ],
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "Go Back",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(
-                        30,
-                      ), // rounded, not circle
-                      color: Colors.grey.shade300, // perfect circle
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 8,
-                          offset: Offset(0, 4), // x, y offset
-                        ),
-                      ],
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      "Select This Route",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
