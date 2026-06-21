@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart'
     show LoadingAnimationWidget;
 import 'package:provider/provider.dart';
 import 'package:sakenph/classes/nominatim_response.dart';
 import 'package:sakenph/features/background_widget/functions.dart';
 import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/globals/functions.dart';
 import 'package:sakenph/providers/provider_mapwidget_handler.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
@@ -82,6 +84,7 @@ class _BackgroundWidgetContentRenderer extends StatelessWidget {
     super.key,
     required this.currentSystemState,
   });
+
   @override
   Widget build(BuildContext context) {
     Widget child;
@@ -194,9 +197,12 @@ class _UseCurrentLocationButtonState extends State<_UseCurrentLocationButton> {
             setState(() {
               _showColor = true;
             });
-            context
-                .read<SearchDetailsProvider>()
-                .setFromLocationDetails_usingCurrentLocation(context);
+            context.read<SearchDetailsProvider>().useCurrentUserGeoLocAsOrigin(
+              context,
+            );
+            context.read<SystemVariablesProvider>().setAppCurrentState(
+              SystemState.gatheringToLoc,
+            );
             await Future.delayed(Duration(milliseconds: 100));
             setState(() {
               _showColor = false;
@@ -265,15 +271,16 @@ class ViewForRequestingToLocation extends StatelessWidget {
             ),
           );
 
-    return Column(
-      children: [
-        SizedBox(height: 60),
-        if (context.read<SearchDetailsProvider>().isToLocationDetailsEmpty)
-          SizedBox(height: 60),
-        _UseCurrentLocationButton(),
-        SizedBox(height: 10),
-        if (!isTextfieldEmpty) toShowSuggestionResults,
-      ],
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height,
+      width: double.infinity,
+      child: Column(
+        children: [
+          SizedBox(height: 110),
+          SizedBox(height: 10),
+          if (!isTextfieldEmpty) toShowSuggestionResults,
+        ],
+      ),
     );
   }
 }
@@ -285,6 +292,7 @@ class ViewForRequestingToLocation extends StatelessWidget {
 class _SearchResultRenderer extends StatefulWidget {
   final NominatimPlace nomiPlace;
   final SearchFieldType searchFieldType;
+
   const _SearchResultRenderer({
     required this.nomiPlace,
     required this.searchFieldType,
@@ -414,13 +422,29 @@ class _DisplaySuggestedPaths extends StatelessWidget {
             child: Center(child: _SuggestedPathWidgetListBuilder()),
           ),
           Positioned(
-            top: 150,
+            top: 120,
             left: MediaQuery.sizeOf(context).width * 0.125,
             right: MediaQuery.sizeOf(context).width * 0.125,
-            child: Text(
-              "Tap on a suggested path to view it on map",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontSize: 30),
+            child: Container(
+              padding: EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(color: Colors.black, width: 1),
+                // black outline
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 6,
+                    offset: Offset(0, 3), // shadow goes downward
+                  ),
+                ],
+              ),
+              child: Text(
+                "Tap to view path",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.black, fontSize: 30),
+              ),
             ),
           ),
         ],
@@ -429,7 +453,10 @@ class _DisplaySuggestedPaths extends StatelessWidget {
   }
 }
 
-/// Builder of the widget list that contains suggested paths
+/// Builder of the widget list that contains suggested paths.
+///
+/// This widget is just a SizedBox that handles ListView.separated() operations
+/// to form the interactable route widgets.
 class _SuggestedPathWidgetListBuilder extends StatelessWidget {
   const _SuggestedPathWidgetListBuilder({super.key});
 
@@ -438,12 +465,12 @@ class _SuggestedPathWidgetListBuilder extends StatelessWidget {
     Map<String, dynamic> shortestPaths = context
         .read<SearchDetailsProvider>()
         .suggestedShortestPaths["routes"];
-    return Container(
+    return SizedBox(
       width: MediaQuery.sizeOf(context).width * 0.8,
       child: ListView.separated(
         shrinkWrap: true,
         itemBuilder: (context, index) {
-          return _SuggestedPathWidgetTemplate(choice_idx: index.toString());
+          return _SuggestedPathWidgetTemplate(choice_idx: index);
         },
         separatorBuilder: (context, index) => SizedBox(height: 15),
         itemCount: shortestPaths.length,
@@ -452,27 +479,35 @@ class _SuggestedPathWidgetListBuilder extends StatelessWidget {
   }
 }
 
-/// Based widget for making suggested path widgets
+/// Widget where route details are already processed.
 class _SuggestedPathWidgetTemplate extends StatelessWidget {
   /// Index number in the iteration when the widgets are being built
-  final String choice_idx;
+  final int choice_idx;
+
   const _SuggestedPathWidgetTemplate({super.key, required this.choice_idx});
 
   @override
   Widget build(BuildContext context) {
-    String route_id = "result-" + (int.parse(choice_idx) + 1).toString();
+    String route_id = "result-${choice_idx + 1}";
+    Map<String, dynamic> pathJSON = context
+        .read<SearchDetailsProvider>()
+        .getRouteByID(route_id);
+    double travelTime = computeTravel(pathJSON, route_id);
+
     return GestureDetector(
       onTap: () async {
-        Map<String, dynamic> pathJSON = context
-            .read<SearchDetailsProvider>()
-            .getRouteByID(route_id);
+        // Draw Path
         context.read<MapWidgetHandlerProvider>().mapWidgetController.drawPath(
           pathJSON,
         );
+
+        // Zoom user to show drawn path
         context
             .read<MapWidgetHandlerProvider>()
             .mapWidgetController
             .flyToBounds(compileCoordsIntoLatLngList(pathJSON, route_id));
+
+        // Add a short delay to make the redraw seamless
         await Future.delayed(Duration(milliseconds: 50));
         if (context.mounted) {
           context.read<SystemVariablesProvider>().setAppCurrentState(
@@ -481,22 +516,96 @@ class _SuggestedPathWidgetTemplate extends StatelessWidget {
         }
       },
       child: Container(
-        height: 150,
-        color: Colors.grey,
         width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.grey,
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
         child: Column(
           children: [
+            SizedBox(height: 10),
             Container(
-              color: Colors.red,
               width: MediaQuery.sizeOf(context).width * 0.5,
+              padding: EdgeInsets.all(2.5),
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 217, 220, 223),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
               height: 30,
               child: Text(
-                "Path #$choice_idx${1}",
+                "Path #${choice_idx + 1}",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 25),
               ),
             ),
-            Container(color: Colors.blue, height: 120, width: double.infinity),
+            Container(
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 217, 220, 223),
+                borderRadius: BorderRadius.all(Radius.circular(16)),
+              ),
+              height: 120,
+              width: MediaQuery.sizeOf(context).width,
+              child: Column(
+                children: [
+                  SizedBox(height: 10),
+                  SizedBox(
+                    width: MediaQuery.sizeOf(context).width * 0.75,
+                    child: Row(
+                      children: [
+                        Text(
+                          "Travel Time: ",
+                          style: TextStyle(fontSize: 20),
+                          textAlign: TextAlign.left,
+                        ),
+                        Text(
+                          formatSecondsToHHMMSS(travelTime),
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.left,
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(
+                    height: 30,
+                    width: MediaQuery.sizeOf(context).width * 0.75,
+                    child: navPainter(pathJSON, route_id),
+                  ),
+                  SizedBox(
+                    width: MediaQuery.sizeOf(context).width * 0.75,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          DateFormat('hh:mm a').format(DateTime.now()),
+                          style: TextStyle(fontSize: 20),
+                        ),
+                        Text(
+                          DateFormat('hh:mm a').format(
+                            DateTime.now().add(
+                              Duration(seconds: travelTime.toInt()),
+                            ),
+                          ),
+                          style: TextStyle(fontSize: 20),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

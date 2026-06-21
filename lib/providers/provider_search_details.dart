@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:sakenph/api/backend_service.dart';
 import 'package:sakenph/classes/nominatim_response.dart';
 import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/providers/provider_mapwidget_handler.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
 class SearchDetailsProvider extends ChangeNotifier {
@@ -24,46 +25,12 @@ class SearchDetailsProvider extends ChangeNotifier {
   LatLng? _selectedFromLocationDetails;
   LatLng? _selectedToLocationDetails;
 
+  /// This value will be refreshed every 10 seconds.
+  /// To why it has to be obtained in interval is to prevent the odd experience
+  /// of waiting a few seconds to get user's loc
+  LatLng _userCurrentGeoLoc = LatLng(0, 0); // 0,0 for now.
+
   /// Originally obtained in a json format. Paths may contain more than one shortest paths.
-  //
-  // Sample output in json:
-  /*
-    {
-      "routes": {
-        "result-1": [
-          {
-            "mode": {
-              "type": "walk",
-              "details": {
-                "name": "On foot",
-                "color": "#005eff"
-              }
-            },
-            "geometry": [
-              [120.5872876, 15.1345705],
-              [120.5873933, 15.1345113],
-              [120.5874381, 15.1345798],
-              [120.5875794, 15.1348006],
-              [120.5881366, 15.1344614],
-              [120.5881806, 15.1344335],
-              [120.5884364, 15.1342726],
-              [120.5886514, 15.134151],
-              [120.5888889, 15.1340141],
-              [120.5892275, 15.1338121],
-              [120.5895063, 15.1336655],
-              [120.5897269, 15.1336267],
-              [120.5900492, 15.1336987],
-              [120.5902923, 15.1337569],
-              [120.5905847, 15.133291],
-              [120.5905788, 15.133211],
-              [120.5898783, 15.1325823],
-              [120.5899615, 15.1324832]
-            ]
-          }
-        ]
-      }
-    }
-  */
   Map<String, dynamic> _suggestedShortestPaths = {};
 
   // /////////////////////////////////////////////////////////////////////////////////////////////
@@ -71,10 +38,18 @@ class SearchDetailsProvider extends ChangeNotifier {
   // /////////////////////////////////////////////////////////////////////////////////////////////
 
   bool get isFromLocationDetailsEmpty => _selectedFromLocationDetails != null;
+
   bool get isToLocationDetailsEmpty => _selectedToLocationDetails != null;
 
   bool get isFromLocTextfieldEmpty => _isFromLocTextfieldEmpty;
+
   bool get isToLocTextfieldEmpty => _isToLocTextfieldEmpty;
+
+  LatLng? get selectedFromLocationDetails => _selectedFromLocationDetails;
+
+  LatLng? get selectedToLocationDetails => _selectedToLocationDetails;
+
+  LatLng get userCurrentGeoLoc => _userCurrentGeoLoc;
 
   /// Data is inserted usually by functions in backend_service.dart
   Map<String, dynamic> get suggestedShortestPaths => _suggestedShortestPaths;
@@ -131,6 +106,7 @@ class SearchDetailsProvider extends ChangeNotifier {
     }
   }
 
+  /// TODO: DEPRECATED. SUBJECT FOR REMOVAL<br/>
   /// Compact function that is solely for the button that suggests to use your current location.
   ///
   /// BuildContext pointer is required to properly transition to the ToLocation UI because
@@ -141,6 +117,7 @@ class SearchDetailsProvider extends ChangeNotifier {
   void setFromLocationDetails_usingCurrentLocation(
     BuildContext contextPointer,
   ) async {
+    return;
     EasyDebounce.debounce(
       DebounceId.getCurrentLocation.toString(),
       Duration(milliseconds: 100),
@@ -163,6 +140,20 @@ class SearchDetailsProvider extends ChangeNotifier {
     );
   }
 
+  /// Uses Geolocator library to get user current position and extracts the lat lon values for later use
+  void getUserCurrentLocAndSaveToContext(BuildContext context) async {
+    Position position = await Geolocator.getCurrentPosition();
+    _userCurrentGeoLoc = LatLng(position.latitude, position.longitude);
+  }
+
+  void useCurrentUserGeoLocAsOrigin(BuildContext context) {
+    _setFromLocationDetails(
+      _userCurrentGeoLoc.latitude,
+      _userCurrentGeoLoc.longitude,
+      "Your Current Location",
+    );
+  }
+
   /// Takes in a [NominatimPlace] object and only takes the latitude, longitude
   /// and name details
   void setFromLocationDetails(NominatimPlace nomiDetails) {
@@ -175,6 +166,7 @@ class SearchDetailsProvider extends ChangeNotifier {
   /// FromLocation will be used alongside ToLocation to compute optimal route.
   void _setFromLocationDetails(double lat, double lon, String name) {
     fromLocController.text = name;
+    setTextfieldEmptyStatus(false, SearchFieldType.from);
     _selectedFromLocationDetails = LatLng(lat, lon);
     toLocFocusNode.requestFocus();
     notifyListeners();

@@ -28,14 +28,9 @@ Future<Map<String, dynamic>> queryForShortestPath(
     final Map<String, dynamic> json = jsonDecode(response.body);
     //print(json['routes']['result-1'][0]['geometry'].toString());
 
-    printLongString(json.toString());
+    //printLongString(json.toString());
 
     return json;
   } else
     return {};
-}
-
-void printLongString(String text) {
-  final pattern = RegExp('.{1,800}'); // 800 chars per chunk
-  pattern.allMatches(text).forEach((match) => print(match.group(0)));
 }

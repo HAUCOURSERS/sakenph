@@ -2,6 +2,7 @@ import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/material.dart';
 import 'package:sakenph/api/nominatim.dart';
 import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/providers/provider_mapwidget_handler.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 import 'package:sakenph/pages/settings_page.dart' show SettingsPage;
@@ -35,12 +36,18 @@ class _ForegroundWidgetContentRenderer extends StatelessWidget {
     bool isFromLocDetailsEmpty = context.select<SearchDetailsProvider, bool>(
       (value) => !value.isFromLocationDetailsEmpty,
     );
+    bool hasSearchedForRoutes = context.select<SearchDetailsProvider, bool>(
+      (value) => value.suggestedShortestPaths.isNotEmpty,
+    );
     SystemState systemState = context
         .select<SystemVariablesProvider, SystemState>(
           (value) => value.appCurrentState,
         );
+    bool backgroundWidgetVisibility = context
+        .select<SystemVariablesProvider, bool>(
+          (value) => value.backgroundWidgetVisibility,
+        );
     switch (systemState) {
-      
       case SystemState.gatheringFromLoc:
       case SystemState.gatheringToLoc:
       case SystemState.waitingForBackendResponse:
@@ -49,12 +56,20 @@ class _ForegroundWidgetContentRenderer extends StatelessWidget {
         return (isFromLocDetailsEmpty)
             ? _FromLocationSearchBar()
             : Column(
-                children: [_FromLocationSearchBar(), _ToLocationSearchBar()],
+                children: [
+                  _FromLocationSearchBar(),
+                  _ToLocationSearchBar(),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: (hasSearchedForRoutes && !backgroundWidgetVisibility)
+                        ? _RouteOpenerButton()
+                        : SizedBox.shrink(),
+                  ),
+                ],
               );
       case SystemState.peekAtRoute:
         return _PreviewWindowForSuggestedPath();
     }
-    
   }
 }
 
@@ -118,15 +133,28 @@ class _FromLocationSearchBar extends StatelessWidget {
                     context.select<SystemVariablesProvider, bool>(
                       (varval) => (varval.backgroundWidgetVisibility),
                     )
-                    ? GestureDetector(
-                        onTap: () {
-                          context
-                              .read<SystemVariablesProvider>()
-                              .setBackgroundWidgetVisibility(false);
-                        },
-                        child: Icon(Icons.arrow_back),
+                    ? Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: GestureDetector(
+                          onTap: () {
+                            context
+                                .read<SystemVariablesProvider>()
+                                .setBackgroundWidgetVisibility(false);
+                          },
+                          child: Icon(Icons.arrow_back),
+                        ),
                       )
-                    : Icon(Icons.search),
+                    : Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: GestureDetector(
+                          onTap: () {
+                            context
+                                .read<SystemVariablesProvider>()
+                                .setBackgroundWidgetVisibility(true);
+                          },
+                          child: Icon(Icons.search),
+                        ),
+                      ),
                 hintText: "Your Location",
                 suffixIcon: GestureDetector(
                   onTap: () {
@@ -229,7 +257,6 @@ class _ToLocationSearchBar extends StatelessWidget {
   }
 }
 
-
 /// Holds 2 buttons for the user to try see the path in the map.
 /// It's intentional by design that the map cannot be interacted while in this mode
 class _PreviewWindowForSuggestedPath extends StatelessWidget {
@@ -253,6 +280,10 @@ class _PreviewWindowForSuggestedPath extends StatelessWidget {
                       context
                           .read<SystemVariablesProvider>()
                           .setAppCurrentState(SystemState.showSuggestedRoutes);
+                      context
+                          .read<MapWidgetHandlerProvider>()
+                          .mapWidgetController
+                          .clearLayersAndSources();
                     },
                     child: Container(
                       width: double.infinity,
@@ -312,6 +343,48 @@ class _PreviewWindowForSuggestedPath extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Appears if the user has queried for routes and valid routes showed up. Relying
+/// on the search button is useless since it's hard to press on screen
+class _RouteOpenerButton extends StatelessWidget {
+  const _RouteOpenerButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: GestureDetector(
+        onTap: () {
+          context.read<SystemVariablesProvider>().setAppCurrentState(
+            SystemState.showSuggestedRoutes,
+          );
+          context.read<SystemVariablesProvider>().setBackgroundWidgetVisibility(
+            true,
+          );
+        },
+        child: Container(
+          width: MediaQuery.sizeOf(context).width * 0.95,
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Color.fromARGB(255, 176, 221, 255),
+            border: Border.all(width: 1),
+            borderRadius: BorderRadius.circular(5),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "View Searched Routes",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -7,20 +7,4 @@ class MapWidgetHandlerProvider with ChangeNotifier {
   /// A controller class that can be used to gain access to the MapWidget widget state that's rendered
   /// in the home page widget and be able to run its methods.
   MapWidgetController mapWidgetController = MapWidgetController();
-
-  LatLng? _fromLoc;
-  LatLng? get fromLoc => _fromLoc;
-
-  LatLng? _toLoc;
-  LatLng? get toLoc => _toLoc;
-
-  void setFromLoc(double lat, double lon) {
-    _fromLoc = LatLng(lat, lon);
-    notifyListeners();
-  }
-
-  void setToLoc(double lat, double lon) {
-    _toLoc = LatLng(lat, lon);
-    notifyListeners();
-  }
 }
