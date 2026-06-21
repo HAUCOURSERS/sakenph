@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:sakenph/globals/enums.dart';
-import 'package:sakenph/map_widget.dart';
 
 /// This context provider is mainly used to be shared across the entire app.
 /// For example, you want to create a variable and have it accessible in parts
@@ -22,13 +22,17 @@ class SystemVariablesProvider with ChangeNotifier {
   Color _backgroundWidgetColor =
       Colors.white; // Default. May be changed by app logic
 
+  LatLng currentLoc = LatLng(0, 0);
+
   // /////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Getters
   // /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   /// If the value of this variable is false, the Background Widget will bee unrendered
   bool get backgroundWidgetVisibility => _backgroundWidgetVisibility;
+
   SystemState get appCurrentState => _appCurrentState;
+
   Color get backgroundWidgetColor => _backgroundWidgetColor;
 
   // /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -55,6 +59,8 @@ class SystemVariablesProvider with ChangeNotifier {
     // to show the path view
     if (val == SystemState.peekAtRoute) {
       _setBackgroundWidgetColor(Colors.transparent);
+    } else if (val == SystemState.showSuggestedRoutes) {
+      _setBackgroundWidgetColor(Color.fromARGB(85, 255, 255, 255));
     } else {
       if (backgroundWidgetColor != Colors.white) {
         _setBackgroundWidgetColor(Colors.white);

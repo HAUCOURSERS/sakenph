@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/features/background_widget/widgets.dart';
@@ -10,6 +12,7 @@ import 'package:sakenph/providers/provider_mapwidget_handler.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 import 'package:sakenph/side-effects/context_change_listener.dart';
+import 'package:sakenph/side-effects/repeating_tasks.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -23,10 +26,19 @@ class _HomePage extends State<HomePage> {
 
   SearchDetailsProvider? _searchProvider;
 
+  Timer? timer;
+
   @override
   void initState() {
     super.initState();
     json = fetchData();
+    context.read<SearchDetailsProvider>().getUserCurrentLocAndSaveToContext(
+      context,
+    );
+    timer = Timer.periodic(
+      Duration(seconds: 10),
+      (Timer t) => runRepeatingTaskJobs(context),
+    );
   }
 
   @override
