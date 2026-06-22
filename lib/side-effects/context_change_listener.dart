@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/number_symbols_data.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
@@ -21,7 +22,13 @@ class ContextChangeListener extends StatelessWidget {
     final isNotEmpty = context.select<SearchDetailsProvider, bool>(
       (value) => value.suggestedShortestPaths.isNotEmpty,
     );
-    if (isNotEmpty) {
+
+    // Adding a state check is kind of useless in the grand scheme. It's just there because
+    // it keeps resetting back to the route choice while I'm debugging
+    // - Josef Miko
+    if (isNotEmpty &&
+        context.read<SystemVariablesProvider>().appCurrentState !=
+            SystemState.isCurrentlyTravelling) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         // safe — runs after the current build frame is done
         context.read<SystemVariablesProvider>().setAppCurrentState(

@@ -8,7 +8,6 @@ import 'package:sakenph/features/foreground_widget/functions.dart'
 import 'package:sakenph/features/foreground_widget/widgets.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/map_widget.dart';
-import 'package:sakenph/providers/provider_mapwidget_handler.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 import 'package:sakenph/side-effects/context_change_listener.dart';
@@ -52,7 +51,7 @@ class _HomePage extends State<HomePage> {
           /// Renders the map
           MapWidget(
             controller: context
-                .read<MapWidgetHandlerProvider>()
+                .read<SearchDetailsProvider>()
                 .mapWidgetController,
           ),
 

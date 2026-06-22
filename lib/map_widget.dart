@@ -6,7 +6,6 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:http/http.dart' as http;
 import 'package:sakenph/api/database_service.dart';
 import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
-import 'package:sakenph/providers/provider_mapwidget_handler.dart';
 import 'package:sakenph/classes/terminal_class.dart';
 import 'package:sakenph/classes/json_response.dart';
 import 'package:provider/provider.dart';
@@ -42,7 +41,16 @@ class MapWidgetController {
 
   void clearLayersAndSources() => _state?._clearLayersAndSources();
 
+  Future<void> flyToLoc(LatLng coordinates) =>
+      _state?._flyToLoc(coordinates) ?? Future.value();
+
   void addLayers() => _state?.addLayers();
+
+  Future<void> addUserMarker(LatLng coords, double rotation) =>
+      _state?._addUserMarker(coords, rotation) ?? Future.value();
+
+  Future<void> removeMarker(String sourceLayerId) =>
+      _state?._removeMarker(sourceLayerId) ?? Future.value();
 }
 
 class _MapWidget extends State<MapWidget> {
@@ -86,6 +94,11 @@ class _MapWidget extends State<MapWidget> {
       _controller?.removeSource(i);
     }
     routeSourceIds.clear();
+  }
+
+  Future<void> _removeMarker(String sourceLayerId) async {
+    _controller?.removeLayer("route-$sourceLayerId");
+    _controller?.removeSource("route-$sourceLayerId");
   }
 
   /// Uses json value obtained from backend and draws the path
@@ -191,6 +204,57 @@ class _MapWidget extends State<MapWidget> {
         iconSize: 0.2,
         iconAllowOverlap: true,
         iconAnchor: 'bottom', // tip of pin touches the coordinate
+      ),
+    );
+  }
+
+  /// Only for the user marker since its gonna get called fairly frequently
+  Future<void> _addUserMarker(LatLng coords, double rotation) async {
+    final String sourceId = 'source_user_marker';
+    final String layerId = 'layer_user_marker';
+
+    // Remove existing ones from the map first
+    await _controller?.removeLayer(layerId);
+    await _controller?.removeSource(sourceId);
+
+    routeSourceIds.add(sourceId);
+    routeLayerIds.add(layerId);
+
+    await _controller!.addGeoJsonSource(sourceId, {
+      'type': 'FeatureCollection',
+      'features': [
+        {
+          'type': 'Feature',
+          'geometry': {
+            'type': 'Point',
+            'coordinates': [coords.longitude, coords.latitude],
+          },
+          'properties': {},
+        },
+      ],
+    });
+
+    await _controller!.addSymbolLayer(
+      sourceId,
+      layerId,
+      SymbolLayerProperties(
+        iconImage: "user_marker",
+        // must match the ID used in addImage()
+        iconSize: 0.35,
+        iconAllowOverlap: true,
+        iconAnchor: 'bottom',
+        iconRotate: rotation,
+        iconRotationAlignment: "map", // rotates with the map
+      ),
+    );
+  }
+
+  Future<void> _flyToLoc(LatLng coordinates) async {
+    print("TEMP: $coordinates");
+    await _controller!.animateCamera(
+      CameraUpdate.newLatLngZoom(
+        LatLng(coordinates.latitude, coordinates.longitude),
+        15.0,
       ),
     );
   }
@@ -549,6 +613,11 @@ class _MapWidget extends State<MapWidget> {
         _addImageToController(
           'assets/img/mapmarker_green.png',
           'mapmarker_green',
+          true,
+        );
+        _addImageToController(
+          'assets/img/user_marker.png',
+          'user_marker',
           true,
         );
 
