@@ -7,7 +7,6 @@ import 'package:sakenph/classes/nominatim_response.dart';
 import 'package:sakenph/features/background_widget/functions.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions.dart';
-import 'package:sakenph/providers/provider_mapwidget_handler.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
@@ -103,6 +102,8 @@ class _BackgroundWidgetContentRenderer extends StatelessWidget {
         break;
       case SystemState.peekAtRoute:
       case SystemState.hideWidgets:
+      case SystemState.isCurrentlyTravelling:
+      case SystemState.confirmationForTerminatingTravel:
         child = SizedBox.shrink();
         break;
     }
@@ -411,7 +412,6 @@ class _DisplaySuggestedPaths extends StatelessWidget {
     // Meant to absorb onTap hits to prevent closure due to the main background
     // widget's nature
     return GestureDetector(
-      onTap: () {},
       child: Stack(
         children: [
           Container(
@@ -480,6 +480,8 @@ class _SuggestedPathWidgetListBuilder extends StatelessWidget {
 }
 
 /// Widget where route details are already processed.
+///
+/// The one with the colored lines indicating your walk/jeep/tricycle modes
 class _SuggestedPathWidgetTemplate extends StatelessWidget {
   /// Index number in the iteration when the widgets are being built
   final int choice_idx;
@@ -497,17 +499,16 @@ class _SuggestedPathWidgetTemplate extends StatelessWidget {
     return GestureDetector(
       onTap: () async {
         // Draw Path
-        context.read<MapWidgetHandlerProvider>().mapWidgetController.drawPath(
+        context.read<SearchDetailsProvider>().mapWidgetController.drawPath(
           pathJSON,
         );
 
         // Zoom user to show drawn path
-        context
-            .read<MapWidgetHandlerProvider>()
-            .mapWidgetController
-            .flyToBounds(compileCoordsIntoLatLngList(pathJSON, route_id));
+        context.read<SearchDetailsProvider>().mapWidgetController.flyToBounds(
+          compileCoordsIntoLatLngList(pathJSON, route_id),
+        );
 
-        // Add a short delay to make the redraw seamless
+        // Add a short delay to make the transition extra smooth
         await Future.delayed(Duration(milliseconds: 50));
         if (context.mounted) {
           context.read<SystemVariablesProvider>().setAppCurrentState(

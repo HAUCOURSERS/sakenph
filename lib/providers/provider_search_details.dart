@@ -6,10 +6,12 @@ import 'package:provider/provider.dart';
 import 'package:sakenph/api/backend_service.dart';
 import 'package:sakenph/classes/nominatim_response.dart';
 import 'package:sakenph/globals/enums.dart';
-import 'package:sakenph/providers/provider_mapwidget_handler.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
+import '../map_widget.dart';
+
 class SearchDetailsProvider extends ChangeNotifier {
+  MapWidgetController mapWidgetController = MapWidgetController();
   bool isLoading = false;
   List<NominatimPlace> fromLocResults = [];
   List<NominatimPlace> toLocResults = [];
@@ -49,7 +51,9 @@ class SearchDetailsProvider extends ChangeNotifier {
 
   LatLng? get selectedToLocationDetails => _selectedToLocationDetails;
 
-  LatLng get userCurrentGeoLoc => _userCurrentGeoLoc;
+  // =============================================================================
+
+  LatLng get getUserCurrentGeoLoc => _userCurrentGeoLoc;
 
   /// Data is inserted usually by functions in backend_service.dart
   Map<String, dynamic> get suggestedShortestPaths => _suggestedShortestPaths;

@@ -76,6 +76,7 @@ flutter:
     - assets/img/mapmarker.png
     - assets/img/mapmarker_red.png
     - assets/img/mapmarker_green.png
+    - assets/img/user_marker.png
 
 
   #   - images/a_dot_ham.jpeg

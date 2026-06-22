@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+
 // import 'package:sakenph/auth_gate.dart';
 // import 'package:sakenph/login_register.dart';
 import 'package:sakenph/home_page.dart';
+
 // import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
-import 'package:sakenph/providers/provider_mapwidget_handler.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
 void main() async {
@@ -19,7 +21,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => MapWidgetHandlerProvider()),
+        ChangeNotifierProvider(create: (_) => MapHelperProvider()),
         ChangeNotifierProvider(create: (_) => SystemVariablesProvider()),
         ChangeNotifierProvider(create: (_) => SearchDetailsProvider()),
       ],

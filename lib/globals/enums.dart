@@ -20,6 +20,13 @@ enum SystemState {
 
   /// It removes the visibility of the background widget
   hideWidgets,
+
+  /// When this state is achieved, origin and destination location is now identified. It will
+  /// now start the looping job of checking
+  isCurrentlyTravelling,
+
+  ///
+  confirmationForTerminatingTravel,
 }
 
 /// To easily track where all the debouncers are. If strings alone are used to set

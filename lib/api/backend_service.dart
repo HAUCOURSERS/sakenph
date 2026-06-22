@@ -15,11 +15,15 @@ Future<Map<String, dynamic>> queryForShortestPath(
   // Position gpsLocation = await determinePosition();
 
   print(
-    'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
+    'https://sakenph-backend.onrender.com/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
   );
   final response = await http.get(
     Uri.parse(
-      'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
+      // render backend service link
+      'https://sakenph-backend.onrender.com/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
+
+      // local backend
+      //'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
     ),
   );
 
@@ -31,6 +35,8 @@ Future<Map<String, dynamic>> queryForShortestPath(
     //printLongString(json.toString());
 
     return json;
-  } else
+  } else {
+    print("[TEMP] [WARNING] REQUEST FAIL!");
     return {};
+  }
 }
