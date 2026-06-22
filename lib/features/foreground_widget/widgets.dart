@@ -321,7 +321,8 @@ class _PreviewWindowForSuggestedPath extends StatelessWidget {
                   ),
                   SizedBox(height: 20),
                   GestureDetector(
-                    onTap: () {
+                    onTap: () async {
+                      // Hide every other option to focus on travelling
                       context
                           .read<SystemVariablesProvider>()
                           .setBackgroundWidgetVisibility(false);
@@ -330,14 +331,24 @@ class _PreviewWindowForSuggestedPath extends StatelessWidget {
                           .setAppCurrentState(
                             SystemState.isCurrentlyTravelling,
                           );
+
+                      // Immediately set the marker
+                      LatLng coords = context
+                          .read<SearchDetailsProvider>()
+                          .getUserCurrentGeoLoc;
+                      context.read<MapHelperProvider>().shiftPosition(coords);
+                      double rotation = context
+                          .read<MapHelperProvider>()
+                          .getMovementDirectionFromYourPositionHistory();
                       context
                           .read<SearchDetailsProvider>()
                           .mapWidgetController
-                          .flyToLoc(
-                            context
-                                .read<SearchDetailsProvider>()
-                                .selectedFromLocationDetails!,
-                          );
+                          .flyToLoc(coords);
+
+                      await context
+                          .read<SearchDetailsProvider>()
+                          .mapWidgetController
+                          .addUserMarker(coords, rotation);
                     },
                     child: Container(
                       width: double.infinity,

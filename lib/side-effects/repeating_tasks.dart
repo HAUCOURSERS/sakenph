@@ -17,7 +17,6 @@ void runRepeatingTaskJobs(BuildContext context) async {
   // If the user is currently tracking, start spawning the marker
   if (context.read<SystemVariablesProvider>().appCurrentState ==
       SystemState.isCurrentlyTravelling) {
-    print("[TEMP] Executing reloading of user marker");
     LatLng coords = context.read<SearchDetailsProvider>().getUserCurrentGeoLoc;
     context.read<MapHelperProvider>().shiftPosition(coords);
     double rotation = context
