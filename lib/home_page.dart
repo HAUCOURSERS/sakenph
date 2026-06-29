@@ -27,7 +27,7 @@ class _HomePage extends State<HomePage> {
   void initState() {
     super.initState();
     json = fetchData();
-    //context.read<SearchDetailsProvider>().getUserCurrentLocAndSaveToContext();
+    context.read<MapHelperProvider>().fetchUserCurrentGeolocation();
     context.read<SystemTasksProvder>().mountProviders(context);
     // Enable compass
     requestPermissionAndListen(context);

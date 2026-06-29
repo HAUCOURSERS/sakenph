@@ -85,6 +85,11 @@ class MapHelperProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void fetchUserCurrentGeolocation() async {
+    Position position = await GeolocatorPlatform.instance.getCurrentPosition();
+    _userCurrentGeoLoc = LatLng(position.latitude, position.longitude);
+  }
+
   // ignore: non_constant_identifier_names
   void _setToLocationDetails_withLatLng(double lat, double lon) {
     _selectedToLocationDetails = LatLng(lat, lon);
