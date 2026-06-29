@@ -6,12 +6,12 @@ import 'package:sakenph/features/background_widget/widgets.dart';
 import 'package:sakenph/features/foreground_widget/functions.dart'
     show fetchData, handleLocationPermission;
 import 'package:sakenph/features/foreground_widget/widgets.dart';
-import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/listeners/compass_direction_listener.dart';
 import 'package:sakenph/map_widget.dart';
+import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
-import 'package:sakenph/providers/provider_system_vars.dart';
-import 'package:sakenph/side-effects/context_change_listener.dart';
-import 'package:sakenph/side-effects/repeating_tasks.dart';
+import 'package:sakenph/providers/provider_system_tasks.dart';
+import 'package:geolocator/geolocator.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -23,21 +23,20 @@ class HomePage extends StatefulWidget {
 class _HomePage extends State<HomePage> {
   late Future<Map<dynamic, dynamic>> json;
 
-  SearchDetailsProvider? _searchProvider;
-
-  Timer? timer;
-
   @override
   void initState() {
     super.initState();
     json = fetchData();
-    context.read<SearchDetailsProvider>().getUserCurrentLocAndSaveToContext(
-      context,
-    );
-    timer = Timer.periodic(
-      Duration(seconds: 10),
-      (Timer t) => runRepeatingTaskJobs(context),
-    );
+    //context.read<SearchDetailsProvider>().getUserCurrentLocAndSaveToContext();
+    context.read<SystemTasksProvder>().mountProviders(context);
+    // Enable compass
+    requestPermissionAndListen(context);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    context.read<SystemTasksProvder>().stop_repeatingTask();
   }
 
   @override
@@ -50,9 +49,7 @@ class _HomePage extends State<HomePage> {
         children: [
           /// Renders the map
           MapWidget(
-            controller: context
-                .read<SearchDetailsProvider>()
-                .mapWidgetController,
+            controller: context.read<MapHelperProvider>().mapWidgetController,
           ),
 
           /// Renders the background widget where other features and widgets
@@ -62,10 +59,6 @@ class _HomePage extends State<HomePage> {
           /// Renders widgets that are intended to only show up within the safe
           /// area and to show up above the other widgets
           ForegroundWidget(),
-
-          /// Mainly used to just listen to context provider value changes
-          /// and execute code accordingly
-          ContextChangeListener(),
         ],
       ),
     );

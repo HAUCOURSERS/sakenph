@@ -7,6 +7,7 @@ import 'package:sakenph/classes/nominatim_response.dart';
 import 'package:sakenph/features/background_widget/functions.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions.dart';
+import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
@@ -79,10 +80,7 @@ class BackgroundWidget extends StatelessWidget {
 class _BackgroundWidgetContentRenderer extends StatelessWidget {
   final SystemState currentSystemState;
 
-  const _BackgroundWidgetContentRenderer({
-    super.key,
-    required this.currentSystemState,
-  });
+  const _BackgroundWidgetContentRenderer({required this.currentSystemState});
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +90,7 @@ class _BackgroundWidgetContentRenderer extends StatelessWidget {
         child = ViewForRequestingFromLocation();
         break;
       case SystemState.gatheringToLoc:
-        child = ViewForRequestingToLocation();
+        child = _ViewForRequestingToLocation();
         break;
       case SystemState.waitingForBackendResponse:
         child = _WaitingForBackendResponse();
@@ -127,7 +125,7 @@ class ViewForRequestingFromLocation extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isFromLocResultsEmpty = context
         .select<SearchDetailsProvider, bool>(
-          (value) => value.fromLocResults.isEmpty,
+          (value) => value.getFromLocSearchResults.isEmpty,
         );
     final bool isTextfieldEmpty = context.select<SearchDetailsProvider, bool>(
       (value) => value.isFromLocTextfieldEmpty,
@@ -152,11 +150,11 @@ class ViewForRequestingFromLocation extends StatelessWidget {
                 searchFieldType: SearchFieldType.from,
                 nomiPlace: context
                     .read<SearchDetailsProvider>()
-                    .fromLocResults[index],
+                    .getFromLocSearchResults[index],
               ),
               itemCount: context
                   .read<SearchDetailsProvider>()
-                  .fromLocResults
+                  .getFromLocSearchResults
                   .length,
             ),
           );
@@ -164,7 +162,7 @@ class ViewForRequestingFromLocation extends StatelessWidget {
     return Column(
       children: [
         SizedBox(height: 60),
-        if (context.read<SearchDetailsProvider>().isFromLocationDetailsEmpty)
+        if (context.read<MapHelperProvider>().getIsFromLocationDetailsEmpty)
           SizedBox(height: 60),
         _UseCurrentLocationButton(),
         SizedBox(height: 10),
@@ -198,12 +196,18 @@ class _UseCurrentLocationButtonState extends State<_UseCurrentLocationButton> {
             setState(() {
               _showColor = true;
             });
-            context.read<SearchDetailsProvider>().useCurrentUserGeoLocAsOrigin(
+            context.read<MapHelperProvider>().useCurrentUserGeoLocAsOrigin(
               context,
             );
             context.read<SystemVariablesProvider>().setAppCurrentState(
               SystemState.gatheringToLoc,
             );
+            context
+                .read<SearchDetailsProvider>()
+                .requestFocusTowardsLocTextfield();
+
+            context.read<SearchDetailsProvider>().setFromLocTextfieldText =
+                "Your Current Location";
             await Future.delayed(Duration(milliseconds: 100));
             setState(() {
               _showColor = false;
@@ -219,7 +223,7 @@ class _UseCurrentLocationButtonState extends State<_UseCurrentLocationButton> {
               children: [
                 Icon(Icons.location_on),
                 Text(
-                  " Click to use your location",
+                  "Press to use your location",
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                 ),
               ],
@@ -231,14 +235,14 @@ class _UseCurrentLocationButtonState extends State<_UseCurrentLocationButton> {
   }
 }
 
-class ViewForRequestingToLocation extends StatelessWidget {
-  const ViewForRequestingToLocation({super.key});
+class _ViewForRequestingToLocation extends StatelessWidget {
+  const _ViewForRequestingToLocation({super.key});
 
   @override
   Widget build(BuildContext context) {
     final bool isToLocResultsEmpty = context
         .select<SearchDetailsProvider, bool>(
-          (value) => value.toLocResults.isEmpty,
+          (value) => value.getToLocSearchResults.isEmpty,
         );
     final bool isTextfieldEmpty = context.select<SearchDetailsProvider, bool>(
       (value) => value.isToLocTextfieldEmpty,
@@ -263,11 +267,11 @@ class ViewForRequestingToLocation extends StatelessWidget {
                 searchFieldType: SearchFieldType.to,
                 nomiPlace: context
                     .read<SearchDetailsProvider>()
-                    .toLocResults[index],
+                    .getToLocSearchResults[index],
               ),
               itemCount: context
                   .read<SearchDetailsProvider>()
-                  .toLocResults
+                  .getToLocSearchResults
                   .length,
             ),
           );
@@ -315,21 +319,29 @@ class _SearchResultRendererState extends State<_SearchResultRenderer> {
       child: GestureDetector(
         onTap: () async {
           if (widget.nomiPlace.name != "No Places Found") {
+            MapHelperProvider mapHelperProvider = context
+                .read<MapHelperProvider>();
+            SystemVariablesProvider systemVariablesProvider = context
+                .read<SystemVariablesProvider>();
+            SearchDetailsProvider searchDetailsProvider = context
+                .read<SearchDetailsProvider>();
             switch (widget.searchFieldType) {
               case SearchFieldType.from:
-                context.read<SearchDetailsProvider>().setFromLocationDetails(
-                  widget.nomiPlace,
-                );
-                context.read<SystemVariablesProvider>().setAppCurrentState(
+                mapHelperProvider.setFromLocationDetails = widget.nomiPlace;
+                systemVariablesProvider.setAppCurrentState(
                   SystemState.gatheringToLoc,
                 );
+                searchDetailsProvider.setFromLocTextfieldText =
+                    widget.nomiPlace.name;
+                searchDetailsProvider.requestFocusTowardsLocTextfield();
+                break;
               case SearchFieldType.to:
-                context
-                    .read<SearchDetailsProvider>()
-                    .setToLocationDetails_andStartCalculating(
-                      widget.nomiPlace,
-                      context,
-                    );
+                mapHelperProvider.setToLocationDetails = widget.nomiPlace;
+                startComputingForRoutes(context);
+                searchDetailsProvider.setToLocTextfieldText =
+                    widget.nomiPlace.name;
+                searchDetailsProvider.unfocusFromLocTextfield();
+                break;
             }
           }
           setState(() {
@@ -379,8 +391,6 @@ class _SearchResultRendererState extends State<_SearchResultRenderer> {
 
 /// Stand-in widget for when the app waits for backend response
 class _WaitingForBackendResponse extends StatefulWidget {
-  const _WaitingForBackendResponse({super.key});
-
   @override
   State<_WaitingForBackendResponse> createState() =>
       __WaitingForBackendResponseState();
@@ -405,8 +415,6 @@ class __WaitingForBackendResponseState
 
 /// Widget that will display route choices given by backend
 class _DisplaySuggestedPaths extends StatelessWidget {
-  const _DisplaySuggestedPaths({super.key});
-
   @override
   Widget build(BuildContext context) {
     // Meant to absorb onTap hits to prevent closure due to the main background
@@ -458,13 +466,11 @@ class _DisplaySuggestedPaths extends StatelessWidget {
 /// This widget is just a SizedBox that handles ListView.separated() operations
 /// to form the interactable route widgets.
 class _SuggestedPathWidgetListBuilder extends StatelessWidget {
-  const _SuggestedPathWidgetListBuilder({super.key});
-
   @override
   Widget build(BuildContext context) {
     Map<String, dynamic> shortestPaths = context
-        .read<SearchDetailsProvider>()
-        .suggestedShortestPaths["routes"];
+        .read<MapHelperProvider>()
+        .getSuggestedShortestPaths["routes"];
     return SizedBox(
       width: MediaQuery.sizeOf(context).width * 0.8,
       child: ListView.separated(
@@ -492,19 +498,19 @@ class _SuggestedPathWidgetTemplate extends StatelessWidget {
   Widget build(BuildContext context) {
     String route_id = "result-${choice_idx + 1}";
     Map<String, dynamic> pathJSON = context
-        .read<SearchDetailsProvider>()
-        .getRouteByID(route_id);
+        .read<MapHelperProvider>()
+        .getFilteredRouteByID(route_id);
     double travelTime = computeTravel(pathJSON, route_id);
 
     return GestureDetector(
       onTap: () async {
         // Draw Path
-        context.read<SearchDetailsProvider>().mapWidgetController.drawPath(
+        context.read<MapHelperProvider>().mapWidgetController.drawPath(
           pathJSON,
         );
 
         // Zoom user to show drawn path
-        context.read<SearchDetailsProvider>().mapWidgetController.flyToBounds(
+        context.read<MapHelperProvider>().mapWidgetController.flyToBounds(
           compileCoordsIntoLatLngList(pathJSON, route_id),
         );
 
