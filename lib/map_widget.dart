@@ -4,18 +4,59 @@ import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:http/http.dart' as http;
-import 'package:sakenph/database_service.dart';
-import 'package:sakenph/globals/global_vars.dart' as global_vars show localIP;
-import 'package:sakenph/providers/provider_selected_loc.dart';
-import 'package:sakenph/terminal_class.dart';
+import 'package:sakenph/api/database_service.dart';
+import 'package:sakenph/globals/functions.dart';
+import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
+import 'package:sakenph/classes/terminal_class.dart';
 import 'package:sakenph/classes/json_response.dart';
 import 'package:provider/provider.dart';
+import 'package:sakenph/providers/provider_map_helper.dart';
+import 'dart:math' show min, max;
 
+import 'package:sakenph/providers/provider_search_details.dart';
+
+/// Holds the view for the map
 class MapWidget extends StatefulWidget {
-  const MapWidget({super.key});
+  /// A controller class that provides a public interface to interact with the private `_MapWidget` state.
+  ///
+  /// The original object is initialized in MapHelperProvider and then passed to the MapWidget constructor. Then upon MapWidget initialization, the pointer towards the
+  /// state widget of the MapWidget will be passed towards the MapHelperProvider object in order for the rest of the app to be able to use accessible methods.
+  final MapWidgetController? controller; // add this
+  const MapWidget({super.key, required this.controller});
 
   @override
   State<MapWidget> createState() => _MapWidget();
+}
+
+/// Means to access the MapWidget state's functions properly.
+class MapWidgetController {
+  _MapWidget? _state;
+
+  void _attach(_MapWidget state) => _state = state;
+
+  void _detach() => _state = null;
+
+  Future<void> shortestPath(LatLng origin, LatLng dest) =>
+      _state?.shortestPath(origin, dest) ?? Future.value();
+
+  Future<void> drawPath(Map<String, dynamic> pathJSON) =>
+      _state?.drawPath(pathJSON) ?? Future.value();
+
+  Future<void> flyToBounds(List<LatLng> bounds) =>
+      _state?.flyToBounds(bounds) ?? Future.value();
+
+  void clearLayersAndSources() => _state?._clearLayersAndSources();
+
+  Future<void> flyToLoc(LatLng coordinates) =>
+      _state?._flyToLoc(coordinates) ?? Future.value();
+
+  void addLayers() => _state?.addLayers();
+
+  Future<void> addUserMarker(LatLng coords, double rotation) =>
+      _state?._addUserMarker(coords, rotation) ?? Future.value();
+
+  Future<void> removeMarker(String sourceLayerId) =>
+      _state?._removeMarker(sourceLayerId) ?? Future.value();
 }
 
 class _MapWidget extends State<MapWidget> {
@@ -39,7 +80,257 @@ class _MapWidget extends State<MapWidget> {
   void initState() {
     super.initState();
     _loadStyle();
+    widget.controller?._attach(this);
     //addLayers();
+  }
+
+  @override
+  void dispose() {
+    widget.controller?._detach(); // detach on dispose
+    super.dispose();
+  }
+
+  /// Removes all existing route sources and layers to avoid duplicates
+  Future<void> _clearLayersAndSources() async {
+    for (String i in routeLayerIds) {
+      _controller?.removeLayer(i);
+    }
+    routeLayerIds.clear();
+    for (String i in routeSourceIds) {
+      _controller?.removeSource(i);
+    }
+    routeSourceIds.clear();
+  }
+
+  Future<void> _removeMarker(String sourceLayerId) async {
+    _controller?.removeLayer("route-$sourceLayerId");
+    _controller?.removeSource("route-$sourceLayerId");
+  }
+
+  /// Uses json value obtained from backend and draws the path
+  Future<void> drawPath(Map<String, dynamic> pathJSON) async {
+    print("[TEMP] DRAWPATH TRIGGERED!");
+    final Map<String, dynamic> json = pathJSON;
+    final RouteResponse multimodalRoute = RouteResponse.fromJson(json);
+
+    // Removes all existing route sources and layers to avoid duplicates
+    await _clearLayersAndSources();
+    final List<String> keys = multimodalRoute.routes.keys.toList();
+
+    int sourceLayerId = 1;
+    for (String result in keys) {
+      for (RouteSegment route in multimodalRoute.routes[result]!) {
+        String sourceId = "route-$sourceLayerId";
+        routeSourceIds.add(sourceId);
+        String layerId = "route-$sourceLayerId";
+        routeLayerIds.add(layerId);
+
+        // To give a line edges, create a thicker darker line and then the actual color on top of it but thinner
+        LineLayerProperties layerStyle;
+        LineLayerProperties? outlineLayerStyle;
+        if (route.mode.type == 'walk') {
+          // Blue dotted lines to indicate walking route
+          layerStyle = LineLayerProperties(
+            lineColor: route.mode.details.color,
+            lineWidth: 3.0,
+            lineDasharray: [1, 1],
+          );
+        } else {
+          // Solid lines to indicate vehicle route
+          layerStyle = LineLayerProperties(
+            lineColor: route.mode.details.color,
+            lineWidth: 3.0,
+          );
+          outlineLayerStyle = LineLayerProperties(
+            lineColor: darkenHex(route.mode.details.color),
+            lineWidth: 4.0,
+          );
+        }
+
+        // Defines the specific geometry of the route line
+        // route.geometry is a list of coordinate pairs that form a line
+        await _controller!.addGeoJsonSource(sourceId, {
+          'type': 'FeatureCollection',
+          'features': [
+            {
+              'type': 'Feature',
+              'properties': {},
+              'geometry': {'type': 'LineString', 'coordinates': route.geometry},
+            },
+          ],
+        });
+
+        // Defines the style of the line
+        if (route.mode.type != 'walk') {
+          await _controller!.addLineLayer(
+            "$sourceId-outline",
+            "$layerId-outline",
+            outlineLayerStyle!,
+          );
+        }
+        await _controller!.addLineLayer(sourceId, layerId, layerStyle);
+
+        sourceLayerId++;
+      }
+    }
+
+    sourceLayerId += 1;
+    LatLng? fromLocDetails = context
+        .read<MapHelperProvider>()
+        .getSelectedFromLocationDetails;
+    await _addMarker(
+      fromLocDetails!,
+      "mapmarker_green",
+      sourceLayerId.toString(),
+    );
+    sourceLayerId += 1;
+    LatLng? toLocDetails = context
+        .read<MapHelperProvider>()
+        .getSelectedToLocationDetails;
+    await _addMarker(toLocDetails!, "mapmarker_red", sourceLayerId.toString());
+  }
+
+  Future<void> _addMarker(
+    LatLng coords,
+    String imageId,
+    String markerId,
+  ) async {
+    final String sourceId = 'source_$markerId';
+    final String layerId = 'layer_$markerId';
+
+    routeSourceIds.add(sourceId);
+    routeLayerIds.add(layerId);
+
+    await _controller!.addGeoJsonSource(sourceId, {
+      'type': 'FeatureCollection',
+      'features': [
+        {
+          'type': 'Feature',
+          'geometry': {
+            'type': 'Point',
+            'coordinates': [coords.longitude, coords.latitude],
+          },
+          'properties': {},
+        },
+      ],
+    });
+
+    await _controller!.addSymbolLayer(
+      sourceId,
+      layerId,
+      SymbolLayerProperties(
+        iconImage: imageId, // must match the ID used in addImage()
+        iconSize: 0.2,
+        iconAllowOverlap: true,
+        iconAnchor: 'bottom', // tip of pin touches the coordinate
+      ),
+    );
+  }
+
+  Future<bool> _sourceExists(String sourceId) async {
+    final ids = await _controller?.getSourceIds() ?? [];
+    return ids.contains(sourceId);
+  }
+
+  Future<bool> _layerExists(String layerId) async {
+    final ids = await _controller?.getLayerIds() ?? [];
+    return ids.contains(layerId);
+  }
+
+  Future<void> _addUserMarker(LatLng coords, double rotation) async {
+    final String sourceId = 'source_user_marker';
+    final String layerId = 'layer_user_marker';
+
+    bool ifSourceExists = await _sourceExists(sourceId);
+    bool ifLayerExists = await _layerExists(layerId);
+
+    if (ifSourceExists && ifLayerExists) {
+      // ✅ Just update the source — layer will auto-read rotation via expression
+      await _controller!.setGeoJsonSource(
+        sourceId,
+        _buildGeoJson(coords, rotation),
+      );
+    } else {
+      await _controller?.removeLayer(layerId);
+      await _controller?.removeSource(sourceId);
+
+      // ✅ Include rotation in properties from the start
+      await _controller!.addGeoJsonSource(
+        sourceId,
+        _buildGeoJson(coords, rotation),
+      );
+
+      await _controller!.addSymbolLayer(
+        sourceId,
+        layerId,
+        SymbolLayerProperties(
+          iconImage: "user_marker",
+          iconSize: 0.35,
+          iconAllowOverlap: true,
+          iconAnchor: 'bottom',
+          iconRotate: [
+            'get',
+            'rotation',
+          ], // ✅ bind to property, not static value
+          iconRotationAlignment: "map",
+        ),
+      );
+    }
+  }
+
+  // ✅ Single reusable GeoJSON builder
+  Map<String, dynamic> _buildGeoJson(LatLng coords, double rotation) {
+    return {
+      'type': 'FeatureCollection',
+      'features': [
+        {
+          'type': 'Feature',
+          'geometry': {
+            'type': 'Point',
+            'coordinates': [coords.longitude, coords.latitude],
+          },
+          'properties': {
+            'rotation': rotation, // ✅ always included
+          },
+        },
+      ],
+    };
+  }
+
+  Future<void> _flyToLoc(LatLng coordinates) async {
+    print("TEMP: $coordinates");
+    await _controller!.animateCamera(
+      CameraUpdate.newLatLngZoom(
+        LatLng(coordinates.latitude, coordinates.longitude),
+        15.0,
+      ),
+    );
+  }
+
+  // Adjusts camera based on coordinates
+  Future<void> flyToBounds(List<LatLng> coordinates) async {
+    if (coordinates.isEmpty) return;
+
+    // Find the bounding box
+    double minLat = coordinates.map((c) => c.latitude).reduce(min);
+    double maxLat = coordinates.map((c) => c.latitude).reduce(max);
+    double minLng = coordinates.map((c) => c.longitude).reduce(min);
+    double maxLng = coordinates.map((c) => c.longitude).reduce(max);
+
+    final bounds = LatLngBounds(
+      southwest: LatLng(minLat, minLng),
+      northeast: LatLng(maxLat, maxLng),
+    );
+
+    await _controller?.animateCamera(
+      CameraUpdate.newLatLngBounds(
+        bounds,
+        left: 120,
+        top: 50,
+        right: 120,
+        bottom: 250,
+      ),
+    );
   }
 
   // UNUSED FUNCTION FOR NOW: used when clicked on a TODA Terminal icon
@@ -168,12 +459,17 @@ class _MapWidget extends State<MapWidget> {
   // Function that calls result from shortestPathTest() in backend and renders the path
   // TO DO:
   // shortestPath() should also have src parameter, it should be retrieved from a separate coordinates value from the source/dest TextBox
+  //
+  // UNUSED FUNCTION FOR NOW: this is obsolete since parts of this function are to be used separately
   Future<void> shortestPath(LatLng origin, LatLng dest) async {
+    // TODO: Remove this print statement once done checking if the function is working as intended
     print("[TEMP] shortestPath() Method Called!");
     String localIp = global_vars.localIP;
     // Position gpsLocation = await determinePosition();
 
-    print('http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}');
+    print(
+      'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
+    );
     final response = await http.get(
       Uri.parse(
         'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
@@ -181,6 +477,7 @@ class _MapWidget extends State<MapWidget> {
     );
 
     if (response.statusCode == 200) {
+      print("[TEMP] Recieved backend response");
       final Map<String, dynamic> json = jsonDecode(response.body);
       final RouteResponse multimodalRoute = RouteResponse.fromJson(json);
 
@@ -227,7 +524,10 @@ class _MapWidget extends State<MapWidget> {
               {
                 'type': 'Feature',
                 'properties': {},
-                'geometry': {'type': 'LineString', 'coordinates': route.geometry},
+                'geometry': {
+                  'type': 'LineString',
+                  'coordinates': route.geometry,
+                },
               },
             ],
           });
@@ -321,21 +621,25 @@ class _MapWidget extends State<MapWidget> {
     return await Geolocator.getCurrentPosition();
   }
 
+  Future<void> _addImageToController(
+    String imgDirectory,
+    String imgID,
+    bool symbolIconAllowOverlap,
+  ) async {
+    final ByteData bytes = await rootBundle.load(imgDirectory);
+    final Uint8List list = bytes.buffer.asUint8List();
+    _controller!.addImage(imgID, list);
+    _controller!.setSymbolIconAllowOverlap(symbolIconAllowOverlap);
+  }
+
   @override
   Widget build(BuildContext context) {
-    /// Right now, map should only display shortest path once the
-    LatLng? selectedFromLoc = context.read<LatLongProvider>().fromLoc;
-    LatLng? selectedToLoc = context.read<LatLongProvider>().toLoc;
-    if (selectedFromLoc != null && selectedToLoc != null) {
-      shortestPath(selectedFromLoc, selectedToLoc);
-    }
-
     return MapLibreMap(
       styleString: mapStyle,
 
       onMapCreated: (c) async {
         // Gets point of current location of GPS
-        Position gpsLocation = await determinePosition();
+        //Position gpsLocation = await determinePosition();
 
         _controller = c;
 
@@ -345,19 +649,28 @@ class _MapWidget extends State<MapWidget> {
         // },);
 
         // Load tricycle icon to list of icons
-        final ByteData bytes = await rootBundle.load('assets/img/toda.png');
-        final Uint8List list = bytes.buffer.asUint8List();
-        _controller!.addImage('toda', list);
+        _addImageToController('assets/img/toda.png', 'toda', false);
 
         // Load map marker (GPS Location) icon to list of icons
-        final ByteData bytes2 = await rootBundle.load(
-          'assets/img/mapmarker.png',
+        _addImageToController('assets/img/mapmarker.png', 'mapmarker', true);
+        _addImageToController(
+          'assets/img/mapmarker_red.png',
+          'mapmarker_red',
+          true,
         );
-        final Uint8List list2 = bytes2.buffer.asUint8List();
-        _controller!.addImage('mapmarker', list2);
-        _controller!.setSymbolIconAllowOverlap(true);
+        _addImageToController(
+          'assets/img/mapmarker_green.png',
+          'mapmarker_green',
+          true,
+        );
+        _addImageToController(
+          'assets/img/user_marker.png',
+          'user_marker',
+          true,
+        );
 
         // ----------- Add Source & Layer of current location ------------- //
+        /*
         await _controller?.addSource(
           'source_currentLocation',
           GeojsonSourceProperties(
@@ -378,6 +691,7 @@ class _MapWidget extends State<MapWidget> {
             },
           ),
         );
+        */
 
         await _controller?.addLayer(
           'source_currentLocation',
@@ -389,9 +703,6 @@ class _MapWidget extends State<MapWidget> {
       },
 
       onMapLongClick: (point, coordinates) async {
-        // Calculates and displays shortest path to point where user long presses
-        shortestPath(context.read<LatLongProvider>().fromLoc!, coordinates);
-
         // Remove layer and source of pin if there is one currently on the map
         _controller?.removeLayer('layer_selectedPoint');
         _controller?.removeSource('source_selectedPoint');
