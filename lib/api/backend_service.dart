@@ -11,12 +11,13 @@ Future<Map<String, dynamic>> queryForShortestPath(
   LatLng origin,
   LatLng dest,
 ) async {
+  final startTime = DateTime.now();
   String localIp = global_vars.localIP;
   // Position gpsLocation = await determinePosition();
 
-  print(
-    'https://sakenph-backend.onrender.com/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
-  );
+  //print(
+  //'https://sakenph-backend.onrender.com/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
+  //);
   final response = await http.get(
     Uri.parse(
       // render backend service link
@@ -29,6 +30,8 @@ Future<Map<String, dynamic>> queryForShortestPath(
 
   if (response.statusCode == 200) {
     print("[TEMP] Recieved backend response");
+    final endTime = DateTime.now();
+    print(endTime.difference(startTime).inMilliseconds);
     final Map<String, dynamic> json = jsonDecode(response.body);
     //print(json['routes']['result-1'][0]['geometry'].toString());
 

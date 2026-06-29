@@ -3,8 +3,15 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:provider/provider.dart';
+import 'package:sakenph/globals/enums.dart';
 
 import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
+import 'package:sakenph/providers/provider_map_helper.dart';
+import 'package:sakenph/providers/provider_search_details.dart';
+import 'package:sakenph/providers/provider_system_tasks.dart';
+import 'package:sakenph/providers/provider_system_vars.dart';
 
 /// Currently has no uses
 Future<String> reverseGeocode({
@@ -79,4 +86,24 @@ Future<bool> handleLocationPermission(BuildContext context) async {
     return false;
   }
   return true;
+}
+
+/// Runs the necessary code across context providers to setup the traveling state
+void startTraveling(BuildContext context) async {
+  // Hide every other option to focus on travelling
+  context.read<SystemVariablesProvider>().setBackgroundWidgetVisibility(false);
+  context.read<SystemVariablesProvider>().setAppCurrentState(
+    SystemState.isCurrentlyTravelling,
+  );
+
+  // Immediately set the marker
+  LatLng coords = context.read<MapHelperProvider>().getUserCurrentGeoLoc;
+  context.read<MapHelperProvider>().mapWidgetController.flyToLoc(coords);
+
+  context.read<SystemTasksProvder>().start_repeatingTask();
+
+  await context.read<MapHelperProvider>().mapWidgetController.addUserMarker(
+    coords,
+    0,
+  );
 }

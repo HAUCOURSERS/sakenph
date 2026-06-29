@@ -5,17 +5,23 @@ import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:http/http.dart' as http;
 import 'package:sakenph/api/database_service.dart';
+import 'package:sakenph/globals/functions.dart';
 import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
 import 'package:sakenph/classes/terminal_class.dart';
 import 'package:sakenph/classes/json_response.dart';
 import 'package:provider/provider.dart';
+import 'package:sakenph/providers/provider_map_helper.dart';
 import 'dart:math' show min, max;
 
 import 'package:sakenph/providers/provider_search_details.dart';
 
 /// Holds the view for the map
 class MapWidget extends StatefulWidget {
-  final MapWidgetController? controller; // add thi
+  /// A controller class that provides a public interface to interact with the private `_MapWidget` state.
+  ///
+  /// The original object is initialized in MapHelperProvider and then passed to the MapWidget constructor. Then upon MapWidget initialization, the pointer towards the
+  /// state widget of the MapWidget will be passed towards the MapHelperProvider object in order for the rest of the app to be able to use accessible methods.
+  final MapWidgetController? controller; // add this
   const MapWidget({super.key, required this.controller});
 
   @override
@@ -119,7 +125,9 @@ class _MapWidget extends State<MapWidget> {
         String layerId = "route-$sourceLayerId";
         routeLayerIds.add(layerId);
 
+        // To give a line edges, create a thicker darker line and then the actual color on top of it but thinner
         LineLayerProperties layerStyle;
+        LineLayerProperties? outlineLayerStyle;
         if (route.mode.type == 'walk') {
           // Blue dotted lines to indicate walking route
           layerStyle = LineLayerProperties(
@@ -132,6 +140,10 @@ class _MapWidget extends State<MapWidget> {
           layerStyle = LineLayerProperties(
             lineColor: route.mode.details.color,
             lineWidth: 3.0,
+          );
+          outlineLayerStyle = LineLayerProperties(
+            lineColor: darkenHex(route.mode.details.color),
+            lineWidth: 4.0,
           );
         }
 
@@ -149,6 +161,13 @@ class _MapWidget extends State<MapWidget> {
         });
 
         // Defines the style of the line
+        if (route.mode.type != 'walk') {
+          await _controller!.addLineLayer(
+            "$sourceId-outline",
+            "$layerId-outline",
+            outlineLayerStyle!,
+          );
+        }
         await _controller!.addLineLayer(sourceId, layerId, layerStyle);
 
         sourceLayerId++;
@@ -157,8 +176,8 @@ class _MapWidget extends State<MapWidget> {
 
     sourceLayerId += 1;
     LatLng? fromLocDetails = context
-        .read<SearchDetailsProvider>()
-        .selectedFromLocationDetails;
+        .read<MapHelperProvider>()
+        .getSelectedFromLocationDetails;
     await _addMarker(
       fromLocDetails!,
       "mapmarker_green",
@@ -166,8 +185,8 @@ class _MapWidget extends State<MapWidget> {
     );
     sourceLayerId += 1;
     LatLng? toLocDetails = context
-        .read<SearchDetailsProvider>()
-        .selectedToLocationDetails;
+        .read<MapHelperProvider>()
+        .getSelectedToLocationDetails;
     await _addMarker(toLocDetails!, "mapmarker_red", sourceLayerId.toString());
   }
 
@@ -208,19 +227,60 @@ class _MapWidget extends State<MapWidget> {
     );
   }
 
-  /// Only for the user marker since its gonna get called fairly frequently
+  Future<bool> _sourceExists(String sourceId) async {
+    final ids = await _controller?.getSourceIds() ?? [];
+    return ids.contains(sourceId);
+  }
+
+  Future<bool> _layerExists(String layerId) async {
+    final ids = await _controller?.getLayerIds() ?? [];
+    return ids.contains(layerId);
+  }
+
   Future<void> _addUserMarker(LatLng coords, double rotation) async {
     final String sourceId = 'source_user_marker';
     final String layerId = 'layer_user_marker';
 
-    // Remove existing ones from the map first
-    await _controller?.removeLayer(layerId);
-    await _controller?.removeSource(sourceId);
+    bool ifSourceExists = await _sourceExists(sourceId);
+    bool ifLayerExists = await _layerExists(layerId);
 
-    routeSourceIds.add(sourceId);
-    routeLayerIds.add(layerId);
+    if (ifSourceExists && ifLayerExists) {
+      // ✅ Just update the source — layer will auto-read rotation via expression
+      await _controller!.setGeoJsonSource(
+        sourceId,
+        _buildGeoJson(coords, rotation),
+      );
+    } else {
+      await _controller?.removeLayer(layerId);
+      await _controller?.removeSource(sourceId);
 
-    await _controller!.addGeoJsonSource(sourceId, {
+      // ✅ Include rotation in properties from the start
+      await _controller!.addGeoJsonSource(
+        sourceId,
+        _buildGeoJson(coords, rotation),
+      );
+
+      await _controller!.addSymbolLayer(
+        sourceId,
+        layerId,
+        SymbolLayerProperties(
+          iconImage: "user_marker",
+          iconSize: 0.35,
+          iconAllowOverlap: true,
+          iconAnchor: 'bottom',
+          iconRotate: [
+            'get',
+            'rotation',
+          ], // ✅ bind to property, not static value
+          iconRotationAlignment: "map",
+        ),
+      );
+    }
+  }
+
+  // ✅ Single reusable GeoJSON builder
+  Map<String, dynamic> _buildGeoJson(LatLng coords, double rotation) {
+    return {
       'type': 'FeatureCollection',
       'features': [
         {
@@ -229,24 +289,12 @@ class _MapWidget extends State<MapWidget> {
             'type': 'Point',
             'coordinates': [coords.longitude, coords.latitude],
           },
-          'properties': {},
+          'properties': {
+            'rotation': rotation, // ✅ always included
+          },
         },
       ],
-    });
-
-    await _controller!.addSymbolLayer(
-      sourceId,
-      layerId,
-      SymbolLayerProperties(
-        iconImage: "user_marker",
-        // must match the ID used in addImage()
-        iconSize: 0.35,
-        iconAllowOverlap: true,
-        iconAnchor: 'bottom',
-        iconRotate: rotation,
-        iconRotationAlignment: "map", // rotates with the map
-      ),
-    );
+    };
   }
 
   Future<void> _flyToLoc(LatLng coordinates) async {
