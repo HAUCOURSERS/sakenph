@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:sakenph/api/backend_service.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
-import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
 ///

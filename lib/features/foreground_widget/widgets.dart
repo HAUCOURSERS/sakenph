@@ -1,6 +1,5 @@
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/material.dart';
-import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:sakenph/api/nominatim.dart';
 import 'package:sakenph/features/foreground_widget/functions.dart';
 import 'package:sakenph/globals/enums.dart';
@@ -103,10 +102,7 @@ class _FromLocationSearchBar extends StatelessWidget {
                 context.read<SearchDetailsProvider>().tryToEraseLocResults(
                   SearchFieldType.from,
                 );
-                context.read<SearchDetailsProvider>().setTextfieldEmptyStatus(
-                  value.isEmpty,
-                  SearchFieldType.from,
-                );
+                context.read<SearchDetailsProvider>().setActiveSearching_fromLoc = value.isNotEmpty;
                 if (value.isNotEmpty) {
                   EasyDebounce.debounce(
                     DebounceId.nominatim_fromLocationSearch.toString(),
@@ -215,10 +211,7 @@ class _ToLocationSearchBar extends StatelessWidget {
                 context.read<SearchDetailsProvider>().tryToEraseLocResults(
                   SearchFieldType.to,
                 );
-                context.read<SearchDetailsProvider>().setTextfieldEmptyStatus(
-                  value.isEmpty,
-                  SearchFieldType.to,
-                );
+                context.read<SearchDetailsProvider>().setActiveSearching_toLoc = value.isNotEmpty;
                 if (value.isNotEmpty) {
                   EasyDebounce.debounce(
                     DebounceId.nominatim_toLocationSearch.toString(),
@@ -274,7 +267,6 @@ class _ToLocationSearchBar extends StatelessWidget {
 /// Holds 2 buttons for the user to try see the path in the map.
 /// It's intentional by design that the map cannot be interacted while in this mode
 class _PreviewWindowForSuggestedPath extends StatelessWidget {
-  const _PreviewWindowForSuggestedPath({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -369,7 +361,6 @@ class _PreviewWindowForSuggestedPath extends StatelessWidget {
 /// Appears if the user has queried for routes and valid routes showed up. Relying
 /// on the search button is useless since it's hard to press on screen
 class _RouteOpenerButton extends StatelessWidget {
-  const _RouteOpenerButton({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -410,7 +401,6 @@ class _RouteOpenerButton extends StatelessWidget {
 
 /// If the user wants to terminate their travel towards a location, select this.
 class _ActiveRouteTerminator extends StatelessWidget {
-  const _ActiveRouteTerminator({super.key});
 
   @override
   Widget build(BuildContext context) {

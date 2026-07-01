@@ -9,7 +9,6 @@ import 'package:sakenph/globals/enums.dart';
 
 import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
 import 'package:sakenph/providers/provider_map_helper.dart';
-import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_system_tasks.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 

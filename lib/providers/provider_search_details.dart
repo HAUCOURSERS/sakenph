@@ -1,3 +1,5 @@
+// ignore_for_file: non_constant_identifier_names
+
 import 'package:flutter/material.dart';
 import 'package:sakenph/classes/nominatim_response.dart';
 import 'package:sakenph/globals/enums.dart';
@@ -7,17 +9,22 @@ class SearchDetailsProvider extends ChangeNotifier {
   List<NominatimPlace> _fromLocSearchResults = [];
   List<NominatimPlace> _toLocSearchResults = [];
 
-  /// For logic to be able to edit the contents of the textfields
+  // For logic to be able to edit the contents of the textfields
   final TextEditingController _fromLocTextController = TextEditingController();
   final TextEditingController _toLocTextController = TextEditingController();
   final FocusNode _toLocFocusNode = FocusNode(); //
+
+  // Used to show/hide the widget set that holds the search result depending if the user is
+  // currently using the textfields.
+  bool _isActiveSearching_fromLoc = false;
+  bool _isActiveSearching_toLoc = false;
 
   // /////////////////////////////////////////////////////////////////////////////////////////////
   // Getters
   // /////////////////////////////////////////////////////////////////////////////////////////////
 
-  bool get isFromLocTextfieldEmpty => _fromLocTextController.text.isEmpty;
-  bool get isToLocTextfieldEmpty => _toLocTextController.text.isEmpty;
+  bool get isActiveSearching_fromLoc => _isActiveSearching_fromLoc;
+  bool get isActiveSearching_toLoc => _isActiveSearching_toLoc;
 
   List<NominatimPlace> get getFromLocSearchResults => _fromLocSearchResults;
   List<NominatimPlace> get getToLocSearchResults => _toLocSearchResults;
@@ -37,30 +44,24 @@ class SearchDetailsProvider extends ChangeNotifier {
     _toLocTextController.text = value;
   }
 
+  /// Will only notify listeners if provided a different value from the existing value
+  set setActiveSearching_fromLoc(bool value) {
+    print("FROM: $value");
+    if (_isActiveSearching_fromLoc == value) return;
+    _isActiveSearching_fromLoc = value;
+    notifyListeners();
+  }
+
+  /// Will only notify listeners if provided a different value from the existing value
+  set setActiveSearching_toLoc(bool value) {
+    if (_isActiveSearching_toLoc == value) return;
+    _isActiveSearching_toLoc = value;
+    notifyListeners();
+  }
+
   // /////////////////////////////////////////////////////////////////////////////////////////////
   // Functions
   // /////////////////////////////////////////////////////////////////////////////////////////////
-
-  /// Used to help the background widget to decide whether to display the widget that holds
-  /// the loading icon and the results ListView
-  /// TODO: REVIEW CODE. THIS METHOD IS SUBJECT FOR REMOVAL IF REDUNDANT
-  void setTextfieldEmptyStatus(bool val, SearchFieldType type) {
-    return;
-    /*
-    switch (type) {
-      case SearchFieldType.from:
-        if (_isFromLocTextfieldEmpty == val) return;
-        _isFromLocTextfieldEmpty = val;
-        notifyListeners();
-        break;
-      case SearchFieldType.to:
-        if (_isToLocTextfieldEmpty == val) return;
-        _isToLocTextfieldEmpty = val;
-        notifyListeners();
-        break;
-    }
-    */
-  }
 
   /// Tries to clear search results if the user attempts to type more again
   void tryToEraseLocResults(SearchFieldType type) {
