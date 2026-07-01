@@ -1,3 +1,5 @@
+// ignore_for_file: non_constant_identifier_names
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart'
@@ -127,8 +129,8 @@ class ViewForRequestingFromLocation extends StatelessWidget {
         .select<SearchDetailsProvider, bool>(
           (value) => value.getFromLocSearchResults.isEmpty,
         );
-    final bool isTextfieldEmpty = context.select<SearchDetailsProvider, bool>(
-      (value) => value.isFromLocTextfieldEmpty,
+    final bool isActiveSearching = context.select<SearchDetailsProvider, bool>(
+      (value) => value.isActiveSearching_fromLoc,
     );
 
     /// For building the choices in places
@@ -166,7 +168,7 @@ class ViewForRequestingFromLocation extends StatelessWidget {
           SizedBox(height: 60),
         _UseCurrentLocationButton(),
         SizedBox(height: 10),
-        if (!isTextfieldEmpty) toShowSuggestionResults,
+        if (isActiveSearching) toShowSuggestionResults,
       ],
     );
   }
@@ -236,7 +238,6 @@ class _UseCurrentLocationButtonState extends State<_UseCurrentLocationButton> {
 }
 
 class _ViewForRequestingToLocation extends StatelessWidget {
-  const _ViewForRequestingToLocation({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -244,8 +245,8 @@ class _ViewForRequestingToLocation extends StatelessWidget {
         .select<SearchDetailsProvider, bool>(
           (value) => value.getToLocSearchResults.isEmpty,
         );
-    final bool isTextfieldEmpty = context.select<SearchDetailsProvider, bool>(
-      (value) => value.isToLocTextfieldEmpty,
+    final bool isActiveSearching = context.select<SearchDetailsProvider, bool>(
+      (value) => value.isActiveSearching_toLoc,
     );
 
     /// For building the choices in places
@@ -283,7 +284,7 @@ class _ViewForRequestingToLocation extends StatelessWidget {
         children: [
           SizedBox(height: 110),
           SizedBox(height: 10),
-          if (!isTextfieldEmpty) toShowSuggestionResults,
+          if (isActiveSearching) toShowSuggestionResults,
         ],
       ),
     );
@@ -400,13 +401,19 @@ class __WaitingForBackendResponseState
     extends State<_WaitingForBackendResponse> {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: MediaQuery.sizeOf(context).width,
-      height: MediaQuery.sizeOf(context).height,
-      child: Center(
-        child: LoadingAnimationWidget.fourRotatingDots(
-          color: Colors.grey,
-          size: 150,
+    return GestureDetector(
+      onTap:() {
+        // to prevent the easy-exit feature of the parent background widget
+      },
+      child: Container(
+        color: Colors.transparent,
+        width: MediaQuery.sizeOf(context).width,
+        height: MediaQuery.sizeOf(context).height,
+        child: Center(
+          child: LoadingAnimationWidget.fourRotatingDots(
+            color: Colors.grey,
+            size: 150,
+          ),
         ),
       ),
     );
@@ -492,7 +499,7 @@ class _SuggestedPathWidgetTemplate extends StatelessWidget {
   /// Index number in the iteration when the widgets are being built
   final int choice_idx;
 
-  const _SuggestedPathWidgetTemplate({super.key, required this.choice_idx});
+  const _SuggestedPathWidgetTemplate({required this.choice_idx});
 
   @override
   Widget build(BuildContext context) {

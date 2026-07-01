@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:provider/provider.dart';
-import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
@@ -12,8 +11,6 @@ import 'package:geolocator/geolocator.dart';
 import '../providers/provider_system_vars.dart';
 
 class SystemTasksProvder extends ChangeNotifier {
-  // ignore: non_constant_identifier_names
-  bool _isRunning_repeatingTask = false;
 
   // Dependencies
   SystemVariablesProvider? _systemVariablesProvider;

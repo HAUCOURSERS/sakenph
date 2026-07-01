@@ -85,7 +85,7 @@ class MapHelperProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void fetchUserCurrentGeolocation() async {
+  void fetchUserCurrentGeolocationAndSave() async {
     Position position = await GeolocatorPlatform.instance.getCurrentPosition();
     _userCurrentGeoLoc = LatLng(position.latitude, position.longitude);
   }

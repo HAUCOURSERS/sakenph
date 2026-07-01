@@ -13,8 +13,6 @@ import 'package:provider/provider.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'dart:math' show min, max;
 
-import 'package:sakenph/providers/provider_search_details.dart';
-
 /// Holds the view for the map
 class MapWidget extends StatefulWidget {
   /// A controller class that provides a public interface to interact with the private `_MapWidget` state.

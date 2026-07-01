@@ -9,9 +9,7 @@ import 'package:sakenph/features/foreground_widget/widgets.dart';
 import 'package:sakenph/listeners/compass_direction_listener.dart';
 import 'package:sakenph/map_widget.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
-import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_system_tasks.dart';
-import 'package:geolocator/geolocator.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -27,7 +25,7 @@ class _HomePage extends State<HomePage> {
   void initState() {
     super.initState();
     json = fetchData();
-    context.read<MapHelperProvider>().fetchUserCurrentGeolocation();
+    context.read<MapHelperProvider>().fetchUserCurrentGeolocationAndSave();
     context.read<SystemTasksProvder>().mountProviders(context);
     // Enable compass
     requestPermissionAndListen(context);
