@@ -160,11 +160,18 @@ class _MapWidget extends State<MapWidget> {
 
         // Defines the style of the line
         if (route.mode.type != 'walk') {
+          String sourceOutline = "$sourceId-outline";
+          String layerOutline = "$layerId-outline";
+
           await _controller!.addLineLayer(
-            "$sourceId-outline",
-            "$layerId-outline",
+            sourceOutline,
+            layerOutline,
             outlineLayerStyle!,
           );
+
+          routeSourceIds.add(sourceOutline);
+          routeLayerIds.add(layerOutline);
+
         }
         await _controller!.addLineLayer(sourceId, layerId, layerStyle);
 
