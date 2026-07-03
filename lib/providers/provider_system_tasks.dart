@@ -11,11 +11,15 @@ import 'package:geolocator/geolocator.dart';
 import '../providers/provider_system_vars.dart';
 
 class SystemTasksProvder extends ChangeNotifier {
-
   // Dependencies
   SystemVariablesProvider? _systemVariablesProvider;
   SearchDetailsProvider? _searchDetailsProvider;
   MapHelperProvider? _mapHelperProvider;
+
+  // Variables
+
+  StreamSubscription<Position>? _positionStream; // holds position listener
+  Timer? _locationUpdater;
 
   void mountProviders(BuildContext context) {
     _systemVariablesProvider = context.read<SystemVariablesProvider>();
@@ -42,16 +46,25 @@ class SystemTasksProvder extends ChangeNotifier {
       print("DEPENDENCIES FOR START_REPEATINGTASK() MISSING");
       return;
     }
+    _locationUpdater = Timer.periodic(Duration(milliseconds: 500), (
+      timer,
+    ) async {
+      print("UPDATING MARKER ATTRIBUTES");
+      await _mapHelperProvider!.mapWidgetController.addUserMarker(
+        _mapHelperProvider!.getUserCurrentGeoLoc,
+        _mapHelperProvider!.getUserCompassRotation,
+      );
+    });
     _startStream();
   }
 
   // ignore: non_constant_identifier_names
   void stop_repeatingTask() {
     print("Stopped Streaming");
+    _locationUpdater!.cancel();
+
     _stopStream();
   }
-
-  StreamSubscription<Position>? _positionStream;
 
   void _startStream() async {
     bool hasPerms = await getGeolocatorPermission();
@@ -64,22 +77,20 @@ class SystemTasksProvder extends ChangeNotifier {
     );
 
     _positionStream =
-        Geolocator.getPositionStream(
-          locationSettings: locationSettings,
-        ).listen((Position position) {
-          print(
-            "[TEMP] POSITION UPDATE: ${position.latitude} ${position.longitude} | COMPASS: ${_mapHelperProvider!.getUserCompassRotation}",
-          );
-          _mapHelperProvider?.mapWidgetController.addUserMarker(
-            LatLng(position.latitude, position.longitude),
-            _mapHelperProvider!.getUserCompassRotation,
-          );
-          //print('${position.latitude}, ${position.longitude}');
-        });
+        Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+          (Position position) {
+            _mapHelperProvider!.setUserCurrentGeoLoc = LatLng(
+              position.latitude,
+              position.longitude,
+            );
+          },
+        );
   }
 
-  void _stopStream() {
+  void _stopStream() async {
     _positionStream!.cancel();
     _positionStream = null;
+    await Future.delayed(Duration(seconds: 2));
+    _mapHelperProvider!.mapWidgetController.clearLayersAndSources();
   }
 }

@@ -23,10 +23,13 @@ Future<Map<String, dynamic>> queryForShortestPath(
   final response = await http.get(
     Uri.parse(
       // render backend service link
-      'https://sakenph-backend.onrender.com/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
+      //'https://sakenph-backend.onrender.com/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
 
       // local backend
       //'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
+
+      // AWS EC2
+      'http://ec2-47-129-217-58.ap-southeast-1.compute.amazonaws.com:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
     ),
   );
 

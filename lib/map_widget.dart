@@ -53,8 +53,8 @@ class MapWidgetController {
   Future<void> addUserMarker(LatLng coords, double rotation) =>
       _state?._addUserMarker(coords, rotation) ?? Future.value();
 
-  Future<void> removeMarker(String sourceLayerId) =>
-      _state?._removeMarker(sourceLayerId) ?? Future.value();
+  Future<void> removeMarker(String sourceId, String layerId) =>
+      _state?._removeMarker(sourceId, layerId) ?? Future.value();
 }
 
 class _MapWidget extends State<MapWidget> {
@@ -100,9 +100,9 @@ class _MapWidget extends State<MapWidget> {
     routeSourceIds.clear();
   }
 
-  Future<void> _removeMarker(String sourceLayerId) async {
-    _controller?.removeLayer("route-$sourceLayerId");
-    _controller?.removeSource("route-$sourceLayerId");
+  Future<void> _removeMarker(String sourceId, String layerId) async {
+    _controller?.removeLayer("route-$sourceId");
+    _controller?.removeSource("route-$layerId");
   }
 
   /// Uses json value obtained from backend and draws the path
@@ -171,7 +171,6 @@ class _MapWidget extends State<MapWidget> {
 
           routeSourceIds.add(sourceOutline);
           routeLayerIds.add(layerOutline);
-
         }
         await _controller!.addLineLayer(sourceId, layerId, layerStyle);
 
@@ -243,8 +242,9 @@ class _MapWidget extends State<MapWidget> {
   }
 
   Future<void> _addUserMarker(LatLng coords, double rotation) async {
-    final String sourceId = 'source_user_marker';
-    final String layerId = 'layer_user_marker';
+    print("ADDING/UPDATING USER MARKER");
+    final String sourceId = 'route-source_user_marker';
+    final String layerId = 'route-layer_user_marker';
 
     bool ifSourceExists = await _sourceExists(sourceId);
     bool ifLayerExists = await _layerExists(layerId);

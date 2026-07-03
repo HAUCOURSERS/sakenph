@@ -46,7 +46,6 @@ class SearchDetailsProvider extends ChangeNotifier {
 
   /// Will only notify listeners if provided a different value from the existing value
   set setActiveSearching_fromLoc(bool value) {
-    print("FROM: $value");
     if (_isActiveSearching_fromLoc == value) return;
     _isActiveSearching_fromLoc = value;
     notifyListeners();
