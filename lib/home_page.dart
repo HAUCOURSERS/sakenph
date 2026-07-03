@@ -28,7 +28,7 @@ class _HomePage extends State<HomePage> {
     context.read<MapHelperProvider>().fetchUserCurrentGeolocationAndSave();
     context.read<SystemTasksProvder>().mountProviders(context);
     // Enable compass
-    requestPermissionAndListen(context);
+    requestPermissionAndListenForCompassDirection(context);
   }
 
   @override
