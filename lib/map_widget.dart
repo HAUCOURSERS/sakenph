@@ -88,7 +88,8 @@ class _MapWidget extends State<MapWidget> {
     super.dispose();
   }
 
-  /// Removes all existing route sources and layers to avoid duplicates
+  /// Removes all existing route sources and layers to avoid duplicates.
+  /// If your marker is not getting removed, it was probably not included in this array.
   Future<void> _clearLayersAndSources() async {
     for (String i in routeLayerIds) {
       _controller?.removeLayer(i);
@@ -137,7 +138,7 @@ class _MapWidget extends State<MapWidget> {
           // Solid lines to indicate vehicle route
           layerStyle = LineLayerProperties(
             lineColor: route.mode.details.color,
-            lineWidth: 3.0,
+            lineWidth: 2.0,
           );
           outlineLayerStyle = LineLayerProperties(
             lineColor: darkenHex(route.mode.details.color),
@@ -162,6 +163,22 @@ class _MapWidget extends State<MapWidget> {
         if (route.mode.type != 'walk') {
           String sourceOutline = "$sourceId-outline";
           String layerOutline = "$layerId-outline";
+
+          print("FLAG 1A");
+
+          await _controller!.addGeoJsonSource(sourceOutline, {
+            'type': 'FeatureCollection',
+            'features': [
+              {
+                'type': 'Feature',
+                'properties': {},
+                'geometry': {
+                  'type': 'LineString',
+                  'coordinates': route.geometry,
+                },
+              },
+            ],
+          });
 
           await _controller!.addLineLayer(
             sourceOutline,
@@ -242,7 +259,6 @@ class _MapWidget extends State<MapWidget> {
   }
 
   Future<void> _addUserMarker(LatLng coords, double rotation) async {
-    print("ADDING/UPDATING USER MARKER");
     final String sourceId = 'route-source_user_marker';
     final String layerId = 'route-layer_user_marker';
 
@@ -258,6 +274,9 @@ class _MapWidget extends State<MapWidget> {
     } else {
       await _controller?.removeLayer(layerId);
       await _controller?.removeSource(sourceId);
+
+      routeSourceIds.add(sourceId);
+      routeLayerIds.add(layerId);
 
       // ✅ Include rotation in properties from the start
       await _controller!.addGeoJsonSource(
