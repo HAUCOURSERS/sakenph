@@ -25,7 +25,7 @@ enum SystemState {
   /// now start the looping job of checking
   isCurrentlyTravelling,
 
-  ///
+  /// TODO: THIS NEEDS DEV
   confirmationForTerminatingTravel,
 }
 

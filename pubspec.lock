@@ -190,14 +190,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  flutter_compass:
+  flutter_device_compass:
     dependency: "direct main"
     description:
-      name: flutter_compass
-      sha256: "1b4d7e6c95a675ec8482b5c9c9ccf1ebf0ced3dbec59dce28ad609da953de850"
+      name: flutter_device_compass
+      sha256: c5f6e313694c2c34360816ada05e8ec66b15b8d227247dd1a7a0e5d9441937f2
       url: "https://pub.dev"
     source: hosted
-    version: "0.8.1"
+    version: "2.0.1"
   flutter_lints:
     dependency: "direct dev"
     description:

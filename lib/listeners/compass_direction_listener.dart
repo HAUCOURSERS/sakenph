@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_compass/flutter_compass.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
+import 'package:flutter_device_compass/flutter_device_compass.dart';
 
 Future<void> requestPermissionAndListenForCompassDirection(
   BuildContext context,

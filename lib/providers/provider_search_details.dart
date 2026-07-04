@@ -19,12 +19,34 @@ class SearchDetailsProvider extends ChangeNotifier {
   bool _isActiveSearching_fromLoc = false;
   bool _isActiveSearching_toLoc = false;
 
+  /// If true, it will grab the current geoloc value upon route computation.
+  ///
+  /// This had to be implemented due to an edge case where somehow when the user
+  /// starts the app, they immediately press the "Press to use your location" so fast
+  /// that the geoloc function at the start isn't done fetching yet, causing weird
+  /// route results.
+  bool _isUsingCurrentGeoLoc = false;
+
+  /// Default: false; Because it doesn't automatically fail upon app startup. Only goes true if a search fails.
+  // These bool values get turned back to false if the textfield is changed by the user or by hitting retry.
+  bool _isNominatimSearchFailed_TypeFrom = false; // fromloc textfield
+  bool _isNominatimSearchFailed_TypeTo = false; // toloc textfield
+  // This bool value gets turned back to false if the search is tried again by either selecting the ToLocation loc or hitting retry
+  bool _isBackendRouteFetchFailed = false;
+
   // /////////////////////////////////////////////////////////////////////////////////////////////
   // Getters
   // /////////////////////////////////////////////////////////////////////////////////////////////
 
   bool get isActiveSearching_fromLoc => _isActiveSearching_fromLoc;
   bool get isActiveSearching_toLoc => _isActiveSearching_toLoc;
+
+  bool get isNominatimSearchFailed_TypeFrom =>
+      _isNominatimSearchFailed_TypeFrom;
+  bool get isNominatimSearchFailed_TypeTo => _isNominatimSearchFailed_TypeTo;
+  bool get isBackendRouteFetchFailed => _isBackendRouteFetchFailed;
+
+  bool get isUsingCurrentGeoLoc => _isUsingCurrentGeoLoc;
 
   List<NominatimPlace> get getFromLocSearchResults => _fromLocSearchResults;
   List<NominatimPlace> get getToLocSearchResults => _toLocSearchResults;
@@ -42,6 +64,23 @@ class SearchDetailsProvider extends ChangeNotifier {
 
   set setToLocTextfieldText(String value) {
     _toLocTextController.text = value;
+  }
+
+  set setIsUsingCurrentGeoLoc(bool value) {
+    _isUsingCurrentGeoLoc = value;
+  }
+
+  set setIsNominatimSearchFailed_TypeFrom(bool value) {
+    _isNominatimSearchFailed_TypeFrom = value;
+    notifyListeners();
+  }
+
+  set setIsNominatimSearchFailed_TypeTo(bool value) {
+    _isNominatimSearchFailed_TypeTo = value;
+  }
+
+  set setIsBackendRouteFetchFailed(bool value) {
+    _isBackendRouteFetchFailed = value;
   }
 
   /// Will only notify listeners if provided a different value from the existing value
