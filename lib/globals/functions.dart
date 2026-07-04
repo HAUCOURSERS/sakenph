@@ -48,7 +48,7 @@ Future<bool> getGeolocatorPermission() async {
 }
 
 /// To provide color outline to jeepney routes
-String darkenHex(String hex, [double amount = 0.2]) {
+String darkenHex(String hex, [double amount = 0.7]) {
   hex = hex.replaceAll('#', '');
   if (hex.length == 3) {
     hex = hex.split('').map((c) => c * 2).join('');

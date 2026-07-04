@@ -102,7 +102,10 @@ class _FromLocationSearchBar extends StatelessWidget {
                 context.read<SearchDetailsProvider>().tryToEraseLocResults(
                   SearchFieldType.from,
                 );
-                context.read<SearchDetailsProvider>().setActiveSearching_fromLoc = value.isNotEmpty;
+                context
+                        .read<SearchDetailsProvider>()
+                        .setActiveSearching_fromLoc =
+                    value.isNotEmpty;
                 if (value.isNotEmpty) {
                   EasyDebounce.debounce(
                     DebounceId.nominatim_fromLocationSearch.toString(),
@@ -211,7 +214,8 @@ class _ToLocationSearchBar extends StatelessWidget {
                 context.read<SearchDetailsProvider>().tryToEraseLocResults(
                   SearchFieldType.to,
                 );
-                context.read<SearchDetailsProvider>().setActiveSearching_toLoc = value.isNotEmpty;
+                context.read<SearchDetailsProvider>().setActiveSearching_toLoc =
+                    value.isNotEmpty;
                 if (value.isNotEmpty) {
                   EasyDebounce.debounce(
                     DebounceId.nominatim_toLocationSearch.toString(),
@@ -267,7 +271,6 @@ class _ToLocationSearchBar extends StatelessWidget {
 /// Holds 2 buttons for the user to try see the path in the map.
 /// It's intentional by design that the map cannot be interacted while in this mode
 class _PreviewWindowForSuggestedPath extends StatelessWidget {
-
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -361,7 +364,6 @@ class _PreviewWindowForSuggestedPath extends StatelessWidget {
 /// Appears if the user has queried for routes and valid routes showed up. Relying
 /// on the search button is useless since it's hard to press on screen
 class _RouteOpenerButton extends StatelessWidget {
-
   @override
   Widget build(BuildContext context) {
     return Align(
@@ -401,7 +403,6 @@ class _RouteOpenerButton extends StatelessWidget {
 
 /// If the user wants to terminate their travel towards a location, select this.
 class _ActiveRouteTerminator extends StatelessWidget {
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -412,10 +413,11 @@ class _ActiveRouteTerminator extends StatelessWidget {
             context.read<SystemVariablesProvider>().setAppCurrentState(
               SystemState.showSuggestedRoutes,
             );
+            /*
             context
                 .read<MapHelperProvider>()
                 .mapWidgetController
-                .clearLayersAndSources();
+                .clearLayersAndSources();*/
             context.read<SystemTasksProvder>().stop_repeatingTask();
           },
           child: Center(
