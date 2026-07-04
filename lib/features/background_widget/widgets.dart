@@ -1,10 +1,12 @@
 // ignore_for_file: non_constant_identifier_names
 
+import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart'
     show LoadingAnimationWidget;
 import 'package:provider/provider.dart';
+import 'package:sakenph/api/nominatim.dart';
 import 'package:sakenph/classes/nominatim_response.dart';
 import 'package:sakenph/features/background_widget/functions.dart';
 import 'package:sakenph/globals/enums.dart';
@@ -120,9 +122,16 @@ class _BackgroundWidgetContentRenderer extends StatelessWidget {
 /// Widget to use when you're requesting for the user's origin destination. Contains
 /// a button that will get the user's current location and suggestions from their
 /// inputs.
-class ViewForRequestingFromLocation extends StatelessWidget {
+class ViewForRequestingFromLocation extends StatefulWidget {
   const ViewForRequestingFromLocation({super.key});
 
+  @override
+  State<ViewForRequestingFromLocation> createState() =>
+      _ViewForRequestingFromLocationState();
+}
+
+class _ViewForRequestingFromLocationState
+    extends State<ViewForRequestingFromLocation> {
   @override
   Widget build(BuildContext context) {
     final bool isFromLocResultsEmpty = context
@@ -132,21 +141,104 @@ class ViewForRequestingFromLocation extends StatelessWidget {
     final bool isActiveSearching = context.select<SearchDetailsProvider, bool>(
       (value) => value.isActiveSearching_fromLoc,
     );
+    final bool isNominatimSearchFailed = context
+        .select<SearchDetailsProvider, bool>(
+          (value) => value.isNominatimSearchFailed_TypeFrom,
+        );
+
+    final SearchDetailsProvider searchDetailsProvider = context
+        .read<SearchDetailsProvider>();
 
     /// For building the choices in places
-    Widget toShowSuggestionResults = isFromLocResultsEmpty
-        ? Column(
-            children: [
-              SizedBox(height: 70),
-              Align(
-                child: LoadingAnimationWidget.discreteCircle(
-                  color: Colors.black,
-                  size: 100,
-                ),
+    Widget toShowSuggestionResults() {
+      if (isFromLocResultsEmpty) {
+        // Stalling page while waiting for api response
+        return Column(
+          children: [
+            SizedBox(height: 70),
+            Align(
+              child: LoadingAnimationWidget.discreteCircle(
+                color: Colors.black,
+                size: 100,
               ),
-            ],
-          )
-        : Expanded(
+            ),
+          ],
+        );
+      } else {
+        // Nominatim api has returned something
+        if (isNominatimSearchFailed) {
+          return GestureDetector(
+            onTap: () {},
+            child: Container(
+              color: Colors.grey.shade100,
+              child: Column(
+                children: [
+                  SizedBox(height: 70),
+                  Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          "Connection error for location search.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 30),
+                        GestureDetector(
+                          onTap: () async {
+                            print("flag 1");
+                            searchDetailsProvider.tryToEraseLocResults(
+                              SearchFieldType.from,
+                            );
+                            searchDetailsProvider
+                                    .setIsNominatimSearchFailed_TypeFrom =
+                                false;
+                            await Future.delayed(Duration(milliseconds: 750));
+                            searchDetailsProvider.saveLocSearchResults(
+                              await searchPlaces(
+                                searchDetailsProvider
+                                    .getFromLocTextController
+                                    .text,
+                                searchDetailsProvider,
+                                SearchFieldType.from,
+                              ),
+                              SearchFieldType.from,
+                            );
+                          },
+                          child: Container(
+                            padding: EdgeInsets.only(
+                              bottom: 12,
+                              top: 12,
+                              left: 50,
+                              right: 50,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade600,
+                              boxShadow: [
+                                BoxShadow(color: Colors.black, blurRadius: 2.0),
+                              ],
+                            ),
+                            child: Text(
+                              "RETRY",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 30),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        } else {
+          return Expanded(
             child: ListView.builder(
               itemBuilder: (context, index) => _SearchResultRenderer(
                 searchFieldType: SearchFieldType.from,
@@ -160,6 +252,9 @@ class ViewForRequestingFromLocation extends StatelessWidget {
                   .length,
             ),
           );
+        }
+      }
+    }
 
     return Column(
       children: [
@@ -168,7 +263,7 @@ class ViewForRequestingFromLocation extends StatelessWidget {
           SizedBox(height: 60),
         _UseCurrentLocationButton(),
         SizedBox(height: 10),
-        if (isActiveSearching) toShowSuggestionResults,
+        if (isActiveSearching) toShowSuggestionResults(),
       ],
     );
   }
@@ -238,7 +333,6 @@ class _UseCurrentLocationButtonState extends State<_UseCurrentLocationButton> {
 }
 
 class _ViewForRequestingToLocation extends StatelessWidget {
-
   @override
   Widget build(BuildContext context) {
     final bool isToLocResultsEmpty = context
@@ -248,45 +342,123 @@ class _ViewForRequestingToLocation extends StatelessWidget {
     final bool isActiveSearching = context.select<SearchDetailsProvider, bool>(
       (value) => value.isActiveSearching_toLoc,
     );
+    final bool isNominatimSearchFailed = context
+        .select<SearchDetailsProvider, bool>(
+          (value) => value.isNominatimSearchFailed_TypeTo,
+        );
+    final SearchDetailsProvider searchDetailsProvider = context
+        .read<SearchDetailsProvider>();
 
     /// For building the choices in places
-    Widget toShowSuggestionResults = isToLocResultsEmpty
-        ? Column(
-            children: [
-              SizedBox(height: 70),
-              Align(
-                child: LoadingAnimationWidget.discreteCircle(
-                  color: Colors.black,
-                  size: 100,
-                ),
+    Widget toShowSuggestionResults() {
+      if (isToLocResultsEmpty) {
+        // Stalling page while waiting for api response
+        return Column(
+          children: [
+            SizedBox(height: 70),
+            Align(
+              child: LoadingAnimationWidget.discreteCircle(
+                color: Colors.black,
+                size: 100,
               ),
-            ],
-          )
-        : Expanded(
+            ),
+          ],
+        );
+      } else {
+        // Nominatim api has returned something
+        if (isNominatimSearchFailed) {
+          return GestureDetector(
+            onTap: () {},
+            child: Container(
+              color: Colors.grey.shade100,
+              child: Column(
+                children: [
+                  SizedBox(height: 70),
+                  Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          "Connection error for location search.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 30),
+                        GestureDetector(
+                          onTap: () async {
+                            searchDetailsProvider.tryToEraseLocResults(
+                              SearchFieldType.to,
+                            );
+                            searchDetailsProvider
+                                    .setIsNominatimSearchFailed_TypeTo =
+                                false;
+                            await Future.delayed(Duration(milliseconds: 750));
+                            searchDetailsProvider.saveLocSearchResults(
+                              await searchPlaces(
+                                searchDetailsProvider
+                                    .getToLocTextController
+                                    .text,
+                                searchDetailsProvider,
+                                SearchFieldType.to,
+                              ),
+                              SearchFieldType.to,
+                            );
+                          },
+                          child: Container(
+                            padding: EdgeInsets.only(
+                              bottom: 12,
+                              top: 12,
+                              left: 50,
+                              right: 50,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade600,
+                              boxShadow: [
+                                BoxShadow(color: Colors.black, blurRadius: 2.0),
+                              ],
+                            ),
+                            child: Text(
+                              "RETRY",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 30),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        } else {
+          return Expanded(
             child: ListView.builder(
               itemBuilder: (context, index) => _SearchResultRenderer(
                 searchFieldType: SearchFieldType.to,
-                nomiPlace: context
-                    .read<SearchDetailsProvider>()
-                    .getToLocSearchResults[index],
+                nomiPlace: searchDetailsProvider.getToLocSearchResults[index],
               ),
-              itemCount: context
-                  .read<SearchDetailsProvider>()
-                  .getToLocSearchResults
-                  .length,
+              itemCount: searchDetailsProvider.getToLocSearchResults.length,
             ),
           );
+        }
+      }
+    }
 
-    return SizedBox(
-      height: MediaQuery.sizeOf(context).height,
-      width: double.infinity,
-      child: Column(
-        children: [
-          SizedBox(height: 110),
-          SizedBox(height: 10),
-          if (isActiveSearching) toShowSuggestionResults,
-        ],
-      ),
+    return Column(
+      children: [
+        SizedBox(height: 60),
+        if (context.read<MapHelperProvider>().getIsToLocationDetailsEmpty)
+          SizedBox(height: 60),
+        _UseCurrentLocationButton(),
+        SizedBox(height: 10),
+        if (isActiveSearching) toShowSuggestionResults(),
+      ],
     );
   }
 }
@@ -402,7 +574,7 @@ class __WaitingForBackendResponseState
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap:() {
+      onTap: () {
         // to prevent the easy-exit feature of the parent background widget
       },
       child: Container(

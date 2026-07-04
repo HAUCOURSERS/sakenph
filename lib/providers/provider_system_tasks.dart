@@ -49,7 +49,7 @@ class SystemTasksProvder extends ChangeNotifier {
     _locationUpdater = Timer.periodic(Duration(milliseconds: 500), (
       timer,
     ) async {
-      print("UPDATING MARKER ATTRIBUTES");
+      //print("UPDATING MARKER ATTRIBUTES");
       await _mapHelperProvider!.mapWidgetController.addUserMarker(
         _mapHelperProvider!.getUserCurrentGeoLoc,
         _mapHelperProvider!.getUserCompassRotation,

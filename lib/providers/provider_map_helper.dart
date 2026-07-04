@@ -15,6 +15,7 @@ class MapHelperProvider extends ChangeNotifier {
 
   double _userCompassRotation = 0;
   LatLng _userCurrentGeoLoc = LatLng(0, 0); // 0,0 for now.
+
   LatLng? _selectedFromLocationDetails;
   LatLng? _selectedToLocationDetails;
 

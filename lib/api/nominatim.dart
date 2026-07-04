@@ -1,11 +1,20 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/providers/provider_search_details.dart';
 
 import '../classes/nominatim_response.dart';
 
-/// Calls Nominatim Public API to do searches
-Future<List<NominatimPlace>> searchPlaces(String query) async {
+/// Calls Nominatim Public API to do searches. SearchDetailsProvider and SearchFieldType
+/// are used to know which textfield did the connection fail occur.
+Future<List<NominatimPlace>> searchPlaces(
+  String query,
+  SearchDetailsProvider searchDetailsProvider,
+  SearchFieldType searchFieldType,
+) async {
   final uri = Uri.parse('https://nominatim.openstreetmap.org/search').replace(
     queryParameters: {
       'q': query,
@@ -14,18 +23,43 @@ Future<List<NominatimPlace>> searchPlaces(String query) async {
       'limit': '10',
     },
   );
+  try {
+    final response = await http.get(
+      uri,
+      headers: {'User-Agent': 'SakenPH/1.0'},
+    );
 
-  final response = await http.get(uri, headers: {'User-Agent': 'SakenPH/1.0'});
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = jsonDecode(response.body);
+      //print(jsonDecode(response.body));
+      List<NominatimPlace> returnList = jsonList
+          .map((e) => NominatimPlace.fromJson(e))
+          .toList();
 
-  if (response.statusCode == 200) {
-    final List<dynamic> jsonList = jsonDecode(response.body);
-    //print(jsonDecode(response.body));
-    List<NominatimPlace> returnList = jsonList
-        .map((e) => NominatimPlace.fromJson(e))
-        .toList();
-
-    if (returnList.isNotEmpty) {
-      return jsonList.map((e) => NominatimPlace.fromJson(e)).toList();
+      if (returnList.isNotEmpty) {
+        return jsonList.map((e) => NominatimPlace.fromJson(e)).toList();
+      } else {
+        List<NominatimPlace> errorReturn = [];
+        errorReturn.add(
+          NominatimPlace(
+            placeId: -1,
+            osmType: "-1",
+            osmId: -1,
+            lat: -1,
+            lon: -1,
+            name: "No Places Found",
+            displayName:
+                "No valid places found. Please try entering something else",
+            className: "No Places Found",
+            type: "null",
+            placeRank: -1,
+            importance: -1,
+            addressType: "null",
+            boundingBox: ["null"],
+          ),
+        );
+        return errorReturn;
+      }
     } else {
       List<NominatimPlace> errorReturn = [];
       errorReturn.add(
@@ -37,7 +71,7 @@ Future<List<NominatimPlace>> searchPlaces(String query) async {
           lon: -1,
           name: "No Places Found",
           displayName:
-              "No valid places found. Please try entering something else",
+              "An error has occurred while fetching location name suggestions",
           className: "No Places Found",
           type: "null",
           placeRank: -1,
@@ -48,7 +82,7 @@ Future<List<NominatimPlace>> searchPlaces(String query) async {
       );
       return errorReturn;
     }
-  } else {
+  } on http.ClientException {
     List<NominatimPlace> errorReturn = [];
     errorReturn.add(
       NominatimPlace(
@@ -68,6 +102,14 @@ Future<List<NominatimPlace>> searchPlaces(String query) async {
         boundingBox: ["null"],
       ),
     );
+
+    switch (searchFieldType) {
+      case SearchFieldType.from:
+        searchDetailsProvider.setIsNominatimSearchFailed_TypeFrom = true;
+      case SearchFieldType.to:
+        searchDetailsProvider.setIsNominatimSearchFailed_TypeTo = true;
+    }
+
     return errorReturn;
   }
 }

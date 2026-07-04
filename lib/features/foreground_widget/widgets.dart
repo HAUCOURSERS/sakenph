@@ -88,6 +88,9 @@ class _FromLocationSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    SearchDetailsProvider searchDetailsProvider = context
+        .read<SearchDetailsProvider>();
+
     return Align(
       alignment: Alignment.topCenter,
       child: SizedBox(
@@ -95,28 +98,28 @@ class _FromLocationSearchBar extends StatelessWidget {
         child: Column(
           children: [
             TextField(
-              controller: context
-                  .read<SearchDetailsProvider>()
-                  .getFromLocTextController,
+              controller: searchDetailsProvider.getFromLocTextController,
               onChanged: (value) {
-                context.read<SearchDetailsProvider>().tryToEraseLocResults(
+                searchDetailsProvider.tryToEraseLocResults(
                   SearchFieldType.from,
                 );
-                context
-                        .read<SearchDetailsProvider>()
-                        .setActiveSearching_fromLoc =
+                searchDetailsProvider.setIsNominatimSearchFailed_TypeFrom =
+                    false;
+                searchDetailsProvider.setActiveSearching_fromLoc =
                     value.isNotEmpty;
                 if (value.isNotEmpty) {
                   EasyDebounce.debounce(
                     DebounceId.nominatim_fromLocationSearch.toString(),
                     Duration(seconds: 1),
                     () async {
-                      context
-                          .read<SearchDetailsProvider>()
-                          .saveLocSearchResults(
-                            await searchPlaces(value),
-                            SearchFieldType.from,
-                          );
+                      searchDetailsProvider.saveLocSearchResults(
+                        await searchPlaces(
+                          value,
+                          searchDetailsProvider,
+                          SearchFieldType.from,
+                        ),
+                        SearchFieldType.from,
+                      );
                     },
                   );
                 } else {
@@ -197,6 +200,8 @@ class _ToLocationSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    SearchDetailsProvider searchDetailsProvider = context
+        .read<SearchDetailsProvider>();
     return Align(
       alignment: Alignment.topCenter,
       child: SizedBox(
@@ -204,17 +209,12 @@ class _ToLocationSearchBar extends StatelessWidget {
         child: Column(
           children: [
             TextField(
-              focusNode: context
-                  .read<SearchDetailsProvider>()
-                  .getToLocFocusNode,
-              controller: context
-                  .read<SearchDetailsProvider>()
-                  .getToLocTextController,
+              focusNode: searchDetailsProvider.getToLocFocusNode,
+              controller: searchDetailsProvider.getToLocTextController,
               onChanged: (value) {
-                context.read<SearchDetailsProvider>().tryToEraseLocResults(
-                  SearchFieldType.to,
-                );
-                context.read<SearchDetailsProvider>().setActiveSearching_toLoc =
+                searchDetailsProvider.tryToEraseLocResults(SearchFieldType.to);
+                searchDetailsProvider.setIsNominatimSearchFailed_TypeTo = false;
+                searchDetailsProvider.setActiveSearching_toLoc =
                     value.isNotEmpty;
                 if (value.isNotEmpty) {
                   EasyDebounce.debounce(
@@ -224,7 +224,11 @@ class _ToLocationSearchBar extends StatelessWidget {
                       context
                           .read<SearchDetailsProvider>()
                           .saveLocSearchResults(
-                            await searchPlaces(value),
+                            await searchPlaces(
+                              value,
+                              searchDetailsProvider,
+                              SearchFieldType.to,
+                            ),
                             SearchFieldType.to,
                           );
                     },
@@ -378,8 +382,8 @@ class _RouteOpenerButton extends StatelessWidget {
           );
         },
         child: Container(
-          width: MediaQuery.sizeOf(context).width * 0.95,
-          padding: EdgeInsets.all(20),
+          width: MediaQuery.sizeOf(context).width * 0.75,
+          padding: EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: Color.fromARGB(255, 176, 221, 255),
             border: Border.all(width: 1),
@@ -391,7 +395,7 @@ class _RouteOpenerButton extends StatelessWidget {
               Text(
                 "View Searched Routes",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
               ),
             ],
           ),
