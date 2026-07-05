@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:maplibre_gl/maplibre_gl.dart';
 
 import 'package:sakenph/globals/variables.dart' as global_vars;
+import 'package:sakenph/classes/jeepney_route.dart';
 
 /// Attempts to get json results by submitting origin and destination [LatLng] values.
 /// Returns a nullable <code>Map&lt;String, dynamic&gt;</code> value.
@@ -25,11 +26,11 @@ Future<Map<String, dynamic>> queryForShortestPath(
       // render backend service link
       //'https://sakenph-backend.onrender.com/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
 
-      // local backend
-      //'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
-
-      // AWS EC2
-      'http://ec2-47-129-217-58.ap-southeast-1.compute.amazonaws.com:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
+      // local backend only use when updating the backend service
+      'http://10.0.2.2:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
+      
+      // AWS EC2 
+      //'http://ec2-47-129-217-58.ap-southeast-1.compute.amazonaws.com:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
     ),
   );
 
@@ -48,3 +49,22 @@ Future<Map<String, dynamic>> queryForShortestPath(
     return {};
   }
 }
+
+// Fetches jeepney routes from the backend service and returns a list of JeepneyRoute objects.
+Future<List<JeepneyRoute>> fetchJeepRoutes() async {
+  final response = await http.get(
+    Uri.parse('http://10.0.2.2:8000/jeep_routes'),       // local backend service link for ui toggle
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception('Failed to load jeep routes');
+  }
+
+  final Map<String, dynamic> body = jsonDecode(response.body);
+  final List<dynamic> routes = body['routes'];
+
+  return routes
+      .map((route) => JeepneyRoute.fromJson(route as Map<String, dynamic>))
+      .toList();
+  }
+

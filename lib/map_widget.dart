@@ -13,6 +13,9 @@ import 'package:provider/provider.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'dart:math' show min, max;
 
+/// Added to import the backend service to use its functions for querying shortest paths and fetching jeepney routes.
+import 'package:sakenph/classes/jeepney_route.dart';
+
 /// Holds the view for the map
 class MapWidget extends StatefulWidget {
   /// A controller class that provides a public interface to interact with the private `_MapWidget` state.
@@ -55,6 +58,13 @@ class MapWidgetController {
 
   Future<void> removeMarker(String sourceId, String layerId) =>
       _state?._removeMarker(sourceId, layerId) ?? Future.value();
+
+/// Added to fetch the jeepney routes from the backend.
+  Future<void> showJeepneyRoute(JeepneyRoute route) =>
+    _state?.showJeepneyRoute(route) ?? Future.value();
+
+  Future<void> hideJeepneyRoute(String routeId) =>
+      _state?.hideJeepneyRoute(routeId) ?? Future.value();    
 }
 
 class _MapWidget extends State<MapWidget> {
@@ -257,6 +267,68 @@ class _MapWidget extends State<MapWidget> {
     final ids = await _controller?.getLayerIds() ?? [];
     return ids.contains(layerId);
   }
+
+  /// Added for loading jeepney routes from the backend.
+  /// Generates a unique source ID for a jeepney route based on its route ID.
+  String _jeepneyRouteSourceId(String routeId) {
+  return 'jeepney-route-source-$routeId';
+  }
+
+  String _jeepneyRouteLayerId(String routeId) {
+    return 'jeepney-route-layer-$routeId';
+  }
+
+  
+/// Draws one jeepney route line on the map.
+/// Draws one jeepney route line on the map.
+  Future<void> showJeepneyRoute(JeepneyRoute route) async {
+    if (_controller == null) return;
+
+    final sourceId = _jeepneyRouteSourceId(route.id);
+    final layerId = _jeepneyRouteLayerId(route.id);
+
+    if (await _sourceExists(sourceId)) return;
+
+    await _controller!.addSource(
+      sourceId,
+      GeojsonSourceProperties(data: route.geojson),
+    );
+
+    await _controller!.addLineLayer(
+      sourceId,
+      layerId,
+      LineLayerProperties(
+        lineColor: route.color,
+        lineWidth: 3.5,
+        lineOpacity: 0.85,
+      ),
+    );
+
+    jeepneyRouteSourceIds.add(sourceId);
+    jeepneyRouteLayerIds.add(layerId);
+  }
+
+    /// Removes one jeepney route line from the map.
+  Future<void> hideJeepneyRoute(String routeId) async {
+    if (_controller == null) return;
+
+    final sourceId = _jeepneyRouteSourceId(routeId);
+    final layerId = _jeepneyRouteLayerId(routeId);
+
+    if (await _layerExists(layerId)) {
+      await _controller!.removeLayer(layerId);
+    }
+
+    if (await _sourceExists(sourceId)) {
+      await _controller!.removeSource(sourceId);
+    }
+
+    jeepneyRouteLayerIds.remove(layerId);
+    jeepneyRouteSourceIds.remove(sourceId);
+  }
+
+  final Set<String> jeepneyRouteSourceIds = {};
+  final Set<String> jeepneyRouteLayerIds = {};
 
   Future<void> _addUserMarker(LatLng coords, double rotation) async {
     final String sourceId = 'route-source_user_marker';
@@ -666,6 +738,10 @@ class _MapWidget extends State<MapWidget> {
         //Position gpsLocation = await determinePosition();
 
         _controller = c;
+
+        // Load jeepney routes from backend and display them on the map
+        await context.read<MapHelperProvider>().loadJeepneyRoutes();
+        await context.read<MapHelperProvider>().showAllJeepneyRoutes();
 
         // Function that triggers when you click on a TODA icon
         // _controller!.onFeatureTapped.add((point, coordinates, id, layerId, annotation) {
