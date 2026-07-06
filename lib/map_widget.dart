@@ -11,7 +11,7 @@ import 'package:sakenph/classes/terminal_class.dart';
 import 'package:sakenph/classes/json_response.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
-import 'dart:math' show min, max, pi, sin, cos, asin, atan2;
+import 'dart:math' show min, max, pi, sin, cos, asin, atan2, Point;
 
 /// Holds the view for the map
 class MapWidget extends StatefulWidget {
@@ -769,6 +769,13 @@ class _MapWidget extends State<MapWidget> {
   Widget build(BuildContext context) {
     return MapLibreMap(
       styleString: mapStyle,
+
+      compassEnabled: true,
+      compassViewPosition: CompassViewPosition.bottomRight,
+      compassViewMargins: Point(
+        16,
+        40,
+      ),
 
       onMapCreated: (c) async {
         // Gets point of current location of GPS
