@@ -51,8 +51,9 @@ class BackgroundWidget extends StatelessWidget {
           onTap: () {
             if (currentSystemState != SystemState.peekAtRoute) {
               context
-                  .read<SystemVariablesProvider>()
-                  .setBackgroundWidgetVisibility(false);
+                      .read<SystemVariablesProvider>()
+                      .setBackgroundWidgetVisibility =
+                  false;
             }
           },
           child: PopScope(
@@ -62,8 +63,9 @@ class BackgroundWidget extends StatelessWidget {
             onPopInvokedWithResult: (didPop, result) {
               if (!didPop) {
                 context
-                    .read<SystemVariablesProvider>()
-                    .setBackgroundWidgetVisibility(false);
+                        .read<SystemVariablesProvider>()
+                        .setBackgroundWidgetVisibility =
+                    false;
               }
             },
             child: Container(
@@ -105,9 +107,12 @@ class _BackgroundWidgetContentRenderer extends StatelessWidget {
       case SystemState.peekAtRoute:
       case SystemState.hideWidgets:
       case SystemState.isCurrentlyTravelling:
-      case SystemState.confirmationForTerminatingTravel:
         child = SizedBox.shrink();
         break;
+      case SystemState.backendRequestFail:
+        throw UnimplementedError(
+          "The backend request failed. This state is not yet implemented.",
+        );
     }
 
     return AnimatedSwitcher(
@@ -296,9 +301,8 @@ class _UseCurrentLocationButtonState extends State<_UseCurrentLocationButton> {
             context.read<MapHelperProvider>().useCurrentUserGeoLocAsOrigin(
               context,
             );
-            context.read<SystemVariablesProvider>().setAppCurrentState(
-              SystemState.gatheringToLoc,
-            );
+            context.read<SystemVariablesProvider>().setAppCurrentState =
+                SystemState.gatheringToLoc;
             context
                 .read<SearchDetailsProvider>()
                 .requestFocusTowardsLocTextfield();
@@ -501,9 +505,8 @@ class _SearchResultRendererState extends State<_SearchResultRenderer> {
             switch (widget.searchFieldType) {
               case SearchFieldType.from:
                 mapHelperProvider.setFromLocationDetails = widget.nomiPlace;
-                systemVariablesProvider.setAppCurrentState(
-                  SystemState.gatheringToLoc,
-                );
+                systemVariablesProvider.setAppCurrentState =
+                    SystemState.gatheringToLoc;
                 searchDetailsProvider.setFromLocTextfieldText =
                     widget.nomiPlace.name;
                 searchDetailsProvider.requestFocusTowardsLocTextfield();
@@ -696,9 +699,8 @@ class _SuggestedPathWidgetTemplate extends StatelessWidget {
         // Add a short delay to make the transition extra smooth
         await Future.delayed(Duration(milliseconds: 50));
         if (context.mounted) {
-          context.read<SystemVariablesProvider>().setAppCurrentState(
-            SystemState.peekAtRoute,
-          );
+          context.read<SystemVariablesProvider>().setAppCurrentState =
+              SystemState.peekAtRoute;
         }
       },
       child: Container(

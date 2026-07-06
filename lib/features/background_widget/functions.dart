@@ -1,10 +1,9 @@
-import 'dart:math' as Math;
-
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/api/backend_service.dart';
 import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/globals/functions.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
@@ -14,13 +13,13 @@ void startComputingForRoutes(BuildContext context) async {
       .read<SystemVariablesProvider>();
   MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
 
-  systemVariablesProvider.setAppCurrentState(
-    SystemState.waitingForBackendResponse,
-  );
+  systemVariablesProvider.setAppCurrentState =
+      SystemState.waitingForBackendResponse;
 
   Map<String, dynamic> backendResponse = await queryForShortestPath(
     mapHelperProvider.getSelectedFromLocationDetails!,
     mapHelperProvider.getSelectedToLocationDetails!,
+    context,
   );
 
   if (backendResponse.length == 0) {
@@ -30,7 +29,8 @@ void startComputingForRoutes(BuildContext context) async {
     );
   } else {
     mapHelperProvider.setSuggestedShortestPaths = backendResponse;
-    systemVariablesProvider.setAppCurrentState(SystemState.showSuggestedRoutes);
+    systemVariablesProvider.setAppCurrentState =
+        SystemState.showSuggestedRoutes;
   }
 }
 
@@ -38,10 +38,10 @@ void startComputingForRoutes(BuildContext context) async {
 /// method can be used for proper zooming.
 List<LatLng> compileCoordsIntoLatLngList(
   Map<String, dynamic> path,
-  String route_id,
+  String routeId,
 ) {
   List<LatLng> geometryList = [];
-  for (final entry in path["routes"][route_id]) {
+  for (final entry in path["routes"][routeId]) {
     List<LatLng> geometryToAppend = (entry["geometry"] as List<dynamic>).map((
       item,
     ) {
@@ -76,7 +76,7 @@ double computeTravel(Map<String, dynamic> routeData, String route_id) {
 
     // At this point, start computing the distance between in km
     for (int i = 0; i < geometryDetails.length - 1; i++) {
-      distanceInKM += _getDistanceFromLatLonInKm(
+      distanceInKM += getDistanceFromLatLonInKm(
         geometryDetails[i].latitude,
         geometryDetails[i].longitude,
         geometryDetails[i + 1].latitude,
@@ -97,29 +97,8 @@ double computeTravel(Map<String, dynamic> routeData, String route_id) {
   return travelTimeInSeconds;
 }
 
-/// Obtained from: https://stackoverflow.com/questions/59435322/measure-distance-between-two-locations
-///
-double _getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-  var R = 6371; // Radius of the earth in km
-  var dLat = _deg2rad(lat2 - lat1); // deg2rad below
-  var dLon = _deg2rad(lon2 - lon1);
-  var a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(_deg2rad(lat1)) *
-          Math.cos(_deg2rad(lat2)) *
-          Math.sin(dLon / 2) *
-          Math.sin(dLon / 2);
-  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  var d = R * c; // Distance in km
-  return d;
-}
-
-double _deg2rad(deg) {
-  return deg * (Math.pi / 180);
-}
-
 /// Creates a CustomPaint widget that visualizes travel details in color
-CustomPaint navPainter(Map<String, dynamic> routeData, String route_id) {
+CustomPaint navPainter(Map<String, dynamic> routeData, String routeId) {
   // Store entry details for later use. Must be formatted like this:
   // [Entry Count, Mode Type, Mode Color (may be null)]
   List<List<dynamic>> entryDetailsForPainting = [];
@@ -130,7 +109,7 @@ CustomPaint navPainter(Map<String, dynamic> routeData, String route_id) {
   // ///////////////////////////////////////////////////////////////////////
 
   // Extract data from route details
-  for (final entry in routeData["routes"][route_id]) {
+  for (final entry in routeData["routes"][routeId]) {
     // Each entry here represents a chop piece in the route caused by switching between
     // transpo modes like: walk -> jeep -> walk
 

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
@@ -13,8 +15,14 @@ class MapHelperProvider extends ChangeNotifier {
   /// across the app and use its methods.
   MapWidgetController mapWidgetController = MapWidgetController();
 
-  double _userCompassRotation = 0;
   LatLng _userCurrentGeoLoc = LatLng(0, 0); // 0,0 for now.
+
+  /// Used for saving the user's historical coordinates. This is used to calculate the user's heading/rotation.
+  /// The last accepted coordinate is used to compare with the new coordinate to see if the new coordinate is
+  /// far enough to be accepted. If the new coordinate is within 0.5 meters of the last accepted coordinate, it will be rejected.
+  /// This is to prevent the user's heading from being jittery and unstable.
+  List<LatLng> _userLatLngHistory = [];
+  LatLng? _lastAcceptedLatLng;
 
   LatLng? _selectedFromLocationDetails;
   LatLng? _selectedToLocationDetails;
@@ -32,7 +40,6 @@ class MapHelperProvider extends ChangeNotifier {
 
   LatLng? get getSelectedFromLocationDetails => _selectedFromLocationDetails;
   LatLng? get getSelectedToLocationDetails => _selectedToLocationDetails;
-  double get getUserCompassRotation => _userCompassRotation;
   LatLng get getUserCurrentGeoLoc => _userCurrentGeoLoc;
 
   /// Uses Geolocator library to get user current position and extracts the lat lon values for later use
@@ -64,11 +71,6 @@ class MapHelperProvider extends ChangeNotifier {
   // Setters
   // /////////////////////////////////////////////////////////////////////////////////////////////
 
-  /// Mainly used by the compass_direction_listener.dart
-  set setUserCompassRotation(double rotation) {
-    _userCompassRotation = rotation;
-  }
-
   /// Takes in a [NominatimPlace] object and only takes the latitude, longitude
   /// and name details
   set setFromLocationDetails(NominatimPlace nomiDetails) {
@@ -88,6 +90,7 @@ class MapHelperProvider extends ChangeNotifier {
 
   set setUserCurrentGeoLoc(LatLng latlng) {
     _userCurrentGeoLoc = latlng;
+    notifyListeners();
   }
 
   void fetchUserCurrentGeolocationAndSave() async {
@@ -126,8 +129,39 @@ class MapHelperProvider extends ChangeNotifier {
   }
 
   void clearSuggestedShortestPaths() {
-    //print("[TEMP] SUGGESTED SHORTEST PATHS CLEARED");
     _suggestedShortestPaths.clear();
     notifyListeners();
+  }
+
+  void saveLatLngForRotationComputation(LatLng newPoint) {
+    if (_lastAcceptedLatLng == null) {
+      _lastAcceptedLatLng = newPoint;
+      _userLatLngHistory.add(newPoint);
+      notifyListeners();
+    }
+
+    _lastAcceptedLatLng = newPoint;
+    _userLatLngHistory.add(newPoint);
+    notifyListeners();
+  }
+
+  /// Returns a compass heading in degrees based on two historical coordinates.
+  /// The result is normalized to the range [0, 360).
+  double getRotationFromLatLngHistory() {
+    if (_userLatLngHistory.length < 2) {
+      return 0.0; // Not enough data to calculate rotation
+    }
+
+    LatLng from = _userLatLngHistory[_userLatLngHistory.length - 2];
+    LatLng to = _userLatLngHistory[_userLatLngHistory.length - 1];
+    final double deltaLng = to.longitude - from.longitude;
+    final double deltaLat = to.latitude - from.latitude;
+
+    final double heading =
+        (180 / 3.141592653589793) * (atan2(deltaLng, deltaLat));
+
+    /// The heading value provided usually ranges from -180 to 180 degrees, so we normalize it to the range [0, 360) by adding 360 and taking the modulo.
+    /// During testing, it was observed that the heading value was off by 180 degrees, so we add 180 degrees to correct it.
+    return (heading + 360 + 180) % 360;
   }
 }

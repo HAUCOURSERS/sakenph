@@ -1,13 +1,16 @@
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/material.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:sakenph/api/nominatim.dart';
 import 'package:sakenph/features/foreground_widget/functions.dart';
 import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/globals/functions.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_system_tasks.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 import 'package:sakenph/pages/settings_page.dart' show SettingsPage;
 import 'package:provider/provider.dart';
+import 'dart:math' as Math;
 
 import '../../providers/provider_map_helper.dart';
 
@@ -55,6 +58,7 @@ class _ForegroundWidgetContentRenderer extends StatelessWidget {
       case SystemState.gatheringToLoc:
       case SystemState.waitingForBackendResponse:
       case SystemState.showSuggestedRoutes:
+      case SystemState.backendRequestFail:
         return (isFromLocDetailsEmpty)
             ? _FromLocationSearchBar()
             : Column(
@@ -75,9 +79,6 @@ class _ForegroundWidgetContentRenderer extends StatelessWidget {
         return SizedBox.shrink();
       case SystemState.isCurrentlyTravelling:
         return _ActiveRouteTerminator();
-      case SystemState.confirmationForTerminatingTravel:
-        // add shit here
-        return Placeholder();
     }
   }
 }
@@ -132,11 +133,11 @@ class _FromLocationSearchBar extends StatelessWidget {
               style: TextStyle(fontSize: 18),
               onTap: () {
                 context
-                    .read<SystemVariablesProvider>()
-                    .setBackgroundWidgetVisibility(true);
-                context.read<SystemVariablesProvider>().setAppCurrentState(
-                  SystemState.gatheringFromLoc,
-                );
+                        .read<SystemVariablesProvider>()
+                        .setBackgroundWidgetVisibility =
+                    true;
+                context.read<SystemVariablesProvider>().setAppCurrentState =
+                    SystemState.gatheringFromLoc;
               },
               decoration: InputDecoration(
                 /// Expected to change state whether the background widget is
@@ -150,8 +151,9 @@ class _FromLocationSearchBar extends StatelessWidget {
                         child: GestureDetector(
                           onTap: () {
                             context
-                                .read<SystemVariablesProvider>()
-                                .setBackgroundWidgetVisibility(false);
+                                    .read<SystemVariablesProvider>()
+                                    .setBackgroundWidgetVisibility =
+                                false;
                           },
                           child: Icon(Icons.arrow_back),
                         ),
@@ -161,8 +163,9 @@ class _FromLocationSearchBar extends StatelessWidget {
                         child: GestureDetector(
                           onTap: () {
                             context
-                                .read<SystemVariablesProvider>()
-                                .setBackgroundWidgetVisibility(true);
+                                    .read<SystemVariablesProvider>()
+                                    .setBackgroundWidgetVisibility =
+                                true;
                           },
                           child: Icon(Icons.search),
                         ),
@@ -243,11 +246,11 @@ class _ToLocationSearchBar extends StatelessWidget {
               style: TextStyle(fontSize: 18),
               onTap: () {
                 context
-                    .read<SystemVariablesProvider>()
-                    .setBackgroundWidgetVisibility(true);
-                context.read<SystemVariablesProvider>().setAppCurrentState(
-                  SystemState.gatheringToLoc,
-                );
+                        .read<SystemVariablesProvider>()
+                        .setBackgroundWidgetVisibility =
+                    true;
+                context.read<SystemVariablesProvider>().setAppCurrentState =
+                    SystemState.gatheringToLoc;
               },
               decoration: InputDecoration(
                 /// Expected to change state whether the background widget is
@@ -291,8 +294,9 @@ class _PreviewWindowForSuggestedPath extends StatelessWidget {
                   GestureDetector(
                     onTap: () {
                       context
-                          .read<SystemVariablesProvider>()
-                          .setAppCurrentState(SystemState.showSuggestedRoutes);
+                              .read<SystemVariablesProvider>()
+                              .setAppCurrentState =
+                          SystemState.showSuggestedRoutes;
                       context
                           .read<MapHelperProvider>()
                           .mapWidgetController
@@ -374,12 +378,12 @@ class _RouteOpenerButton extends StatelessWidget {
       alignment: Alignment.topCenter,
       child: GestureDetector(
         onTap: () {
-          context.read<SystemVariablesProvider>().setAppCurrentState(
-            SystemState.showSuggestedRoutes,
-          );
-          context.read<SystemVariablesProvider>().setBackgroundWidgetVisibility(
-            true,
-          );
+          context.read<SystemVariablesProvider>().setAppCurrentState =
+              SystemState.showSuggestedRoutes;
+          context
+                  .read<SystemVariablesProvider>()
+                  .setBackgroundWidgetVisibility =
+              true;
         },
         child: Container(
           width: MediaQuery.sizeOf(context).width * 0.75,
@@ -409,35 +413,75 @@ class _RouteOpenerButton extends StatelessWidget {
 class _ActiveRouteTerminator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    // force the widget to re-render every time the user moves, so that the distance till destination is updated
+    context.select<MapHelperProvider, LatLng>(
+      (value) => value.getUserCurrentGeoLoc,
+    );
+    double distanceTillDestinationInMeters =
+        getDistanceFromLatLonInKm(
+          context.read<MapHelperProvider>().getUserCurrentGeoLoc.latitude,
+          context.read<MapHelperProvider>().getUserCurrentGeoLoc.longitude,
+          context
+              .read<MapHelperProvider>()
+              .getSelectedToLocationDetails!
+              .latitude,
+          context
+              .read<MapHelperProvider>()
+              .getSelectedToLocationDetails!
+              .longitude,
+        ) *
+        1000;
     return Column(
       children: [
         SizedBox(height: 20),
         GestureDetector(
           onTap: () {
-            context.read<SystemVariablesProvider>().setAppCurrentState(
-              SystemState.showSuggestedRoutes,
-            );
-            /*
+            context.read<SystemVariablesProvider>().setAppCurrentState =
+                SystemState.showSuggestedRoutes;
             context
                 .read<MapHelperProvider>()
                 .mapWidgetController
-                .clearLayersAndSources();*/
+                .clearLayersAndSources();
             context.read<SystemTasksProvder>().stop_repeatingTask();
           },
           child: Center(
-            child: Container(
-              width: MediaQuery.sizeOf(context).width * 0.95,
-              padding: EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.red,
-                border: Border.all(width: 1),
-                borderRadius: BorderRadius.circular(5),
-              ),
-              child: Text(
-                "Stop Tracking",
-                style: TextStyle(color: Colors.white, fontSize: 20),
-                textAlign: TextAlign.center,
-              ),
+            child: Column(
+              children: [
+                Container(
+                  width: MediaQuery.sizeOf(context).width * 0.95,
+                  padding: EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: distanceTillDestinationInMeters < 20
+                        ? Colors.green
+                        : Colors.red,
+                    border: Border.all(width: 1),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Text(
+                    "Stop Tracking",
+                    style: TextStyle(color: Colors.white, fontSize: 20),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.only(
+                    left: 30,
+                    right: 30,
+                    top: 5,
+                    bottom: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    border: Border.all(width: 1),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Text(
+                    "Distance till Destination: ${distanceTillDestinationInMeters.toStringAsFixed(2)} m",
+                    style: TextStyle(color: Colors.black, fontSize: 20),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
             ),
           ),
         ),

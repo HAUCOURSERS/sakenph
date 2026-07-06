@@ -39,9 +39,31 @@ class SystemVariablesProvider with ChangeNotifier {
   // Functions
   // /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+  set setAppCurrentState(SystemState val) {
+    _appCurrentState = val;
+
+    // This system state needs the background widget to be transparent
+    // to show the path view
+    if (val == SystemState.peekAtRoute) {
+      _setBackgroundWidgetColor = Colors.transparent;
+    } else if (val == SystemState.showSuggestedRoutes) {
+      _setBackgroundWidgetColor = Color.fromARGB(85, 255, 255, 255);
+    } else {
+      if (backgroundWidgetColor != Colors.white) {
+        _setBackgroundWidgetColor = Colors.white;
+      }
+    }
+    notifyListeners();
+  }
+
+  set _setBackgroundWidgetColor(Color color) {
+    _backgroundWidgetColor = color;
+    notifyListeners();
+  }
+
   /// If false, the background widget will hide and unfocus any widget the user
   /// is currently focused to.
-  void setBackgroundWidgetVisibility(bool val) {
+  set setBackgroundWidgetVisibility(bool val) {
     _backgroundWidgetVisibility = val;
 
     // It's better to put the unfocus method here since any occurence in the
@@ -49,28 +71,6 @@ class SystemVariablesProvider with ChangeNotifier {
     // likely when the user isn't actively using the textfield.
     if (!val) FocusManager.instance.primaryFocus?.unfocus();
 
-    notifyListeners();
-  }
-
-  void setAppCurrentState(SystemState val) {
-    _appCurrentState = val;
-
-    // This system state needs the background widget to be transparent
-    // to show the path view
-    if (val == SystemState.peekAtRoute) {
-      _setBackgroundWidgetColor(Colors.transparent);
-    } else if (val == SystemState.showSuggestedRoutes) {
-      _setBackgroundWidgetColor(Color.fromARGB(85, 255, 255, 255));
-    } else {
-      if (backgroundWidgetColor != Colors.white) {
-        _setBackgroundWidgetColor(Colors.white);
-      }
-    }
-    notifyListeners();
-  }
-
-  void _setBackgroundWidgetColor(Color color) {
-    _backgroundWidgetColor = color;
     notifyListeners();
   }
 }
