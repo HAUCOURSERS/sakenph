@@ -90,10 +90,9 @@ Future<bool> handleLocationPermission(BuildContext context) async {
 /// Runs the necessary code across context providers to setup the traveling state
 void startTraveling(BuildContext context) async {
   // Hide every other option to focus on travelling
-  context.read<SystemVariablesProvider>().setBackgroundWidgetVisibility(false);
-  context.read<SystemVariablesProvider>().setAppCurrentState(
-    SystemState.isCurrentlyTravelling,
-  );
+  context.read<SystemVariablesProvider>().setBackgroundWidgetVisibility = false;
+  context.read<SystemVariablesProvider>().setAppCurrentState =
+      SystemState.isCurrentlyTravelling;
 
   // Immediately set the marker
   LatLng coords = context.read<MapHelperProvider>().getUserCurrentGeoLoc;

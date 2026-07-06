@@ -1,5 +1,8 @@
+import 'dart:math' as Math;
+
 import 'package:geolocator/geolocator.dart';
 
+/// Flutter's print method can't print very long strings, so this method is used to print long strings in chunks of 800 characters.
 void printLongString(String text) {
   final pattern = RegExp('.{1,800}'); // 800 chars per chunk
   pattern.allMatches(text).forEach((match) => print(match.group(0)));
@@ -63,4 +66,27 @@ String darkenHex(String hex, [double amount = 0.7]) {
   b = (b * (1 - amount)).round().clamp(0, 255);
 
   return '#${r.toRadixString(16).padLeft(2, '0')}${g.toRadixString(16).padLeft(2, '0')}${b.toRadixString(16).padLeft(2, '0')}';
+}
+
+/// Obtained from: https://stackoverflow.com/questions/59435322/measure-distance-between-two-locations
+/// Calculates the distance between two points in latitude and longitude taking into account
+/// the curvature of the earth. Returns the distance in kilometers.
+double getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+  var R = 6371; // Radius of the earth in km
+  var dLat = _deg2rad(lat2 - lat1); // deg2rad below
+  var dLon = _deg2rad(lon2 - lon1);
+  var a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(_deg2rad(lat1)) *
+          Math.cos(_deg2rad(lat2)) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  var d = R * c; // Distance in km
+  return d;
+}
+
+/// Converts degrees to radians
+double _deg2rad(deg) {
+  return deg * (Math.pi / 180);
 }

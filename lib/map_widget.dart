@@ -11,7 +11,7 @@ import 'package:sakenph/classes/terminal_class.dart';
 import 'package:sakenph/classes/json_response.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
-import 'dart:math' show min, max;
+import 'dart:math' show min, max, pi, sin, cos, asin, atan2;
 
 /// Holds the view for the map
 class MapWidget extends StatefulWidget {
@@ -195,6 +195,7 @@ class _MapWidget extends State<MapWidget> {
       }
     }
 
+    // Create markers for the start and end points of the route
     sourceLayerId += 1;
     LatLng? fromLocDetails = context
         .read<MapHelperProvider>()
@@ -204,11 +205,23 @@ class _MapWidget extends State<MapWidget> {
       "mapmarker_green",
       sourceLayerId.toString(),
     );
+
     sourceLayerId += 1;
     LatLng? toLocDetails = context
         .read<MapHelperProvider>()
         .getSelectedToLocationDetails;
     await _addMarker(toLocDetails!, "mapmarker_red", sourceLayerId.toString());
+
+    await _createCircle(
+      center: toLocDetails,
+      sourceId: "source_circle_ToLoc",
+      layerId: "layer_circle_ToLoc",
+      radius: 20,
+      fillColor: '#3b82f6',
+      fillOpacity: 0.25,
+      borderColor: '#2563eb',
+      borderWidth: 2.0,
+    );
   }
 
   Future<void> _addMarker(
@@ -319,6 +332,102 @@ class _MapWidget extends State<MapWidget> {
         },
       ],
     };
+  }
+
+  List<List<List<double>>> _buildCirclePolygon(
+    LatLng center,
+    double radiusMeters, {
+    int steps = 64,
+  }) {
+    const double earthRadius = 6371000.0;
+    final double lat = center.latitude * pi / 180.0;
+    final double lon = center.longitude * pi / 180.0;
+    final double angularRadius = radiusMeters / earthRadius;
+
+    final List<List<double>> ring = [];
+    for (int i = 0; i <= steps; i++) {
+      final double bearing = (i / steps) * 2 * pi;
+      final double lat2 = asin(
+        sin(lat) * cos(angularRadius) +
+            cos(lat) * sin(angularRadius) * cos(bearing),
+      );
+      final double lon2 =
+          lon +
+          atan2(
+            sin(bearing) * sin(angularRadius) * cos(lat),
+            cos(angularRadius) - sin(lat) * sin(lat2),
+          );
+
+      ring.add([lon2 * 180.0 / pi, lat2 * 180.0 / pi]);
+    }
+
+    if (ring.isNotEmpty) {
+      final first = ring.first;
+      final last = ring.last;
+      if (first[0] != last[0] || first[1] != last[1]) {
+        ring.add(first.toList());
+      }
+    }
+
+    return [ring];
+  }
+
+  Future<void> _createCircle({
+    required LatLng center,
+    required String sourceId,
+    required String layerId,
+    double radius = 20,
+    String fillColor = '#3b82f6',
+    double fillOpacity = 0.25,
+    String borderColor = '#2563eb',
+    double borderWidth = 2.0,
+  }) async {
+    if (_controller == null) return;
+
+    final String outlineLayerId = '$layerId-outline';
+
+    await _controller?.removeLayer(layerId);
+    await _controller?.removeLayer(outlineLayerId);
+    await _controller?.removeSource(sourceId);
+
+    routeSourceIds.add(sourceId);
+    routeLayerIds.add(layerId);
+    routeLayerIds.add(outlineLayerId);
+
+    await _controller?.addSource(
+      sourceId,
+      GeojsonSourceProperties(
+        data: {
+          'type': 'FeatureCollection',
+          'features': [
+            {
+              'type': 'Feature',
+              'geometry': {
+                'type': 'Polygon',
+                'coordinates': _buildCirclePolygon(center, radius),
+              },
+              'properties': {},
+            },
+          ],
+        },
+      ),
+    );
+
+    await _controller?.addFillLayer(
+      sourceId,
+      layerId,
+      FillLayerProperties(fillColor: fillColor, fillOpacity: fillOpacity),
+    );
+
+    await _controller?.addLineLayer(
+      sourceId,
+      outlineLayerId,
+      LineLayerProperties(
+        lineColor: borderColor,
+        lineWidth: borderWidth,
+        lineOpacity: 1.0,
+      ),
+    );
   }
 
   Future<void> _flyToLoc(LatLng coordinates) async {

@@ -11,6 +11,9 @@ enum SystemState {
   /// As of this writing, it doesn't handle backend errors
   waitingForBackendResponse,
 
+  /// If the backend request fails, it will display a message to the user that the request failed.
+  backendRequestFail,
+
   /// Displays the suggested routes received from backend
   showSuggestedRoutes,
 
@@ -24,9 +27,6 @@ enum SystemState {
   /// When this state is achieved, origin and destination location is now identified. It will
   /// now start the looping job of checking
   isCurrentlyTravelling,
-
-  /// TODO: THIS NEEDS DEV
-  confirmationForTerminatingTravel,
 }
 
 /// To easily track where all the debouncers are. If strings alone are used to set

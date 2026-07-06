@@ -6,7 +6,6 @@ import 'package:sakenph/features/background_widget/widgets.dart';
 import 'package:sakenph/features/foreground_widget/functions.dart'
     show fetchData, handleLocationPermission;
 import 'package:sakenph/features/foreground_widget/widgets.dart';
-import 'package:sakenph/listeners/compass_direction_listener.dart';
 import 'package:sakenph/map_widget.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_system_tasks.dart';
@@ -27,8 +26,6 @@ class _HomePage extends State<HomePage> {
     json = fetchData();
     context.read<MapHelperProvider>().fetchUserCurrentGeolocationAndSave();
     context.read<SystemTasksProvder>().mountProviders(context);
-    // Enable compass
-    requestPermissionAndListenForCompassDirection(context);
   }
 
   @override
