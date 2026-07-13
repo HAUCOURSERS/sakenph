@@ -37,8 +37,8 @@ class MapWidgetController {
   Future<void> shortestPath(LatLng origin, LatLng dest) =>
       _state?.shortestPath(origin, dest) ?? Future.value();
 
-  Future<void> drawPath(Map<String, dynamic> pathJSON) =>
-      _state?.drawPath(pathJSON) ?? Future.value();
+  Future<void> drawPath(Map<String, dynamic> pathJSON, BuildContext context) =>
+      _state?.drawPath(pathJSON, context) ?? Future.value();
 
   Future<void> flyToBounds(List<LatLng> bounds) =>
       _state?.flyToBounds(bounds) ?? Future.value();
@@ -106,9 +106,13 @@ class _MapWidget extends State<MapWidget> {
     _controller?.removeSource("route-$layerId");
   }
 
+  // TODO: RPELACE LATER. CURRENTLY BEING REWORKED IN A DIFFERENT DART FILE
   /// Uses json value obtained from backend and draws the path
-  Future<void> drawPath(Map<String, dynamic> pathJSON) async {
-    print("[TEMP] DRAWPATH TRIGGERED!");
+  Future<void> drawPath(
+    Map<String, dynamic> pathJSON,
+    BuildContext context,
+  ) async {
+    MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
     final Map<String, dynamic> json = pathJSON;
     final RouteResponse multimodalRoute = RouteResponse.fromJson(json);
 
@@ -119,23 +123,32 @@ class _MapWidget extends State<MapWidget> {
     int sourceLayerId = 1;
     for (String result in keys) {
       for (RouteSegment route in multimodalRoute.routes[result]!) {
+        if (route.geometry.length < 2) {
+          continue;
+        }
+
+        // Drawing slowly is done as an async job with at most 12 milliseconds
+        // of delay. This has to be added because users might cancel the viewing for this
+        // route, leaving stray nodes to be present and cause crashes.
+        if (mapHelperProvider.shouldStopDrawing == true) return;
+
+        // init route source layer ids
         String sourceId = "route-$sourceLayerId";
         routeSourceIds.add(sourceId);
         String layerId = "route-$sourceLayerId";
         routeLayerIds.add(layerId);
 
-        // To give a line edges, create a thicker darker line and then the actual color on top of it but thinner
+        // declare line style properties
         LineLayerProperties layerStyle;
         LineLayerProperties? outlineLayerStyle;
         if (route.mode.type == 'walk') {
-          // Blue dotted lines to indicate walking route
           layerStyle = LineLayerProperties(
             lineColor: route.mode.details.color,
             lineWidth: 3.0,
             lineDasharray: [1, 1],
           );
         } else {
-          // Solid lines to indicate vehicle route
+          // routes such as jeepney routes will have borders in it
           layerStyle = LineLayerProperties(
             lineColor: route.mode.details.color,
             lineWidth: 2.0,
@@ -146,39 +159,20 @@ class _MapWidget extends State<MapWidget> {
           );
         }
 
-        // Defines the specific geometry of the route line
-        // route.geometry is a list of coordinate pairs that form a line
-        await _controller!.addGeoJsonSource(sourceId, {
-          'type': 'FeatureCollection',
-          'features': [
-            {
-              'type': 'Feature',
-              'properties': {},
-              'geometry': {'type': 'LineString', 'coordinates': route.geometry},
-            },
-          ],
-        });
+        await _controller!.addGeoJsonSource(
+          sourceId,
+          _buildLineGeoJson([route.geometry.first]),
+        );
 
-        // Defines the style of the line
+        // If route isn't walking, prepare the source and layer for the outline drawing
         if (route.mode.type != 'walk') {
           String sourceOutline = "$sourceId-outline";
           String layerOutline = "$layerId-outline";
 
-          print("FLAG 1A");
-
-          await _controller!.addGeoJsonSource(sourceOutline, {
-            'type': 'FeatureCollection',
-            'features': [
-              {
-                'type': 'Feature',
-                'properties': {},
-                'geometry': {
-                  'type': 'LineString',
-                  'coordinates': route.geometry,
-                },
-              },
-            ],
-          });
+          await _controller!.addGeoJsonSource(
+            sourceOutline,
+            _buildLineGeoJson([route.geometry.first]),
+          );
 
           await _controller!.addLineLayer(
             sourceOutline,
@@ -189,7 +183,24 @@ class _MapWidget extends State<MapWidget> {
           routeSourceIds.add(sourceOutline);
           routeLayerIds.add(layerOutline);
         }
+
         await _controller!.addLineLayer(sourceId, layerId, layerStyle);
+
+        if (route.mode.type != 'walk') {
+          await _animateLineSource(
+            sourceId: "$sourceId",
+            geometry: route.geometry,
+            delayMs: 10,
+            mode: "non-walking",
+          );
+        } else {
+          await _animateLineSource(
+            sourceId: sourceId,
+            geometry: route.geometry,
+            delayMs: 10,
+            mode: "walking",
+          );
+        }
 
         sourceLayerId++;
       }
@@ -197,9 +208,7 @@ class _MapWidget extends State<MapWidget> {
 
     // Create markers for the start and end points of the route
     sourceLayerId += 1;
-    LatLng? fromLocDetails = context
-        .read<MapHelperProvider>()
-        .getSelectedFromLocationDetails;
+    LatLng? fromLocDetails = mapHelperProvider.getSelectedFromLocationDetails;
     await _addMarker(
       fromLocDetails!,
       "mapmarker_green",
@@ -207,9 +216,7 @@ class _MapWidget extends State<MapWidget> {
     );
 
     sourceLayerId += 1;
-    LatLng? toLocDetails = context
-        .read<MapHelperProvider>()
-        .getSelectedToLocationDetails;
+    LatLng? toLocDetails = mapHelperProvider.getSelectedToLocationDetails;
     await _addMarker(toLocDetails!, "mapmarker_red", sourceLayerId.toString());
 
     await _createCircle(
@@ -222,6 +229,52 @@ class _MapWidget extends State<MapWidget> {
       borderColor: '#2563eb',
       borderWidth: 2.0,
     );
+  }
+
+  /// For the mode argument, the accepted String values is "walking" and "non-walking"
+  Future<void> _animateLineSource({
+    required String sourceId,
+    required List<List<double>> geometry,
+    required int delayMs,
+    required String mode,
+  }) async {
+    if (geometry.length < 2) {
+      return;
+    }
+
+    final List<List<double>> visibleGeometry = [geometry.first];
+    for (int index = 1; index < geometry.length; index++) {
+      visibleGeometry.add(geometry[index]);
+      if (mode == "walking") {
+        await _controller!.setGeoJsonSource(
+          sourceId,
+          _buildLineGeoJson(visibleGeometry),
+        );
+      } else if (mode == "non-walking") {
+        await _controller!.setGeoJsonSource(
+          sourceId,
+          _buildLineGeoJson(visibleGeometry),
+        );
+        await _controller!.setGeoJsonSource(
+          "$sourceId-outline",
+          _buildLineGeoJson(visibleGeometry),
+        );
+      }
+      await Future.delayed(Duration(milliseconds: delayMs));
+    }
+  }
+
+  Map<String, dynamic> _buildLineGeoJson(List<List<double>> coordinates) {
+    return {
+      'type': 'FeatureCollection',
+      'features': [
+        {
+          'type': 'Feature',
+          'properties': {},
+          'geometry': {'type': 'LineString', 'coordinates': coordinates},
+        },
+      ],
+    };
   }
 
   Future<void> _addMarker(
@@ -772,10 +825,7 @@ class _MapWidget extends State<MapWidget> {
 
       compassEnabled: true,
       compassViewPosition: CompassViewPosition.bottomRight,
-      compassViewMargins: Point(
-        16,
-        40,
-      ),
+      compassViewMargins: Point(16, 40),
 
       onMapCreated: (c) async {
         // Gets point of current location of GPS

@@ -61,6 +61,7 @@ class BackgroundWidget extends StatelessWidget {
                 .read<SystemVariablesProvider>()
                 .backgroundWidgetVisibility,
             onPopInvokedWithResult: (didPop, result) {
+              print("Pop Trigger $didPop");
               if (!didPop) {
                 context
                         .read<SystemVariablesProvider>()
@@ -686,22 +687,27 @@ class _SuggestedPathWidgetTemplate extends StatelessWidget {
 
     return GestureDetector(
       onTap: () async {
-        // Draw Path
-        context.read<MapHelperProvider>().mapWidgetController.drawPath(
-          pathJSON,
-        );
+        EasyDebounce.debounce(
+          DebounceId.routeSelection.toString(),
+          Duration(milliseconds: 50),
+          () async {
+            // Draw Path
+            context.read<MapHelperProvider>().mapWidgetController.drawPath(
+              pathJSON,
+              context,
+            );
 
-        // Zoom user to show drawn path
-        context.read<MapHelperProvider>().mapWidgetController.flyToBounds(
-          compileCoordsIntoLatLngList(pathJSON, route_id),
-        );
+            // Zoom user to show drawn path
+            context.read<MapHelperProvider>().mapWidgetController.flyToBounds(
+              compileCoordsIntoLatLngList(pathJSON, route_id),
+            );
 
-        // Add a short delay to make the transition extra smooth
-        await Future.delayed(Duration(milliseconds: 50));
-        if (context.mounted) {
-          context.read<SystemVariablesProvider>().setAppCurrentState =
-              SystemState.peekAtRoute;
-        }
+            if (context.mounted) {
+              context.read<SystemVariablesProvider>().setAppCurrentState =
+                  SystemState.peekAtRoute;
+            }
+          },
+        );
       },
       child: Container(
         width: double.infinity,
