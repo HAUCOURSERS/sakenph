@@ -39,6 +39,10 @@ enum DebounceId {
   nominatim_fromLocationSearch,
   nominatim_toLocationSearch,
   getCurrentLocation,
+
+  /// By quickly pressing a route in route selection and pressing back, the crash for replacing an existing
+  /// source & layer to crash the app is possible
+  routeSelection,
 }
 
 /// Used at <code>provider_search_details.dart</code>

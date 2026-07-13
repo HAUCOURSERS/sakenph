@@ -30,6 +30,9 @@ class MapHelperProvider extends ChangeNotifier {
   /// Originally obtained in a json format. Paths may contain more than one shortest paths.
   Map<String, dynamic> _suggestedShortestPaths = {};
 
+  /// Used to stop the app from making source and layers in the app if logic demands it
+  bool _stopDrawing = false;
+
   // /////////////////////////////////////////////////////////////////////////////////////////////
   // Getters
   // /////////////////////////////////////////////////////////////////////////////////////////////
@@ -53,6 +56,8 @@ class MapHelperProvider extends ChangeNotifier {
   /// Data is inserted usually by functions in backend_service.dart
   Map<String, dynamic> get getSuggestedShortestPaths => _suggestedShortestPaths;
   bool get getIsSuggestedShortestPathsEmpty => _suggestedShortestPaths.isEmpty;
+
+  bool get shouldStopDrawing => _stopDrawing;
 
   /// When someone searches for shortest routes, the backend may return more than one.
   /// When displaying data, you'd wanna just get one of the routes.
@@ -91,6 +96,10 @@ class MapHelperProvider extends ChangeNotifier {
   set setUserCurrentGeoLoc(LatLng latlng) {
     _userCurrentGeoLoc = latlng;
     notifyListeners();
+  }
+
+  set setStopDrawing(bool value) {
+    _stopDrawing = value;
   }
 
   void fetchUserCurrentGeolocationAndSave() async {

@@ -280,91 +280,104 @@ class _ToLocationSearchBar extends StatelessWidget {
 class _PreviewWindowForSuggestedPath extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Positioned(
-          top: MediaQuery.sizeOf(context).height * 0.75,
-          left: MediaQuery.sizeOf(context).width * 0.125,
-          right: MediaQuery.sizeOf(context).width * 0.125,
-          child: GestureDetector(
-            child: Container(
-              height: 200,
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      context
-                              .read<SystemVariablesProvider>()
-                              .setAppCurrentState =
-                          SystemState.showSuggestedRoutes;
-                      context
-                          .read<MapHelperProvider>()
-                          .mapWidgetController
-                          .clearLayersAndSources();
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(
-                          30,
-                        ), // rounded, not circle
-                        color: Colors.grey.shade300, // perfect circle
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 8,
-                            offset: Offset(0, 4), // x, y offset
+    return PopScope(
+      child: Stack(
+        children: [
+          Positioned(
+            top: MediaQuery.sizeOf(context).height * 0.75,
+            left: MediaQuery.sizeOf(context).width * 0.125,
+            right: MediaQuery.sizeOf(context).width * 0.125,
+            child: GestureDetector(
+              child: Container(
+                height: 200,
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
+                        EasyDebounce.debounce(
+                          DebounceId.routeSelection.toString(),
+                          Duration(milliseconds: 40),
+                          () async {
+                            MapHelperProvider mapHelperProvider = context
+                                .read<MapHelperProvider>();
+                            context
+                                    .read<SystemVariablesProvider>()
+                                    .setAppCurrentState =
+                                SystemState.showSuggestedRoutes;
+                            // First, stop potential edge drawings and after 40 milliseconds,
+                            // there should be no follow-up drawings, making node deletion secure.
+                            mapHelperProvider.setStopDrawing = true;
+                            await Future.delayed(Duration(milliseconds: 40));
+                            mapHelperProvider.mapWidgetController
+                                .clearLayersAndSources();
+                            mapHelperProvider.setStopDrawing = false;
+                          },
+                        );
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(
+                            30,
+                          ), // rounded, not circle
+                          color: Colors.grey.shade300, // perfect circle
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: Offset(0, 4), // x, y offset
+                            ),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          "Go Back",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
                           ),
-                        ],
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "Go Back",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
                         ),
                       ),
                     ),
-                  ),
-                  SizedBox(height: 20),
-                  GestureDetector(
-                    onTap: () async {
-                      startTraveling(context);
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(
-                          30,
-                        ), // rounded, not circle
-                        color: Colors.grey.shade300, // perfect circle
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 8,
-                            offset: Offset(0, 4), // x, y offset
+                    SizedBox(height: 20),
+                    GestureDetector(
+                      onTap: () async {
+                        startTraveling(context);
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(
+                            30,
+                          ), // rounded, not circle
+                          color: Colors.grey.shade300, // perfect circle
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: Offset(0, 4), // x, y offset
+                            ),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          "Select This Route",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
                           ),
-                        ],
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "Select This Route",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -435,14 +448,19 @@ class _ActiveRouteTerminator extends StatelessWidget {
       children: [
         SizedBox(height: 20),
         GestureDetector(
-          onTap: () {
+          onTap: () async {
+            MapHelperProvider mapHelperProvider = context
+                .read<MapHelperProvider>();
             context.read<SystemVariablesProvider>().setAppCurrentState =
                 SystemState.showSuggestedRoutes;
-            context
-                .read<MapHelperProvider>()
-                .mapWidgetController
-                .clearLayersAndSources();
             context.read<SystemTasksProvder>().stop_repeatingTask();
+
+            // First, stop potential edge drawings and after 40 milliseconds,
+            // there should be no follow-up drawings, making node deletion secure.
+            mapHelperProvider.setStopDrawing = true;
+            await Future.delayed(Duration(milliseconds: 40));
+            mapHelperProvider.mapWidgetController.clearLayersAndSources();
+            mapHelperProvider.setStopDrawing = false;
           },
           child: Center(
             child: Column(
