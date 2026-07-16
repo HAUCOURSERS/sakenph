@@ -299,16 +299,18 @@ class _UseCurrentLocationButtonState extends State<_UseCurrentLocationButton> {
             setState(() {
               _showColor = true;
             });
-            context.read<MapHelperProvider>().useCurrentUserGeoLocAsOrigin(
-              context,
-            );
-            context.read<SystemVariablesProvider>().setAppCurrentState =
+            SearchDetailsProvider searchDetailsProvider = context
+                .read<SearchDetailsProvider>();
+            MapHelperProvider mapHelperProvider = context
+                .read<MapHelperProvider>();
+            SystemVariablesProvider systemVariablesProvider = context
+                .read<SystemVariablesProvider>();
+            mapHelperProvider.useCurrentUserGeoLocAsOrigin();
+            systemVariablesProvider.setAppCurrentState =
                 SystemState.gatheringToLoc;
-            context
-                .read<SearchDetailsProvider>()
-                .requestFocusTowardsLocTextfield();
+            searchDetailsProvider.requestFocusTowardsLocTextfield();
 
-            context.read<SearchDetailsProvider>().setFromLocTextfieldText =
+            searchDetailsProvider.setFromLocTextfieldText =
                 "Your Current Location";
             await Future.delayed(Duration(milliseconds: 100));
             setState(() {
