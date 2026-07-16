@@ -102,7 +102,7 @@ class MapHelperProvider extends ChangeNotifier {
     _stopDrawing = value;
   }
 
-  void fetchUserCurrentGeolocationAndSave() async {
+  Future<void> fetchUserCurrentGeolocationAndSave() async {
     Position position = await GeolocatorPlatform.instance.getCurrentPosition();
     _userCurrentGeoLoc = LatLng(position.latitude, position.longitude);
   }
@@ -130,7 +130,11 @@ class MapHelperProvider extends ChangeNotifier {
   /// To solve that issue, the user's current location is immediately obtained upon app startup,
   /// so when you try to use your current location as your 'from' coordinates, you don't
   /// have to wait extra time waiting.
-  void useCurrentUserGeoLocAsOrigin(BuildContext context) {
+  Future<void> useCurrentUserGeoLocAsOrigin() async {
+    if (_userCurrentGeoLoc.latitude == 0 && _userCurrentGeoLoc.longitude == 0) {
+      await getUserCurrentLocAndSaveToContext;
+    }
+
     _setFromLocationDetails(
       _userCurrentGeoLoc.latitude,
       _userCurrentGeoLoc.longitude,
