@@ -21,7 +21,6 @@ void startComputingForRoutes(BuildContext context) async {
     mapHelperProvider.getSelectedToLocationDetails!,
     context,
   );
-
   if (backendResponse.length == 0) {
     // queryForShortestPath() will always return a non-empty map if backend response worked.
     throw UnimplementedError(
