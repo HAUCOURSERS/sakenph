@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/globals/enums.dart';
-
+import 'package:sakenph/api/local/env.dart';
 import 'package:sakenph/globals/variables.dart' as global_vars;
 import 'package:sakenph/providers/provider_system_vars.dart';
 
@@ -27,19 +27,13 @@ Future<Map<String, dynamic>> queryForShortestPath(
     String localIp = global_vars.localIP;
     // Position gpsLocation = await determinePosition();
 
-    //print(
-    //'https://sakenph-backend.onrender.com/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
-    //);
     final response = await http.get(
       Uri.parse(
-        // render backend service link
-        //'https://sakenph-backend.onrender.com/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
-
         // local backend
         //'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
 
         // AWS EC2
-        'http://ec2-47-129-217-58.ap-southeast-1.compute.amazonaws.com:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
+        '${Env.API_ENDPOINT_LINK}k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
       ),
     );
 
