@@ -28,7 +28,7 @@ class MapHelperProvider extends ChangeNotifier {
   LatLng? _selectedToLocationDetails;
 
   /// Originally obtained in a json format. Paths may contain more than one shortest paths.
-  Map<String, dynamic> _suggestedShortestPaths = {};
+  Map<String, dynamic> _suggestedShortestPathsAStar = {};
 
   /// Used to stop the app from making source and layers in the app if logic demands it
   bool _stopDrawing = false;
@@ -54,8 +54,10 @@ class MapHelperProvider extends ChangeNotifier {
   }
 
   /// Data is inserted usually by functions in backend_service.dart
-  Map<String, dynamic> get getSuggestedShortestPaths => _suggestedShortestPaths;
-  bool get getIsSuggestedShortestPathsEmpty => _suggestedShortestPaths.isEmpty;
+  Map<String, dynamic> get getSuggestedShortestPaths =>
+      _suggestedShortestPathsAStar;
+  bool get getIsSuggestedShortestPathsEmpty =>
+      _suggestedShortestPathsAStar.isEmpty;
 
   bool get shouldStopDrawing => _stopDrawing;
 
@@ -66,7 +68,15 @@ class MapHelperProvider extends ChangeNotifier {
   /// Ex: result-1, result-2, result-3
   Map<String, dynamic> getFilteredRouteByID(String routeId) {
     final routes = Map<String, dynamic>.from(
-      _suggestedShortestPaths['routes'] as Map<String, dynamic>,
+      _suggestedShortestPathsAStar['routes'] as Map<String, dynamic>,
+    );
+    routes.removeWhere((key, value) => key != routeId);
+    return {'routes': routes};
+  }
+
+  Map<String, dynamic> getFilteredRouteByID_Visiting(String routeId) {
+    final routes = Map<String, dynamic>.from(
+      _suggestedShortestPathsAStar['checked_edges'] as Map<String, dynamic>,
     );
     routes.removeWhere((key, value) => key != routeId);
     return {'routes': routes};
@@ -88,7 +98,7 @@ class MapHelperProvider extends ChangeNotifier {
 
   /// To save the computed shortest paths to the provider for later use
   set setSuggestedShortestPaths(Map<String, dynamic> val) {
-    _suggestedShortestPaths = val;
+    _suggestedShortestPathsAStar = val;
     //print("[TEMP] Saved suggested shortest paths");
     notifyListeners();
   }
@@ -142,7 +152,7 @@ class MapHelperProvider extends ChangeNotifier {
   }
 
   void clearSuggestedShortestPaths() {
-    _suggestedShortestPaths.clear();
+    _suggestedShortestPathsAStar.clear();
     notifyListeners();
   }
 
