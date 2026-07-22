@@ -604,43 +604,51 @@ class _DisplaySuggestedPaths extends StatelessWidget {
   Widget build(BuildContext context) {
     // Meant to absorb onTap hits to prevent closure due to the main background
     // widget's nature
-    return GestureDetector(
-      child: Stack(
-        children: [
-          Container(
-            color: Colors.transparent,
-            alignment: Alignment.center,
-            width: MediaQuery.sizeOf(context).width,
-            height: MediaQuery.sizeOf(context).height,
-            child: Center(child: _SuggestedPathWidgetListBuilder()),
-          ),
-          Positioned(
-            top: 120,
-            left: MediaQuery.sizeOf(context).width * 0.125,
-            right: MediaQuery.sizeOf(context).width * 0.125,
-            child: Container(
-              padding: EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(5),
-                border: Border.all(color: Colors.black, width: 1),
-                // black outline
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 6,
-                    offset: Offset(0, 3), // shadow goes downward
-                  ),
-                ],
-              ),
-              child: Text(
-                "Tap to view path",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.black, fontSize: 30),
+    return SizedBox(
+      child: GestureDetector(
+        onTap: () {},
+        child: Stack(
+          children: [
+            Positioned(
+              top: 200,
+              left: MediaQuery.sizeOf(context).width * 0.0625,
+              right: MediaQuery.sizeOf(context).width * 0.0625,
+              child: Container(
+                color: Colors.transparent,
+                alignment: Alignment.center,
+                width: MediaQuery.sizeOf(context).width,
+                height: MediaQuery.sizeOf(context).height,
+                child: Center(child: _SuggestedPathWidgetListBuilder()),
               ),
             ),
-          ),
-        ],
+            Positioned(
+              top: 120,
+              left: MediaQuery.sizeOf(context).width * 0.125,
+              right: MediaQuery.sizeOf(context).width * 0.125,
+              child: Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: Colors.black, width: 1),
+                  // black outline
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 6,
+                      offset: Offset(0, 3), // shadow goes downward
+                    ),
+                  ],
+                ),
+                child: Text(
+                  "Tap to view path",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.black, fontSize: 30),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -656,16 +664,79 @@ class _SuggestedPathWidgetListBuilder extends StatelessWidget {
     Map<String, dynamic> shortestPaths = context
         .read<MapHelperProvider>()
         .getSuggestedShortestPaths["routes"];
-    return SizedBox(
-      width: MediaQuery.sizeOf(context).width * 0.8,
-      child: ListView.separated(
-        shrinkWrap: true,
-        itemBuilder: (context, index) {
-          return _SuggestedPathWidgetTemplate(choice_idx: index);
-        },
-        separatorBuilder: (context, index) => SizedBox(height: 15),
-        itemCount: shortestPaths.length,
-      ),
+
+    Widget footerWidget() {
+      return Column(
+        children: [
+          GestureDetector(
+            onTap: () async {
+              MapHelperProvider mapHelperProvider = context
+                  .read<MapHelperProvider>();
+              SystemVariablesProvider systemVariablesProvider = context
+                  .read<SystemVariablesProvider>();
+
+              Map<String, dynamic> suggestedShortestPaths =
+                  mapHelperProvider.getSuggestedShortestPaths;
+              Iterable<String> route_keys =
+                  suggestedShortestPaths['checked_edges'].keys;
+              systemVariablesProvider.setAppCurrentState =
+                  SystemState.peekAtRoute;
+
+              for (String route_key in route_keys) {
+                await mapHelperProvider.mapWidgetController
+                    .drawPathWithOneSourceRef(
+                      mapHelperProvider.getFilteredRouteByID_Visiting(
+                        route_key,
+                      ),
+                      mapHelperProvider,
+                    );
+                break; // only once
+              }
+            },
+            child: SizedBox(
+              width: MediaQuery.sizeOf(context).width * 0.8,
+              child: Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent,
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: Colors.black, width: 1),
+                  // black outline
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 6,
+                      offset: Offset(0, 3), // shadow goes downward
+                    ),
+                  ],
+                ),
+                child: Text(
+                  "Press to show other routes visited by A*",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white, fontSize: 20),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        ListView.separated(
+          shrinkWrap: true,
+          physics:
+              NeverScrollableScrollPhysics(), // avoid nested-scroll conflicts
+          itemBuilder: (context, index) {
+            return _SuggestedPathWidgetTemplate(choice_idx: index);
+          },
+          separatorBuilder: (context, index) => SizedBox(height: 15),
+          itemCount: shortestPaths.length,
+        ),
+        SizedBox(height: 15), // optional spacing to match your separator style
+        footerWidget(),
+      ],
     );
   }
 }
