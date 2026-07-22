@@ -37,8 +37,18 @@ class MapWidgetController {
   Future<void> shortestPath(LatLng origin, LatLng dest) =>
       _state?.shortestPath(origin, dest) ?? Future.value();
 
-  Future<void> drawPath(Map<String, dynamic> pathJSON, BuildContext context) =>
-      _state?.drawPath(pathJSON, context) ?? Future.value();
+  Future<void> drawPath(
+    Map<String, dynamic> pathJSON,
+    BuildContext context, [
+    String iterationId = "",
+  ]) => _state?.drawPath(pathJSON, context, iterationId) ?? Future.value();
+
+  Future<void> drawPathWithOneSourceRef(
+    Map<String, dynamic> pathJSON,
+    MapHelperProvider mapHelperProvider,
+  ) =>
+      _state?.drawPathWithOneSourceRef(pathJSON, mapHelperProvider) ??
+      Future.value();
 
   Future<void> flyToBounds(List<LatLng> bounds) =>
       _state?.flyToBounds(bounds) ?? Future.value();
@@ -92,11 +102,11 @@ class _MapWidget extends State<MapWidget> {
   /// If your marker is not getting removed, it was probably not included in this array.
   Future<void> _clearLayersAndSources() async {
     for (String i in routeLayerIds) {
-      _controller?.removeLayer(i);
+      await _controller?.removeLayer(i);
     }
     routeLayerIds.clear();
     for (String i in routeSourceIds) {
-      _controller?.removeSource(i);
+      await _controller?.removeSource(i);
     }
     routeSourceIds.clear();
   }
@@ -106,12 +116,123 @@ class _MapWidget extends State<MapWidget> {
     _controller?.removeSource("route-$layerId");
   }
 
-  // TODO: RPELACE LATER. CURRENTLY BEING REWORKED IN A DIFFERENT DART FILE
+  /// Used to render visited edges
+  Future<void> drawPathWithOneSourceRef(
+    Map<String, dynamic> pathJSON,
+    MapHelperProvider mapHelperProvider,
+  ) async {
+    final Map<String, dynamic> json = pathJSON;
+    final RouteResponse multimodalRoute = RouteResponse.fromJson(json);
+    await _clearLayersAndSources();
+    final List<String> keys = multimodalRoute.routes.keys.toList();
+
+    // Source and Route ID used for drawing only. All drawings fall into this id
+    String singularSourceId = "source-for-drawing-only";
+
+    /// The template for the GeoJsonSource's GeoJson value. This will be used
+    /// to add more routes in it and update the GeoJsonSource accordingly.
+    ///
+    /// JSON to add format:
+    /// {
+    ///   'type': 'Feature',
+    ///   'properties': {},
+    ///   'geometry': {'type': 'LineString', 'coordinates': coordinates},
+    /// },
+    ///
+    Map<String, dynamic> featureCollectionSetup = {
+      'type': 'FeatureCollection',
+      'features': [],
+    };
+    // add source if it doesn't exist
+    if (!routeSourceIds.contains(singularSourceId)) {
+      await _controller!.addGeoJsonSource(
+        singularSourceId,
+        featureCollectionSetup,
+      );
+      routeSourceIds.add(singularSourceId);
+    }
+
+    String singularLayerId = "source-for-drawing-only-layer";
+    if (!routeLayerIds.contains(singularLayerId)) {
+      LineLayerProperties layerStyle = LineLayerProperties(
+        lineColor: Colors.blueAccent.toHexStringRGB(),
+        lineWidth: 2.0,
+      );
+      await _controller!.addLineLayer(
+        singularSourceId,
+        singularLayerId,
+        layerStyle,
+      );
+      routeLayerIds.add(singularLayerId);
+    }
+
+    // to count iterations to control geojson update frequency
+    int iteration = 0;
+
+    for (String result in keys) {
+      for (RouteSegment route in multimodalRoute.routes[result]!) {
+        if (route.geometry.length < 2) continue;
+
+        // Drawing slowly is done as an async job with at most 12 milliseconds
+        // of delay. This has to be added because users might cancel the viewing for this
+        // route, leaving stray nodes to be present and cause crashes.
+        if (mapHelperProvider.shouldStopDrawing == true) return;
+
+        // Add a line feature to the setup
+        List<dynamic> featuresList = featureCollectionSetup['features'];
+        featuresList.add({
+          'type': 'Feature',
+          'properties': {},
+          'geometry': {'type': 'LineString', 'coordinates': route.geometry},
+        });
+
+        if (iteration % 4 == 0) {
+          await _controller!.setGeoJsonSource(
+            singularSourceId,
+            featureCollectionSetup,
+          );
+        }
+
+        iteration++;
+
+        //await Future.delayed(Duration(milliseconds: 1));
+      }
+    }
+    await _controller!.setGeoJsonSource(
+      singularSourceId,
+      featureCollectionSetup,
+    );
+
+    // Create markers for the start and end points of the route
+    String fromLocId = "route-fromloc";
+    String toLocId = "route-toloc";
+    String toLocIdCircle = "route-toloc-circle";
+    LatLng? fromLocDetails = mapHelperProvider.getSelectedFromLocationDetails;
+    await _addMarker(fromLocDetails!, "mapmarker_green", fromLocId);
+
+    LatLng? toLocDetails = mapHelperProvider.getSelectedToLocationDetails;
+    await _addMarker(toLocDetails!, "mapmarker_red", toLocId);
+
+    await _createCircle(
+      center: toLocDetails,
+      sourceId: toLocIdCircle,
+      layerId: toLocIdCircle,
+      radius: 20,
+      fillColor: '#3b82f6',
+      fillOpacity: 0.25,
+      borderColor: '#2563eb',
+      borderWidth: 2.0,
+    );
+    print("[TEMP] DONE DRAWING");
+  }
+
   /// Uses json value obtained from backend and draws the path
   Future<void> drawPath(
     Map<String, dynamic> pathJSON,
-    BuildContext context,
-  ) async {
+    BuildContext context, [
+    String iterationId = "",
+  ]) async {
+    print("CALLED: ITERATION ID: $iterationId");
     MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
     final Map<String, dynamic> json = pathJSON;
     final RouteResponse multimodalRoute = RouteResponse.fromJson(json);
@@ -133,9 +254,9 @@ class _MapWidget extends State<MapWidget> {
         if (mapHelperProvider.shouldStopDrawing == true) return;
 
         // init route source layer ids
-        String sourceId = "route-$sourceLayerId";
+        String sourceId = "${iterationId}route-$sourceLayerId";
         routeSourceIds.add(sourceId);
-        String layerId = "route-$sourceLayerId";
+        String layerId = "${iterationId}route-$sourceLayerId";
         routeLayerIds.add(layerId);
 
         // declare line style properties
@@ -188,17 +309,17 @@ class _MapWidget extends State<MapWidget> {
 
         if (route.mode.type != 'walk') {
           await _animateLineSource(
-            sourceId: "$sourceId",
+            sourceId: sourceId,
             geometry: route.geometry,
-            delayMs: 10,
             mode: "non-walking",
+            totalDurationMs: 200,
           );
         } else {
           await _animateLineSource(
             sourceId: sourceId,
             geometry: route.geometry,
-            delayMs: 10,
             mode: "walking",
+            totalDurationMs: 200,
           );
         }
 
@@ -212,17 +333,21 @@ class _MapWidget extends State<MapWidget> {
     await _addMarker(
       fromLocDetails!,
       "mapmarker_green",
-      sourceLayerId.toString(),
+      iterationId + sourceLayerId.toString(),
     );
 
     sourceLayerId += 1;
     LatLng? toLocDetails = mapHelperProvider.getSelectedToLocationDetails;
-    await _addMarker(toLocDetails!, "mapmarker_red", sourceLayerId.toString());
+    await _addMarker(
+      toLocDetails!,
+      "mapmarker_red",
+      iterationId + sourceLayerId.toString(),
+    );
 
     await _createCircle(
       center: toLocDetails,
-      sourceId: "source_circle_ToLoc",
-      layerId: "layer_circle_ToLoc",
+      sourceId: "${iterationId}source_circle_ToLoc",
+      layerId: "${iterationId}layer_circle_ToLoc",
       radius: 20,
       fillColor: '#3b82f6',
       fillOpacity: 0.25,
@@ -235,35 +360,94 @@ class _MapWidget extends State<MapWidget> {
   Future<void> _animateLineSource({
     required String sourceId,
     required List<List<double>> geometry,
-    required int delayMs,
+    required int totalDurationMs,
     required String mode,
   }) async {
-    if (geometry.length < 2) {
-      return;
-    }
+    if (geometry.length < 2) return;
+
+    const targetFps = 30;
+    final frameIntervalMs = (1000 / targetFps).round();
+    final totalFrames = (totalDurationMs / frameIntervalMs).ceil();
+    final pointsPerFrame = (geometry.length / totalFrames).ceil().clamp(
+      1,
+      geometry.length,
+    );
 
     final List<List<double>> visibleGeometry = [geometry.first];
-    for (int index = 1; index < geometry.length; index++) {
-      visibleGeometry.add(geometry[index]);
+    int index = 1;
+
+    while (index < geometry.length) {
+      final end = (index + pointsPerFrame).clamp(0, geometry.length);
+      visibleGeometry.addAll(geometry.sublist(index, end));
+      index = end;
+
+      final geoJson = _buildLineGeoJson(visibleGeometry);
       if (mode == "walking") {
-        await _controller!.setGeoJsonSource(
-          sourceId,
-          _buildLineGeoJson(visibleGeometry),
-        );
+        await _controller!.setGeoJsonSource(sourceId, geoJson);
       } else if (mode == "non-walking") {
-        await _controller!.setGeoJsonSource(
-          sourceId,
-          _buildLineGeoJson(visibleGeometry),
-        );
-        await _controller!.setGeoJsonSource(
-          "$sourceId-outline",
-          _buildLineGeoJson(visibleGeometry),
-        );
+        await _controller!.setGeoJsonSource(sourceId, geoJson);
+        await _controller!.setGeoJsonSource("$sourceId-outline", geoJson);
       }
-      await Future.delayed(Duration(milliseconds: delayMs));
+
+      await Future.delayed(Duration(milliseconds: frameIntervalMs));
     }
   }
 
+  Future<void> _animateLinesAsOneSource({
+    required String sourceId,
+    required List<List<List<double>>> allGeometries, // list of routes/edges
+    required int totalDurationMs,
+  }) async {
+    const targetFps = 30;
+    final frameIntervalMs = (1000 / targetFps).round();
+    final totalFrames = (totalDurationMs / frameIntervalMs).ceil();
+
+    final cursors = List<int>.filled(allGeometries.length, 1);
+    final visible = allGeometries
+        .map((g) => g.isNotEmpty ? [g.first] : <List<double>>[])
+        .toList();
+
+    final pointsPerFrame = List<int>.generate(allGeometries.length, (i) {
+      final len = allGeometries[i].length;
+      return len < 2 ? 0 : (len / totalFrames).ceil().clamp(1, len);
+    });
+
+    for (int frame = 0; frame < totalFrames; frame++) {
+      bool anyUpdated = false;
+
+      for (int i = 0; i < allGeometries.length; i++) {
+        final geometry = allGeometries[i];
+        if (geometry.length < 2) continue;
+        if (cursors[i] >= geometry.length) continue;
+
+        final end = (cursors[i] + pointsPerFrame[i]).clamp(0, geometry.length);
+        visible[i].addAll(geometry.sublist(cursors[i], end));
+        cursors[i] = end;
+        anyUpdated = true;
+      }
+
+      final features = visible
+          .where((v) => v.length >= 2)
+          .map(
+            (v) => {
+              'type': 'Feature',
+              'geometry': {'type': 'LineString', 'coordinates': v},
+              'properties': {},
+            },
+          )
+          .toList();
+
+      await _controller!.setGeoJsonSource(sourceId, {
+        'type': 'FeatureCollection',
+        'features': features,
+      });
+
+      if (!anyUpdated) break;
+      await Future.delayed(Duration(milliseconds: frameIntervalMs));
+    }
+  }
+
+  /// Builder of the edge line between 2 points
   Map<String, dynamic> _buildLineGeoJson(List<List<double>> coordinates) {
     return {
       'type': 'FeatureCollection',
