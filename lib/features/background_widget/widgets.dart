@@ -917,25 +917,3 @@ class _SuggestedPathWidgetTemplate extends StatelessWidget {
     );
   }
 }
-
-/// While the app's state is in [SystemState.confirmingLocationSelection], it will block
-/// gesture detector hits of MapLibre widget to force the user to chose between
-/// the presented buttons.
-class _InteractionBlockerDuringDecisionMaking extends StatelessWidget {
-  const _InteractionBlockerDuringDecisionMaking({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    SystemVariablesProvider systemVariablesProvider = context
-        .read<SystemVariablesProvider>();
-    return GestureDetector(
-      onTap: () {
-        if (systemVariablesProvider.appCurrentState ==
-            SystemState.confirmingLocationSelection) {
-          systemVariablesProvider.setAppCurrentState =
-              SystemState.gatheringFromLoc;
-        }
-      },
-    );
-  }
-}
