@@ -6,11 +6,13 @@ import 'package:http/http.dart' as http;
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/globals/functions.dart';
 
 import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_system_tasks.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
+import 'dart:math';
 
 /// Currently has no uses
 Future<String> reverseGeocode({
@@ -104,4 +106,76 @@ void startTraveling(BuildContext context) async {
     coords,
     0,
   );
+}
+
+/// Upon providing the JSON return of backend along with the route_id of your choice,
+/// it will return a List<(String, double)> of data.
+///
+/// Data format:
+/// - Walk/Jeep Name
+/// - Color
+/// - Distance in meters
+List<(String, String, double)> buildTravelDetails(
+  Map<String, dynamic> routeData,
+  String route_id,
+) {
+  List<(String, String, double)> returnDetails = [];
+  for (final entry in routeData["routes"][route_id]) {
+    double distanceInKM = 0;
+    // Each entry here represents a chop piece in the route caused by switching between
+    // transpo modes like: walk -> jeep -> walk
+    List<LatLng> geometryDetails = (entry["geometry"] as List<dynamic>).map((
+      item,
+    ) {
+      final coords = (item as List<dynamic>)
+          .map((coord) => (coord as num).toDouble())
+          .toList();
+      return LatLng(coords[1], coords[0]);
+    }).toList();
+
+    // At this point, start computing the distance between in km
+    for (int i = 0; i < geometryDetails.length - 1; i++) {
+      distanceInKM += getDistanceFromLatLonInKm(
+        geometryDetails[i].latitude,
+        geometryDetails[i].longitude,
+        geometryDetails[i + 1].latitude,
+        geometryDetails[i + 1].longitude,
+      );
+    }
+    String routeColor = entry["mode"]["details"]["color"].toString();
+    String modeType = entry["mode"]["type"].toString();
+    if (modeType == "walk") {
+      returnDetails.add(("Walk", routeColor, (distanceInKM * 1000)));
+    } else if (modeType == "jeep") {
+      String jeepName = entry["mode"]["details"]["name"].toString();
+      returnDetails.add((
+        formatLabelForJeepneyName(jeepName),
+        routeColor,
+        (distanceInKM * 1000),
+      ));
+    }
+  }
+
+  return returnDetails;
+}
+
+/// Returns a grouped double values that totals the fare amount
+(double, double) computeFareTotalForRoute(
+  Map<String, dynamic> routeData,
+  String route_id,
+) {
+  double totalAmt = 0;
+  double totalAmtDiscounted = 0;
+
+  for (final entry in routeData["routes"][route_id]) {
+    Map<String, dynamic> fareDetails = entry["mode"]["details"];
+    totalAmt += fareDetails["fare"] == null
+        ? 0
+        : double.parse(fareDetails["fare"]["regular"].toString());
+    totalAmtDiscounted += fareDetails["fare"] == null
+        ? 0
+        : double.parse(fareDetails["fare"]["discounted"].toString());
+  }
+
+  return (totalAmt, totalAmtDiscounted);
 }

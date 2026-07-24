@@ -1,5 +1,6 @@
 import 'dart:math' as Math;
 
+import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 /// Flutter's print method can't print very long strings, so this method is used to print long strings in chunks of 800 characters.
@@ -89,4 +90,25 @@ double getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
 /// Converts degrees to radians
 double _deg2rad(deg) {
   return deg * (Math.pi / 180);
+}
+
+Color hexToColor(String hex) {
+  hex = hex.replaceAll('#', '');
+  if (hex.length == 6) hex = 'FF$hex'; // add full opacity if no alpha given
+  return Color(int.parse(hex, radix: 16));
+}
+
+/// Backend Response formats jeepney names where there are no whitespaces, which looks
+/// terrible if to be displayed as it is in the route details
+String formatLabelForJeepneyName(String value) {
+  // Replace all hyphens with whitespace
+  String result = value.replaceAll('-', ' ');
+
+  // Insert a space before any uppercase letter that's preceded by a lowercase letter
+  result = result.replaceAllMapped(
+    RegExp(r'([a-z])([A-Z])'),
+    (match) => '${match.group(1)} ${match.group(2)}',
+  );
+
+  return result;
 }

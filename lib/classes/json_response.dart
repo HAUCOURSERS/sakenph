@@ -5,38 +5,39 @@ class ModeFare {
   ModeFare({required this.regular, required this.discounted});
 
   factory ModeFare.fromJson(Map<String, dynamic> json) {
-    return ModeFare(
-      regular: json['regular'],
-      discounted: json['discounted']
-    );
+    return ModeFare(regular: json['regular'], discounted: json['discounted']);
   }
 }
 
 class ModeDetails {
   final String name;
   final String color;
+  final ModeFare? modeFare;
 
-  ModeDetails({required this.name, required this.color});
+  ModeDetails({
+    required this.name,
+    required this.color,
+    required this.modeFare,
+  });
 
   factory ModeDetails.fromJson(Map<String, dynamic> json) {
     return ModeDetails(
       name: json['name'],
       color: json['color'],
+      modeFare: json['fare'] != null ? ModeFare.fromJson(json['fare']) : null,
     );
   }
 }
 
 class Mode {
   final String type;
-  final ModeFare modeFare;
   final ModeDetails details;
 
-  Mode({required this.type, required this.modeFare, required this.details});
+  Mode({required this.type, required this.details});
 
   factory Mode.fromJson(Map<String, dynamic> json) {
     return Mode(
       type: json['type'],
-      modeFare: ModeFare.fromJson(json['fare']),
       details: ModeDetails.fromJson(json['details']),
     );
   }

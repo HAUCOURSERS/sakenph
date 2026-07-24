@@ -1,7 +1,10 @@
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:http/http.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:sakenph/api/nominatim.dart';
+import 'package:sakenph/features/background_widget/functions.dart';
 import 'package:sakenph/features/foreground_widget/functions.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions.dart';
@@ -39,8 +42,9 @@ class _ForegroundWidgetContentRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
     bool isFromLocDetailsEmpty = context.select<MapHelperProvider, bool>(
-      (value) => !value.getIsFromLocationDetailsEmpty,
+      (value) => value.getIsFromLocationDetailsEmpty,
     );
     bool hasSearchedForRoutes = context.select<MapHelperProvider, bool>(
       (value) => !value.getIsSuggestedShortestPathsEmpty,
@@ -74,11 +78,15 @@ class _ForegroundWidgetContentRenderer extends StatelessWidget {
                 ],
               );
       case SystemState.peekAtRoute:
-        return _PreviewWindowForSuggestedPath();
+        return _PreviewWindowForSuggestedPath(
+          routeDetails: mapHelperProvider.getSuggestedShortestPaths,
+        );
       case SystemState.hideWidgets:
         return SizedBox.shrink();
       case SystemState.isCurrentlyTravelling:
         return _ActiveRouteTerminator();
+      case SystemState.confirmingLocationSelection:
+        return _SelectedLocationDecisionHelper();
     }
   }
 }
@@ -275,109 +283,277 @@ class _ToLocationSearchBar extends StatelessWidget {
   }
 }
 
-/// Holds 2 buttons for the user to try see the path in the map.
-/// It's intentional by design that the map cannot be interacted while in this mode
+/// When the user selects a path from the suggested paths display, the widgets
+/// that will show up will come from this.
+///
+/// Includes the go back, select route, walk details and total fare from transportation
+/// methods.
 class _PreviewWindowForSuggestedPath extends StatelessWidget {
+  final Map<String, dynamic> routeDetails;
+
+  const _PreviewWindowForSuggestedPath({super.key, required this.routeDetails});
+
   @override
   Widget build(BuildContext context) {
+    SystemVariablesProvider systemVariablesProvider = context
+        .read<SystemVariablesProvider>();
     return PopScope(
+      canPop:
+          systemVariablesProvider.appCurrentState != SystemState.peekAtRoute,
+      onPopInvokedWithResult: (didPop, result) async {
+        await Future.delayed(Duration(milliseconds: 20));
+        systemVariablesProvider.setAppCurrentState =
+            SystemState.showSuggestedRoutes;
+      },
       child: Stack(
         children: [
           Positioned(
-            top: MediaQuery.sizeOf(context).height * 0.75,
+            bottom: MediaQuery.sizeOf(context).height * 0.03125,
             left: MediaQuery.sizeOf(context).width * 0.125,
             right: MediaQuery.sizeOf(context).width * 0.125,
-            child: GestureDetector(
-              child: Container(
-                height: 200,
-                child: Column(
-                  children: [
-                    GestureDetector(
-                      onTap: () async {
-                        EasyDebounce.debounce(
-                          DebounceId.routeSelection.toString(),
-                          Duration(milliseconds: 40),
-                          () async {
-                            MapHelperProvider mapHelperProvider = context
-                                .read<MapHelperProvider>();
-                            context
-                                    .read<SystemVariablesProvider>()
-                                    .setAppCurrentState =
-                                SystemState.showSuggestedRoutes;
-                            // First, stop potential edge drawings and after 40 milliseconds,
-                            // there should be no follow-up drawings, making node deletion secure.
-                            mapHelperProvider.setStopDrawing = true;
-                            await Future.delayed(Duration(milliseconds: 40));
-                            mapHelperProvider.mapWidgetController
-                                .clearLayersAndSources();
-                            mapHelperProvider.setStopDrawing = false;
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.all(Radius.circular(5)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade700,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(5),
+                        topRight: Radius.circular(5),
+                      ),
+                    ),
+                  ),
+
+                  Container(color: Colors.black, height: 2),
+                  _RouteDetailsBuilder(),
+                  Container(
+                    width: double.infinity,
+                    color: Colors.black,
+                    height: 2,
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () async {
+                            EasyDebounce.debounce(
+                              DebounceId.routeSelection.toString(),
+                              Duration(milliseconds: 40),
+                              () async {
+                                MapHelperProvider mapHelperProvider = context
+                                    .read<MapHelperProvider>();
+                                context
+                                        .read<SystemVariablesProvider>()
+                                        .setAppCurrentState =
+                                    SystemState.showSuggestedRoutes;
+                                // First, stop potential edge drawings and after 40 milliseconds,
+                                // there should be no follow-up drawings, making node deletion secure.
+                                mapHelperProvider.setStopDrawing = true;
+                                await Future.delayed(
+                                  Duration(milliseconds: 40),
+                                );
+                                mapHelperProvider.mapWidgetController
+                                    .clearLayersAndSources();
+                                mapHelperProvider.setStopDrawing = false;
+                              },
+                            );
                           },
-                        );
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(
-                            30,
-                          ), // rounded, not circle
-                          color: Colors.grey.shade300, // perfect circle
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 8,
-                              offset: Offset(0, 4), // x, y offset
+                          child: Container(
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent,
+                              borderRadius: BorderRadius.only(
+                                bottomLeft: Radius.circular(5),
+                              ),
                             ),
-                          ],
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          "Go Back",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
+                            child: Center(
+                              child: Text(
+                                "Go back",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 20,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    SizedBox(height: 20),
-                    GestureDetector(
-                      onTap: () async {
-                        startTraveling(context);
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(
-                            30,
-                          ), // rounded, not circle
-                          color: Colors.grey.shade300, // perfect circle
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 8,
-                              offset: Offset(0, 4), // x, y offset
+                      Container(width: 2, color: Colors.black, height: 50),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            startTraveling(context);
+                          },
+                          child: Container(
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: Colors.greenAccent,
+                              borderRadius: BorderRadius.only(
+                                bottomRight: Radius.circular(5),
+                              ),
                             ),
-                          ],
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          "Select This Route",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
+                            child: Center(
+                              child: Text(
+                                "Select This Route",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 20,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Used by _PreviewWindowForSuggestedPath. Builds the Row() widgets to form
+/// the display
+class _RouteDetailsBuilder extends StatelessWidget {
+  const _RouteDetailsBuilder({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
+    List<(String, String, double)> routeDetails = buildTravelDetails(
+      mapHelperProvider.getSuggestedShortestPaths,
+      mapHelperProvider.getSelectedRouteId,
+    );
+    (double, double) fares = computeFareTotalForRoute(
+      mapHelperProvider.getSuggestedShortestPaths,
+      mapHelperProvider.getSelectedRouteId,
+    );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min, // don't force full height
+      children: [
+        for (final (i, (name, hexcolor, value)) in routeDetails.indexed) ...[
+          if (i > 0) Container(height: 2, color: Colors.grey.shade400),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Container(
+                  padding: EdgeInsets.all(5),
+                  child: Row(
+                    children: [
+                      (name == "Walk")
+                          ? Icon(
+                              Icons.directions_walk,
+                              color: hexToColor(hexcolor),
+                            )
+                          : ImageIcon(
+                              AssetImage('assets/img/jeepney-icon.png'),
+                              size: 24,
+                              color: hexToColor(hexcolor),
+                            ),
+                      SizedBox(width: 5),
+                      Flexible(
+                        child: Text(name, style: TextStyle(fontSize: 20)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  padding: EdgeInsets.all(5),
+                  child: Text(
+                    "${(value * 100).round() / 100}m",
+                    style: TextStyle(fontSize: 20),
+                    textAlign: TextAlign.right,
+                  ),
+                ),
+              ),
+              Container(color: Colors.grey.shade400, height: 2),
+            ],
+          ),
+        ],
+        Container(color: Colors.black, height: 2),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.all(5),
+                child: Row(
+                  children: [
+                    ImageIcon(
+                      AssetImage('assets/img/peso.png'),
+                      size: 24,
+                      color: Colors.black,
+                    ),
+                    SizedBox(width: 5),
+                    Flexible(
+                      child: Text("Fare", style: TextStyle(fontSize: 20)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.all(5),
+                child: Text(
+                  "${fares.$1} php",
+                  style: TextStyle(fontSize: 20),
+                  textAlign: TextAlign.right,
+                ),
+              ),
+            ),
+          ],
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.all(5),
+                child: Row(
+                  children: [
+                    ImageIcon(
+                      AssetImage('assets/img/peso.png'),
+                      size: 24,
+                      color: Colors.black,
+                    ),
+                    SizedBox(width: 5),
+                    Flexible(
+                      child: Text(
+                        "Fare (Discounted)",
+                        style: TextStyle(fontSize: 20),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-          ),
-        ],
-      ),
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.all(5),
+                child: Text(
+                  "${fares.$2} php",
+                  style: TextStyle(fontSize: 20),
+                  textAlign: TextAlign.right,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -504,6 +680,121 @@ class _ActiveRouteTerminator extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Loads buttons that the user can use to decide what to do with the selected location.
+/// The buttons will either set the source/destination values based on the long-pressed coordinates in the maplibre map.
+class _SelectedLocationDecisionHelper extends StatelessWidget {
+  const _SelectedLocationDecisionHelper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    SearchDetailsProvider searchDetailsProvider = context
+        .read<SearchDetailsProvider>();
+    SystemVariablesProvider systemVariablesProvider = context
+        .read<SystemVariablesProvider>();
+    MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
+
+    return Positioned(
+      bottom: MediaQuery.sizeOf(context).height * 0.03125,
+      left: MediaQuery.sizeOf(context).width * 0.125,
+      right: MediaQuery.sizeOf(context).width * 0.125,
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: () {
+              systemVariablesProvider.setAppCurrentState =
+                  SystemState.gatheringFromLoc;
+              mapHelperProvider.mapWidgetController.fullRemoveSourceLayer(
+                'source_selectedPoint',
+                'layer_selectedPoint',
+              );
+              LatLng longPressedLocation =
+                  searchDetailsProvider.getLongPressedLocation;
+              searchDetailsProvider.getFromLocTextController.text =
+                  "Selected From Map";
+              mapHelperProvider.setFromLocationDetails_withLatLng(
+                longPressedLocation.latitude,
+                longPressedLocation.longitude,
+              );
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.greenAccent,
+                boxShadow: [BoxShadow(blurRadius: 3, color: Colors.black)],
+              ),
+              height: 50,
+              child: Center(
+                child: Text(
+                  "Use this as your Source Location",
+                  style: TextStyle(fontSize: 20),
+                ),
+              ),
+            ),
+          ),
+          if (!mapHelperProvider.getIsFromLocationDetailsEmpty)
+            SizedBox(height: 15),
+          if (!mapHelperProvider.getIsFromLocationDetailsEmpty)
+            GestureDetector(
+              onTap: () {
+                // Standard functions for setting toLocDetails
+                systemVariablesProvider.setAppCurrentState =
+                    SystemState.gatheringFromLoc;
+                mapHelperProvider.mapWidgetController.fullRemoveSourceLayer(
+                  'source_selectedPoint',
+                  'layer_selectedPoint',
+                );
+                LatLng longPressedLocation =
+                    searchDetailsProvider.getLongPressedLocation;
+                searchDetailsProvider.getToLocTextController.text =
+                    "Selected From Map";
+                mapHelperProvider.setToLocationDetails_withLatLng(
+                  longPressedLocation.latitude,
+                  longPressedLocation.longitude,
+                );
+
+                systemVariablesProvider.setBackgroundWidgetVisibility = true;
+                startComputingForRoutes(context);
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.redAccent,
+                  boxShadow: [BoxShadow(blurRadius: 3, color: Colors.black)],
+                ),
+                height: 50,
+                child: Center(
+                  child: Text(
+                    "Use this as your Destination Location",
+                    style: TextStyle(fontSize: 20),
+                  ),
+                ),
+              ),
+            ),
+          SizedBox(height: 15),
+          GestureDetector(
+            onTap: () {
+              systemVariablesProvider.setAppCurrentState =
+                  SystemState.gatheringFromLoc;
+              mapHelperProvider.mapWidgetController.fullRemoveSourceLayer(
+                'source_selectedPoint',
+                'layer_selectedPoint',
+              );
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.grey,
+                boxShadow: [BoxShadow(blurRadius: 3, color: Colors.black)],
+              ),
+              height: 50,
+              child: Center(
+                child: Text("Go Back", style: TextStyle(fontSize: 20)),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -27,6 +27,8 @@ class MapHelperProvider extends ChangeNotifier {
   LatLng? _selectedFromLocationDetails;
   LatLng? _selectedToLocationDetails;
 
+  String _selectedRouteId = "route-0"; // Defaulting to the assumed first route
+
   /// Originally obtained in a json format. Paths may contain more than one shortest paths.
   Map<String, dynamic> _suggestedShortestPathsAStar = {};
 
@@ -38,12 +40,14 @@ class MapHelperProvider extends ChangeNotifier {
   // /////////////////////////////////////////////////////////////////////////////////////////////
 
   bool get getIsFromLocationDetailsEmpty =>
-      _selectedFromLocationDetails != null;
+      _selectedFromLocationDetails == null;
   bool get getIsToLocationDetailsEmpty => _selectedToLocationDetails != null;
 
   LatLng? get getSelectedFromLocationDetails => _selectedFromLocationDetails;
   LatLng? get getSelectedToLocationDetails => _selectedToLocationDetails;
   LatLng get getUserCurrentGeoLoc => _userCurrentGeoLoc;
+
+  String get getSelectedRouteId => _selectedRouteId;
 
   /// Uses Geolocator library to get user current position and extracts the lat lon values for later use
   Future<void> get getUserCurrentLocAndSaveToContext async {
@@ -88,13 +92,12 @@ class MapHelperProvider extends ChangeNotifier {
 
   /// Takes in a [NominatimPlace] object and only takes the latitude, longitude
   /// and name details
-  set setFromLocationDetails(NominatimPlace nomiDetails) {
-    _setFromLocationDetails(nomiDetails.lat, nomiDetails.lon);
-  }
-
-  set setToLocationDetails(NominatimPlace nomiDetails) {
-    _setToLocationDetails_withLatLng(nomiDetails.lat, nomiDetails.lon);
-  }
+  set setFromLocationDetails(NominatimPlace nomiDetails) =>
+      setFromLocationDetails_withLatLng(nomiDetails.lat, nomiDetails.lon);
+  set setToLocationDetails(NominatimPlace nomiDetails) =>
+      setToLocationDetails_withLatLng(nomiDetails.lat, nomiDetails.lon);
+  set setStopDrawing(bool value) => _stopDrawing = value;
+  set setSelectedRouteId(String value) => _selectedRouteId = value;
 
   /// To save the computed shortest paths to the provider for later use
   set setSuggestedShortestPaths(Map<String, dynamic> val) {
@@ -108,17 +111,14 @@ class MapHelperProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  set setStopDrawing(bool value) {
-    _stopDrawing = value;
-  }
-
   Future<void> fetchUserCurrentGeolocationAndSave() async {
     Position position = await GeolocatorPlatform.instance.getCurrentPosition();
     _userCurrentGeoLoc = LatLng(position.latitude, position.longitude);
+    mapWidgetController.flyToLoc(_userCurrentGeoLoc);
   }
 
   // ignore: non_constant_identifier_names
-  void _setToLocationDetails_withLatLng(double lat, double lon) {
+  void setToLocationDetails_withLatLng(double lat, double lon) {
     _selectedToLocationDetails = LatLng(lat, lon);
     notifyListeners();
   }
@@ -127,7 +127,7 @@ class MapHelperProvider extends ChangeNotifier {
   /// details are needed to perform app logic.
   ///
   /// FromLocation will be used alongside ToLocation to compute optimal route.
-  void _setFromLocationDetails(double lat, double lon) {
+  void setFromLocationDetails_withLatLng(double lat, double lon) {
     _selectedFromLocationDetails = LatLng(lat, lon);
     notifyListeners();
   }
@@ -145,7 +145,7 @@ class MapHelperProvider extends ChangeNotifier {
       await getUserCurrentLocAndSaveToContext;
     }
 
-    _setFromLocationDetails(
+    setFromLocationDetails_withLatLng(
       _userCurrentGeoLoc.latitude,
       _userCurrentGeoLoc.longitude,
     );

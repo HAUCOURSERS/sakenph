@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:sakenph/api/nominatim.dart';
 import 'package:sakenph/classes/nominatim_response.dart';
 import 'package:sakenph/features/background_widget/functions.dart';
+import 'package:sakenph/features/foreground_widget/functions.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
@@ -34,6 +35,7 @@ class BackgroundWidget extends StatelessWidget {
         .select<SystemVariablesProvider, Color>(
           (value) => value.backgroundWidgetColor,
         );
+
     return IgnorePointer(
       ignoring: !backgroundWidgetVisibility,
       child: AnimatedOpacity(
@@ -61,8 +63,8 @@ class BackgroundWidget extends StatelessWidget {
                 .read<SystemVariablesProvider>()
                 .backgroundWidgetVisibility,
             onPopInvokedWithResult: (didPop, result) {
-              print("Pop Trigger $didPop");
-              if (!didPop) {
+              //print("Pop Trigger $didPop");
+              if (!didPop && currentSystemState != SystemState.peekAtRoute) {
                 context
                         .read<SystemVariablesProvider>()
                         .setBackgroundWidgetVisibility =
@@ -114,6 +116,9 @@ class _BackgroundWidgetContentRenderer extends StatelessWidget {
         throw UnimplementedError(
           "The backend request failed. This state is not yet implemented.",
         );
+      case SystemState.confirmingLocationSelection:
+        child = _InteractionBlockerDuringDecisionMaking();
+        break;
     }
 
     return AnimatedSwitcher(
@@ -265,7 +270,7 @@ class _ViewForRequestingFromLocationState
     return Column(
       children: [
         SizedBox(height: 60),
-        if (context.read<MapHelperProvider>().getIsFromLocationDetailsEmpty)
+        if (!context.read<MapHelperProvider>().getIsFromLocationDetailsEmpty)
           SizedBox(height: 60),
         _UseCurrentLocationButton(),
         SizedBox(height: 10),
@@ -757,9 +762,12 @@ class _SuggestedPathWidgetTemplate extends StatelessWidget {
         .read<MapHelperProvider>()
         .getFilteredRouteByID(route_id);
     double travelTime = computeTravel(pathJSON, route_id);
+    MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
+    (double, double) fareRates = computeFareTotalForRoute(pathJSON, route_id);
 
     return GestureDetector(
       onTap: () async {
+        mapHelperProvider.setSelectedRouteId = route_id;
         EasyDebounce.debounce(
           DebounceId.routeSelection.toString(),
           Duration(milliseconds: 50),
@@ -820,7 +828,6 @@ class _SuggestedPathWidgetTemplate extends StatelessWidget {
                 color: const Color.fromARGB(255, 217, 220, 223),
                 borderRadius: BorderRadius.all(Radius.circular(16)),
               ),
-              height: 120,
               width: MediaQuery.sizeOf(context).width,
               child: Column(
                 children: [
@@ -870,6 +877,42 @@ class _SuggestedPathWidgetTemplate extends StatelessWidget {
                       ],
                     ),
                   ),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: "Fare Amount: ",
+                          style: TextStyle(fontSize: 20),
+                        ),
+                        TextSpan(
+                          text: "${fareRates.$1} php",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: "Fare Amount (Discounted): ",
+                          style: TextStyle(fontSize: 20),
+                        ),
+                        TextSpan(
+                          text: "${fareRates.$2} php",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 10),
                 ],
               ),
             ),
@@ -877,5 +920,48 @@ class _SuggestedPathWidgetTemplate extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// While the app's state is in [SystemState.confirmingLocationSelection], it will block
+/// gesture detector hits of MapLibre widget to force the user to chose between
+/// the presented buttons.
+class _InteractionBlockerDuringDecisionMaking extends StatelessWidget {
+  const _InteractionBlockerDuringDecisionMaking({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    /*
+    SystemVariablesProvider systemVariablesProvider = context
+        .read<SystemVariablesProvider>();
+    return GestureDetector(
+      onTap: () {
+        print("its absorbing hitrs");
+        if (systemVariablesProvider.appCurrentState ==
+            SystemState.confirmingLocationSelection) {
+          systemVariablesProvider.setAppCurrentState =
+              SystemState.gatheringFromLoc;
+        }
+      },
+      child: PopScope(
+        canPop:
+            systemVariablesProvider.appCurrentState !=
+            SystemState.confirmingLocationSelection,
+        onPopInvokedWithResult: (didPop, result) {
+          if (systemVariablesProvider.appCurrentState ==
+              SystemState.confirmingLocationSelection) {
+            systemVariablesProvider.setAppCurrentState =
+                SystemState.gatheringFromLoc;
+          }
+        },
+        child: Container(
+          color: Colors.amber,
+          width: MediaQuery.sizeOf(context).width,
+          height: MediaQuery.sizeOf(context).height,
+        ),
+      ),
+    );
+    */
+    return Placeholder();
   }
 }
