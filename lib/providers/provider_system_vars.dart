@@ -44,7 +44,8 @@ class SystemVariablesProvider with ChangeNotifier {
 
     // This system state needs the background widget to be transparent
     // to show the path view
-    if (val == SystemState.peekAtRoute) {
+    if (val == SystemState.peekAtRoute ||
+        val == SystemState.confirmingLocationSelection) {
       _setBackgroundWidgetColor = Colors.transparent;
     } else if (val == SystemState.showSuggestedRoutes) {
       _setBackgroundWidgetColor = Color.fromARGB(85, 255, 255, 255);

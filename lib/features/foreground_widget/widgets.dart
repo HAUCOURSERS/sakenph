@@ -697,104 +697,138 @@ class _SelectedLocationDecisionHelper extends StatelessWidget {
         .read<SystemVariablesProvider>();
     MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
 
-    return Positioned(
-      bottom: MediaQuery.sizeOf(context).height * 0.03125,
-      left: MediaQuery.sizeOf(context).width * 0.125,
-      right: MediaQuery.sizeOf(context).width * 0.125,
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: () {
+    return Stack(
+      children: [
+        GestureDetector(
+          onTap: () {
+            if (systemVariablesProvider.appCurrentState ==
+                SystemState.confirmingLocationSelection) {
               systemVariablesProvider.setAppCurrentState =
                   SystemState.gatheringFromLoc;
-              mapHelperProvider.mapWidgetController.fullRemoveSourceLayer(
-                'source_selectedPoint',
-                'layer_selectedPoint',
-              );
-              LatLng longPressedLocation =
-                  searchDetailsProvider.getLongPressedLocation;
-              searchDetailsProvider.getFromLocTextController.text =
-                  "Selected From Map";
-              mapHelperProvider.setFromLocationDetails_withLatLng(
-                longPressedLocation.latitude,
-                longPressedLocation.longitude,
-              );
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.greenAccent,
-                boxShadow: [BoxShadow(blurRadius: 3, color: Colors.black)],
-              ),
-              height: 50,
-              child: Center(
-                child: Text(
-                  "Use this as your Source Location",
-                  style: TextStyle(fontSize: 20),
-                ),
-              ),
-            ),
-          ),
-          if (!mapHelperProvider.getIsFromLocationDetailsEmpty)
-            SizedBox(height: 15),
-          if (!mapHelperProvider.getIsFromLocationDetailsEmpty)
-            GestureDetector(
-              onTap: () {
-                // Standard functions for setting toLocDetails
+            }
+          },
+          child: PopScope(
+            canPop:
+                systemVariablesProvider.appCurrentState !=
+                SystemState.confirmingLocationSelection,
+            onPopInvokedWithResult: (didPop, result) {
+              if (systemVariablesProvider.appCurrentState ==
+                  SystemState.confirmingLocationSelection) {
+                systemVariablesProvider.setBackgroundWidgetVisibility = false;
                 systemVariablesProvider.setAppCurrentState =
                     SystemState.gatheringFromLoc;
-                mapHelperProvider.mapWidgetController.fullRemoveSourceLayer(
-                  'source_selectedPoint',
-                  'layer_selectedPoint',
-                );
-                LatLng longPressedLocation =
-                    searchDetailsProvider.getLongPressedLocation;
-                searchDetailsProvider.getToLocTextController.text =
-                    "Selected From Map";
-                mapHelperProvider.setToLocationDetails_withLatLng(
-                  longPressedLocation.latitude,
-                  longPressedLocation.longitude,
-                );
-
-                systemVariablesProvider.setBackgroundWidgetVisibility = true;
-                startComputingForRoutes(context);
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.redAccent,
-                  boxShadow: [BoxShadow(blurRadius: 3, color: Colors.black)],
-                ),
-                height: 50,
-                child: Center(
-                  child: Text(
-                    "Use this as your Destination Location",
-                    style: TextStyle(fontSize: 20),
+              }
+            },
+            child: Container(
+              color: Colors.transparent,
+              width: MediaQuery.sizeOf(context).width,
+              height: MediaQuery.sizeOf(context).height,
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: MediaQuery.sizeOf(context).height * 0.03125,
+          left: MediaQuery.sizeOf(context).width * 0.125,
+          right: MediaQuery.sizeOf(context).width * 0.125,
+          child: Column(
+            children: [
+              GestureDetector(
+                onTap: () {
+                  systemVariablesProvider.setAppCurrentState =
+                      SystemState.gatheringFromLoc;
+                  mapHelperProvider.mapWidgetController.fullRemoveSourceLayer(
+                    'source_selectedPoint',
+                    'layer_selectedPoint',
+                  );
+                  LatLng longPressedLocation =
+                      searchDetailsProvider.getLongPressedLocation;
+                  searchDetailsProvider.getFromLocTextController.text =
+                      "Selected From Map";
+                  mapHelperProvider.setFromLocationDetails_withLatLng(
+                    longPressedLocation.latitude,
+                    longPressedLocation.longitude,
+                  );
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.greenAccent,
+                    boxShadow: [BoxShadow(blurRadius: 3, color: Colors.black)],
+                  ),
+                  height: 50,
+                  child: Center(
+                    child: Text(
+                      "Use this as your Source Location",
+                      style: TextStyle(fontSize: 20),
+                    ),
                   ),
                 ),
               ),
-            ),
-          SizedBox(height: 15),
-          GestureDetector(
-            onTap: () {
-              systemVariablesProvider.setAppCurrentState =
-                  SystemState.gatheringFromLoc;
-              mapHelperProvider.mapWidgetController.fullRemoveSourceLayer(
-                'source_selectedPoint',
-                'layer_selectedPoint',
-              );
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.grey,
-                boxShadow: [BoxShadow(blurRadius: 3, color: Colors.black)],
+              if (!mapHelperProvider.getIsFromLocationDetailsEmpty)
+                SizedBox(height: 15),
+              if (!mapHelperProvider.getIsFromLocationDetailsEmpty)
+                GestureDetector(
+                  onTap: () {
+                    // Standard functions for setting toLocDetails
+                    systemVariablesProvider.setAppCurrentState =
+                        SystemState.gatheringFromLoc;
+                    mapHelperProvider.mapWidgetController.fullRemoveSourceLayer(
+                      'source_selectedPoint',
+                      'layer_selectedPoint',
+                    );
+                    LatLng longPressedLocation =
+                        searchDetailsProvider.getLongPressedLocation;
+                    searchDetailsProvider.getToLocTextController.text =
+                        "Selected From Map";
+                    mapHelperProvider.setToLocationDetails_withLatLng(
+                      longPressedLocation.latitude,
+                      longPressedLocation.longitude,
+                    );
+
+                    systemVariablesProvider.setBackgroundWidgetVisibility =
+                        true;
+                    startComputingForRoutes(context);
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent,
+                      boxShadow: [
+                        BoxShadow(blurRadius: 3, color: Colors.black),
+                      ],
+                    ),
+                    height: 50,
+                    child: Center(
+                      child: Text(
+                        "Use this as your Destination Location",
+                        style: TextStyle(fontSize: 20),
+                      ),
+                    ),
+                  ),
+                ),
+              SizedBox(height: 15),
+              GestureDetector(
+                onTap: () {
+                  systemVariablesProvider.setAppCurrentState =
+                      SystemState.gatheringFromLoc;
+                  mapHelperProvider.mapWidgetController.fullRemoveSourceLayer(
+                    'source_selectedPoint',
+                    'layer_selectedPoint',
+                  );
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey,
+                    boxShadow: [BoxShadow(blurRadius: 3, color: Colors.black)],
+                  ),
+                  height: 50,
+                  child: Center(
+                    child: Text("Go Back", style: TextStyle(fontSize: 20)),
+                  ),
+                ),
               ),
-              height: 50,
-              child: Center(
-                child: Text("Go Back", style: TextStyle(fontSize: 20)),
-              ),
-            ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

@@ -110,15 +110,13 @@ class _BackgroundWidgetContentRenderer extends StatelessWidget {
       case SystemState.peekAtRoute:
       case SystemState.hideWidgets:
       case SystemState.isCurrentlyTravelling:
+      case SystemState.confirmingLocationSelection:
         child = SizedBox.shrink();
         break;
       case SystemState.backendRequestFail:
         throw UnimplementedError(
           "The backend request failed. This state is not yet implemented.",
         );
-      case SystemState.confirmingLocationSelection:
-        child = _InteractionBlockerDuringDecisionMaking();
-        break;
     }
 
     return AnimatedSwitcher(
@@ -610,50 +608,47 @@ class _DisplaySuggestedPaths extends StatelessWidget {
     // Meant to absorb onTap hits to prevent closure due to the main background
     // widget's nature
     return SizedBox(
-      child: GestureDetector(
-        onTap: () {},
-        child: Stack(
-          children: [
-            Positioned(
-              top: 200,
-              left: MediaQuery.sizeOf(context).width * 0.0625,
-              right: MediaQuery.sizeOf(context).width * 0.0625,
-              child: Container(
-                color: Colors.transparent,
-                alignment: Alignment.center,
-                width: MediaQuery.sizeOf(context).width,
-                height: MediaQuery.sizeOf(context).height,
-                child: Center(child: _SuggestedPathWidgetListBuilder()),
+      child: Stack(
+        children: [
+          Positioned(
+            top: 200,
+            left: MediaQuery.sizeOf(context).width * 0.0625,
+            right: MediaQuery.sizeOf(context).width * 0.0625,
+            child: Container(
+              color: Colors.transparent,
+              alignment: Alignment.center,
+              width: MediaQuery.sizeOf(context).width,
+              height: MediaQuery.sizeOf(context).height,
+              child: Center(child: _SuggestedPathWidgetListBuilder()),
+            ),
+          ),
+          Positioned(
+            top: 120,
+            left: MediaQuery.sizeOf(context).width * 0.125,
+            right: MediaQuery.sizeOf(context).width * 0.125,
+            child: Container(
+              padding: EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(color: Colors.black, width: 1),
+                // black outline
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 6,
+                    offset: Offset(0, 3), // shadow goes downward
+                  ),
+                ],
+              ),
+              child: Text(
+                "Tap to view path",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.black, fontSize: 30),
               ),
             ),
-            Positioned(
-              top: 120,
-              left: MediaQuery.sizeOf(context).width * 0.125,
-              right: MediaQuery.sizeOf(context).width * 0.125,
-              child: Container(
-                padding: EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(5),
-                  border: Border.all(color: Colors.black, width: 1),
-                  // black outline
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 6,
-                      offset: Offset(0, 3), // shadow goes downward
-                    ),
-                  ],
-                ),
-                child: Text(
-                  "Tap to view path",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.black, fontSize: 30),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -931,37 +926,16 @@ class _InteractionBlockerDuringDecisionMaking extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    /*
     SystemVariablesProvider systemVariablesProvider = context
         .read<SystemVariablesProvider>();
     return GestureDetector(
       onTap: () {
-        print("its absorbing hitrs");
         if (systemVariablesProvider.appCurrentState ==
             SystemState.confirmingLocationSelection) {
           systemVariablesProvider.setAppCurrentState =
               SystemState.gatheringFromLoc;
         }
       },
-      child: PopScope(
-        canPop:
-            systemVariablesProvider.appCurrentState !=
-            SystemState.confirmingLocationSelection,
-        onPopInvokedWithResult: (didPop, result) {
-          if (systemVariablesProvider.appCurrentState ==
-              SystemState.confirmingLocationSelection) {
-            systemVariablesProvider.setAppCurrentState =
-                SystemState.gatheringFromLoc;
-          }
-        },
-        child: Container(
-          color: Colors.amber,
-          width: MediaQuery.sizeOf(context).width,
-          height: MediaQuery.sizeOf(context).height,
-        ),
-      ),
     );
-    */
-    return Placeholder();
   }
 }
