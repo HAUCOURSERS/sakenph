@@ -456,7 +456,12 @@ class _RouteDetailsBuilder extends StatelessWidget {
                               Icons.directions_walk,
                               color: hexToColor(hexcolor),
                             )
-                          : ImageIcon(
+                          : (name == "Tricycle") 
+                            ? ImageIcon(
+                              AssetImage('assets/img/tricycle-icon.png'),
+                              size: 24,
+                              color: hexToColor(hexcolor),
+                            ) : ImageIcon(
                               AssetImage('assets/img/jeepney-icon.png'),
                               size: 24,
                               color: hexToColor(hexcolor),
