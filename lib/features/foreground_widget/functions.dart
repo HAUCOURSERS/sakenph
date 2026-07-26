@@ -7,12 +7,10 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions.dart';
-
 import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_system_tasks.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
-import 'dart:math';
 
 /// Currently has no uses
 Future<String> reverseGeocode({
@@ -153,6 +151,13 @@ List<(String, String, double)> buildTravelDetails(
         routeColor,
         (distanceInKM * 1000),
       ));
+    } else if (modeType == "trike") {
+      returnDetails.add((
+        // TODO: Add TODA Name here (For backend)
+        "Tricycle",
+        routeColor,
+        (distanceInKM * 1000)
+        ));
     }
   }
 
