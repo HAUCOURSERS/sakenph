@@ -752,7 +752,6 @@ class _ActiveRouteTerminator extends StatelessWidget {
   }
 }
 
-<<<<<<< HEAD
 /// Loads buttons that the user can use to decide what to do with the selected location.
 /// The buttons will either set the source/destination values based on the long-pressed coordinates in the maplibre map.
 class _SelectedLocationDecisionHelper extends StatelessWidget {
@@ -895,7 +894,12 @@ class _SelectedLocationDecisionHelper extends StatelessWidget {
                 ),
               ),
             ],
-=======
+          ),
+        ),
+      ],
+    );
+  }
+}
 /// A floating button that can be dragged around the screen.
 /// When pressed, it opens a panel that shows the list of jeepney routes and their visibility status on the map.
 class JeepneyRouteFloatingControl extends StatefulWidget {
@@ -988,15 +992,12 @@ class _JeepneyRouteFloatingControlState
                 ),
               ),
             ),
->>>>>>> origin/temp-old-version
           ),
         ),
       ],
     );
   }
 }
-<<<<<<< HEAD
-=======
 
 /// A panel that displays a list of jeepney routes with checkboxes to toggle their visibility on the map.
 class _JeepneyRouteDropdownPanel extends StatelessWidget {
@@ -1137,4 +1138,3 @@ class _JeepneyRouteDropdownPanel extends StatelessWidget {
     );
   }
 }
->>>>>>> origin/temp-old-version

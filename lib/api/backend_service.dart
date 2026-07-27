@@ -29,7 +29,6 @@ Future<Map<String, dynamic>> queryForShortestPath(
       'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}&algo=astar&debug=true',
     );
 
-<<<<<<< HEAD
     final response = await http.get(
       Uri.parse(
         // local backend
@@ -39,15 +38,6 @@ Future<Map<String, dynamic>> queryForShortestPath(
         //'${Env.API_ENDPOINT_LINK}k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
       ),
     );
-=======
-      // local backend only use when updating the backend service
-      //'http://10.0.2.2:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
-      
-      // AWS EC2 
-      'http://ec2-18.142.233.77.ap-southeast-1.compute.amazonaws.com:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
-    ),
-  );
->>>>>>> origin/temp-old-version
 
     if (response.statusCode == 200) {
       print("[TEMP] Recieved backend response");

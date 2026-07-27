@@ -31,15 +31,12 @@ class MapHelperProvider extends ChangeNotifier {
   LatLng? _selectedFromLocationDetails;
   LatLng? _selectedToLocationDetails;
 
-<<<<<<< HEAD
   String _selectedRouteId = "route-0"; // Defaulting to the assumed first route
-=======
   /// Added to fetch the jeepney routes from the backend.
   /// List of all jeepney routes fetched from the backend. This is used for toggling the visibility of jeepney routes on the map.
   List<JeepneyRoute> _jeepneyRoutes = [];
   Set<String> _visibleJeepneyRouteIds = {};
   bool _isLoadingJeepneyRoutes = false;
->>>>>>> origin/temp-old-version
 
   /// Originally obtained in a json format. Paths may contain more than one shortest paths.
   Map<String, dynamic> _suggestedShortestPathsAStar = {};
@@ -59,15 +56,12 @@ class MapHelperProvider extends ChangeNotifier {
   LatLng? get getSelectedToLocationDetails => _selectedToLocationDetails;
   LatLng get getUserCurrentGeoLoc => _userCurrentGeoLoc;
 
-<<<<<<< HEAD
   String get getSelectedRouteId => _selectedRouteId;
-=======
   /// Added to fetch the jeepney routes from the backend.
   /// Returns a list of all jeepney routes fetched from the backend. This is used for toggling the visibility of jeepney routes on the map.
   List<JeepneyRoute> get jeepneyRoutes => _jeepneyRoutes;
   Set<String> get visibleJeepneyRouteIds => Set.unmodifiable(_visibleJeepneyRouteIds);
   bool get isLoadingJeepneyRoutes => _isLoadingJeepneyRoutes;
->>>>>>> origin/temp-old-version
 
   /// Uses Geolocator library to get user current position and extracts the lat lon values for later use
   Future<void> get getUserCurrentLocAndSaveToContext async {

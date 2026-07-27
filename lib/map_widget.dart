@@ -75,17 +75,14 @@ class MapWidgetController {
   Future<void> removeMarker(String sourceId, String layerId) =>
       _state?._removeMarker(sourceId, layerId) ?? Future.value();
 
-<<<<<<< HEAD
   Future<void> fullRemoveSourceLayer(String sourceId, String layerId) =>
       _state?._fullRemoveSourceLayer(sourceId, layerId) ?? Future.value();
-=======
 /// Added to fetch the jeepney routes from the backend.
   Future<void> showJeepneyRoute(JeepneyRoute route) =>
     _state?.showJeepneyRoute(route) ?? Future.value();
 
   Future<void> hideJeepneyRoute(String routeId) =>
       _state?.hideJeepneyRoute(routeId) ?? Future.value();    
->>>>>>> origin/temp-old-version
 }
 
 class _MapWidget extends State<MapWidget> {
