@@ -90,6 +90,9 @@ double computeTravel(Map<String, dynamic> routeData, String route_id) {
     } else if (modeType == "jeep") {
       double travelDuration = (distanceInKM / (14 / 3600));
       travelTimeInSeconds += travelDuration;
+    } else if (modeType == "trike") {
+      double travelDuration = (distanceInKM / (23 / 3600));
+      travelTimeInSeconds += travelDuration;
     }
   }
 
@@ -158,7 +161,7 @@ class _LinePainter extends CustomPainter {
       String hexColor = entry[2];
       Color color = Color(int.parse(hexColor.replaceAll('#', 'FF'), radix: 16));
 
-      if (routeType == "jeep") {
+      if (routeType == "jeep" || routeType == "trike") {
         canvas.drawLine(
           Offset(currentPlaceToDraw, size.height / 2),
           Offset(

@@ -297,6 +297,7 @@ class _PreviewWindowForSuggestedPath extends StatelessWidget {
   Widget build(BuildContext context) {
     SystemVariablesProvider systemVariablesProvider = context
         .read<SystemVariablesProvider>();
+    MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
     return PopScope(
       canPop:
           systemVariablesProvider.appCurrentState != SystemState.peekAtRoute,
@@ -304,6 +305,12 @@ class _PreviewWindowForSuggestedPath extends StatelessWidget {
         await Future.delayed(Duration(milliseconds: 20));
         systemVariablesProvider.setAppCurrentState =
             SystemState.showSuggestedRoutes;
+        // First, stop potential edge drawings and after 40 milliseconds,
+        // there should be no follow-up drawings, making node deletion secure.
+        mapHelperProvider.setStopDrawing = true;
+        await Future.delayed(Duration(milliseconds: 40));
+        mapHelperProvider.mapWidgetController.clearLayersAndSources();
+        mapHelperProvider.setStopDrawing = false;
       },
       child: Stack(
         children: [
@@ -426,6 +433,11 @@ class _PreviewWindowForSuggestedPath extends StatelessWidget {
 class _RouteDetailsBuilder extends StatelessWidget {
   const _RouteDetailsBuilder({super.key});
 
+  // Cap the visible list height — beyond this it scrolls.
+  static const double _maxListHeight = 260.0;
+  // Roughly how tall one row is, used to decide whether scrolling/fade is even needed.
+  static const double _approxRowHeight = 44.0;
+
   @override
   Widget build(BuildContext context) {
     MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
@@ -438,8 +450,11 @@ class _RouteDetailsBuilder extends StatelessWidget {
       mapHelperProvider.getSelectedRouteId,
     );
 
-    return Column(
-      mainAxisSize: MainAxisSize.min, // don't force full height
+    final bool needsScroll =
+        (routeDetails.length * _approxRowHeight) > _maxListHeight;
+
+    Widget routeList = Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         for (final (i, (name, hexcolor, value)) in routeDetails.indexed) ...[
           if (i > 0) Container(height: 2, color: Colors.grey.shade400),
@@ -456,12 +471,13 @@ class _RouteDetailsBuilder extends StatelessWidget {
                               Icons.directions_walk,
                               color: hexToColor(hexcolor),
                             )
-                          : (name == "Tricycle") 
-                            ? ImageIcon(
+                          : (name == "Tricycle")
+                          ? ImageIcon(
                               AssetImage('assets/img/tricycle-icon.png'),
                               size: 24,
                               color: hexToColor(hexcolor),
-                            ) : ImageIcon(
+                            )
+                          : ImageIcon(
                               AssetImage('assets/img/jeepney-icon.png'),
                               size: 24,
                               color: hexToColor(hexcolor),
@@ -484,10 +500,39 @@ class _RouteDetailsBuilder extends StatelessWidget {
                   ),
                 ),
               ),
-              Container(color: Colors.grey.shade400, height: 2),
+              Container(color: Colors.grey.shade900, height: 2),
             ],
           ),
         ],
+      ],
+    );
+
+    if (needsScroll) {
+      routeList = ShaderMask(
+        shaderCallback: (Rect bounds) {
+          return const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.black, Colors.black, Colors.transparent],
+            stops: [0.0, 0.85, 1.0],
+          ).createShader(bounds);
+        },
+        blendMode: BlendMode.dstIn,
+        child: Scrollbar(
+          thumbVisibility: true,
+          child: SingleChildScrollView(child: routeList),
+        ),
+      );
+      routeList = ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: _maxListHeight),
+        child: routeList,
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min, // don't force full height
+      children: [
+        routeList,
         Container(color: Colors.black, height: 2),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -716,7 +761,7 @@ class _SelectedLocationDecisionHelper extends StatelessWidget {
             canPop:
                 systemVariablesProvider.appCurrentState !=
                 SystemState.confirmingLocationSelection,
-            onPopInvokedWithResult: (didPop, result) {
+            onPopInvokedWithResult: (didPop, result) async {
               if (systemVariablesProvider.appCurrentState ==
                   SystemState.confirmingLocationSelection) {
                 systemVariablesProvider.setBackgroundWidgetVisibility = false;
