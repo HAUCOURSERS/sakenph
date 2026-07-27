@@ -27,10 +27,10 @@ Future<Map<String, dynamic>> queryForShortestPath(
       //'https://sakenph-backend.onrender.com/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
 
       // local backend only use when updating the backend service
-      'http://10.0.2.2:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
+      //'http://10.0.2.2:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
       
       // AWS EC2 
-      //'http://ec2-47-129-217-58.ap-southeast-1.compute.amazonaws.com:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
+      'http://ec2-18.142.233.77.ap-southeast-1.compute.amazonaws.com:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
     ),
   );
 
@@ -53,7 +53,7 @@ Future<Map<String, dynamic>> queryForShortestPath(
 // Fetches jeepney routes from the backend service and returns a list of JeepneyRoute objects.
 Future<List<JeepneyRoute>> fetchJeepRoutes() async {
   final response = await http.get(
-    Uri.parse('http://10.0.2.2:8000/jeep_routes'),       // local backend service link for ui toggle
+    Uri.parse('http://18.142.233.77:8000/jeep_routes'),       // local backend service link for ui toggle
   );
 
   if (response.statusCode != 200) {
