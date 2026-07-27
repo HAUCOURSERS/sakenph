@@ -25,6 +25,8 @@ class _HomePage extends State<HomePage> {
     super.initState();
     json = fetchData();
     context.read<MapHelperProvider>().fetchUserCurrentGeolocationAndSave();
+    context.read<MapHelperProvider>().loadJeepneyRoutes();
+    
     context.read<SystemTasksProvder>().mountProviders(context);
   }
 

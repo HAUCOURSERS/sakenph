@@ -7,6 +7,10 @@ import 'package:sakenph/classes/nominatim_response.dart';
 
 import 'package:sakenph/map_widget.dart';
 
+/// Added to import the backend service to use its functions for querying shortest paths and fetching jeepney routes.
+import 'package:sakenph/api/backend_service.dart';
+import 'package:sakenph/classes/jeepney_route.dart';
+
 /// Provider that's useful for handling information dedicated to the Maplibre map.
 /// Saves values/details that are needed to perform map operations
 class MapHelperProvider extends ChangeNotifier {
@@ -27,7 +31,15 @@ class MapHelperProvider extends ChangeNotifier {
   LatLng? _selectedFromLocationDetails;
   LatLng? _selectedToLocationDetails;
 
+<<<<<<< HEAD
   String _selectedRouteId = "route-0"; // Defaulting to the assumed first route
+=======
+  /// Added to fetch the jeepney routes from the backend.
+  /// List of all jeepney routes fetched from the backend. This is used for toggling the visibility of jeepney routes on the map.
+  List<JeepneyRoute> _jeepneyRoutes = [];
+  Set<String> _visibleJeepneyRouteIds = {};
+  bool _isLoadingJeepneyRoutes = false;
+>>>>>>> origin/temp-old-version
 
   /// Originally obtained in a json format. Paths may contain more than one shortest paths.
   Map<String, dynamic> _suggestedShortestPathsAStar = {};
@@ -47,7 +59,15 @@ class MapHelperProvider extends ChangeNotifier {
   LatLng? get getSelectedToLocationDetails => _selectedToLocationDetails;
   LatLng get getUserCurrentGeoLoc => _userCurrentGeoLoc;
 
+<<<<<<< HEAD
   String get getSelectedRouteId => _selectedRouteId;
+=======
+  /// Added to fetch the jeepney routes from the backend.
+  /// Returns a list of all jeepney routes fetched from the backend. This is used for toggling the visibility of jeepney routes on the map.
+  List<JeepneyRoute> get jeepneyRoutes => _jeepneyRoutes;
+  Set<String> get visibleJeepneyRouteIds => Set.unmodifiable(_visibleJeepneyRouteIds);
+  bool get isLoadingJeepneyRoutes => _isLoadingJeepneyRoutes;
+>>>>>>> origin/temp-old-version
 
   /// Uses Geolocator library to get user current position and extracts the lat lon values for later use
   Future<void> get getUserCurrentLocAndSaveToContext async {
@@ -55,6 +75,62 @@ class MapHelperProvider extends ChangeNotifier {
       locationSettings: LocationSettings(accuracy: LocationAccuracy.best),
     );
     _userCurrentGeoLoc = LatLng(position.latitude, position.longitude);
+  }
+
+  /// Added for loading jeepney routes from the backend.
+  Future<void> loadJeepneyRoutes() async {
+    if (_jeepneyRoutes.isNotEmpty || _isLoadingJeepneyRoutes) return;
+    
+    _isLoadingJeepneyRoutes = true;
+    notifyListeners();
+
+    _jeepneyRoutes = await fetchJeepRoutes();
+
+    _isLoadingJeepneyRoutes = false;
+    notifyListeners();
+  }
+
+  /// Shows or hides one jeepney route on the map.
+  Future<void> toggleJeepneyRoute(JeepneyRoute route) async {
+    final updatedVisibleIds = Set<String>.from(_visibleJeepneyRouteIds);
+
+    if (updatedVisibleIds.contains(route.id)) {
+      await mapWidgetController.hideJeepneyRoute(route.id);
+      updatedVisibleIds.remove(route.id);
+    } else {
+      await mapWidgetController.showJeepneyRoute(route);
+      updatedVisibleIds.add(route.id);
+    }
+
+    _visibleJeepneyRouteIds = updatedVisibleIds;
+    notifyListeners();
+  }
+
+  /// Shows all jeepney routes on the map.
+  Future<void> showAllJeepneyRoutes() async {
+    await loadJeepneyRoutes();
+
+    final updatedVisibleIds = Set<String>.from(_visibleJeepneyRouteIds);
+
+    for (final route in _jeepneyRoutes) {
+      if (!updatedVisibleIds.contains(route.id)) {
+        await mapWidgetController.showJeepneyRoute(route);
+        updatedVisibleIds.add(route.id);
+      }
+    }
+
+    _visibleJeepneyRouteIds = updatedVisibleIds;
+    notifyListeners();
+  }
+
+  /// Hides all jeepney routes from the map.
+  Future<void> hideAllJeepneyRoutes() async {
+    for (final routeId in _visibleJeepneyRouteIds.toList()) {
+      await mapWidgetController.hideJeepneyRoute(routeId);
+    }
+
+    _visibleJeepneyRouteIds = {};
+    notifyListeners();
   }
 
   /// Data is inserted usually by functions in backend_service.dart

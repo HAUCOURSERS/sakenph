@@ -17,6 +17,9 @@ import 'dart:math' as Math;
 
 import '../../providers/provider_map_helper.dart';
 
+/// Added to import the backend service to use its functions for querying shortest paths and fetching jeepney routes.
+import 'package:sakenph/classes/jeepney_route.dart';
+
 /// The main widget for the Foreground. Any widgets that are needed to be displayed
 /// at the top of the main widget's stack is written here.
 class ForegroundWidget extends StatefulWidget {
@@ -26,11 +29,26 @@ class ForegroundWidget extends StatefulWidget {
   State<ForegroundWidget> createState() => _ForegroundWidgetState();
 }
 
+// class _ForegroundWidgetState extends State<ForegroundWidget> {
+//   @override
+//   Widget build(BuildContext context) {
+//     return SafeArea(
+//       child: Stack(children: [_ForegroundWidgetContentRenderer()]),
+//     );
+//   }
+// }
+
+// Added to import the backend service to use its functions for querying shortest paths and fetching jeepney routes.
 class _ForegroundWidgetState extends State<ForegroundWidget> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Stack(children: [_ForegroundWidgetContentRenderer()]),
+      child: Stack(
+        children: [
+          _ForegroundWidgetContentRenderer(),
+          JeepneyRouteFloatingControl(),
+        ],
+      ),
     );
   }
 }
@@ -734,6 +752,7 @@ class _ActiveRouteTerminator extends StatelessWidget {
   }
 }
 
+<<<<<<< HEAD
 /// Loads buttons that the user can use to decide what to do with the selected location.
 /// The buttons will either set the source/destination values based on the long-pressed coordinates in the maplibre map.
 class _SelectedLocationDecisionHelper extends StatelessWidget {
@@ -876,9 +895,246 @@ class _SelectedLocationDecisionHelper extends StatelessWidget {
                 ),
               ),
             ],
+=======
+/// A floating button that can be dragged around the screen.
+/// When pressed, it opens a panel that shows the list of jeepney routes and their visibility status on the map.
+class JeepneyRouteFloatingControl extends StatefulWidget {
+  const JeepneyRouteFloatingControl({super.key});
+
+  @override
+  State<JeepneyRouteFloatingControl> createState() =>
+      _JeepneyRouteFloatingControlState();
+}
+
+class _JeepneyRouteFloatingControlState
+    extends State<JeepneyRouteFloatingControl> {
+  bool _isOpen = false;
+  Offset _position = const Offset(0, 120);
+
+  @override
+  Widget build(BuildContext context) {
+    final routes = context.select<MapHelperProvider, List<JeepneyRoute>>(
+      (provider) => provider.jeepneyRoutes,
+    );
+
+    final visibleIds = context.select<MapHelperProvider, Set<String>>(
+      (provider) => provider.visibleJeepneyRouteIds,
+    );
+
+    final isLoading = context.select<MapHelperProvider, bool>(
+      (provider) => provider.isLoadingJeepneyRoutes,
+    );
+
+  final screenSize = MediaQuery.sizeOf(context);
+  final bottomSafeArea = MediaQuery.paddingOf(context).bottom;
+  const buttonSize = 54.0;
+  const panelWidth = 280.0;
+
+  final defaultX = screenSize.width - buttonSize - 16;
+  final currentX = _position.dx == 0 ? defaultX : _position.dx;
+  final currentY = _position.dy;
+
+  final clampedX = currentX.clamp(8.0, screenSize.width - buttonSize - 8);
+  final clampedY = currentY.clamp(
+    90.0,
+    screenSize.height - buttonSize - bottomSafeArea - 100, 
+    // 100 is a buffer to avoid overlapping with the bottom navigation bar
+  );
+
+    final panelLeft = (clampedX - panelWidth + buttonSize).clamp(
+      8.0,
+      screenSize.width - panelWidth - 8,
+    );
+
+    return Stack(
+      children: [
+        if (_isOpen)
+          Positioned(
+            left: panelLeft,
+            top: clampedY + buttonSize + 8,
+            child: _JeepneyRouteDropdownPanel(
+              routes: routes,
+              visibleIds: visibleIds,
+              isLoading: isLoading,
+            ),
+          ),
+        Positioned(
+          left: clampedX,
+          top: clampedY,
+          child: GestureDetector(
+            onPanUpdate: (details) {
+              setState(() {
+                _position = Offset(
+                  clampedX + details.delta.dx,
+                  clampedY + details.delta.dy,
+                );
+              });
+            },
+            onTap: () {
+              setState(() {
+                _isOpen = !_isOpen;
+              });
+            },
+            child: Material(
+              color: const Color.fromARGB(255, 41, 114, 110),
+              shape: const CircleBorder(),
+              elevation: 5,
+              child: SizedBox(
+                width: buttonSize,
+                height: buttonSize,
+                child: Icon(
+                  _isOpen ? Icons.close : Icons.alt_route,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+>>>>>>> origin/temp-old-version
           ),
         ),
       ],
     );
   }
 }
+<<<<<<< HEAD
+=======
+
+/// A panel that displays a list of jeepney routes with checkboxes to toggle their visibility on the map.
+class _JeepneyRouteDropdownPanel extends StatelessWidget {
+  final List<JeepneyRoute> routes;
+  final Set<String> visibleIds;
+  final bool isLoading;
+
+  const _JeepneyRouteDropdownPanel({
+    required this.routes,
+    required this.visibleIds,
+    required this.isLoading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleCount = visibleIds.length;
+
+    return Material(
+      color: Colors.white,
+      elevation: 6,
+      borderRadius: BorderRadius.circular(8),
+      child: SizedBox(
+        width: 280,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: isLoading
+              ? const SizedBox(
+                  height: 90,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Jeepney Routes',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '$visibleCount/${routes.length}',
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.visibility, size: 18),
+                            label: const Text('Show'),
+                            onPressed: () {
+                              context
+                                  .read<MapHelperProvider>()
+                                  .showAllJeepneyRoutes();
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.visibility_off, size: 18),
+                            label: const Text('Hide'),
+                            onPressed: () {
+                              context
+                                  .read<MapHelperProvider>()
+                                  .hideAllJeepneyRoutes();
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(),
+                    if (routes.isEmpty)
+                      const SizedBox(
+                        height: 70,
+                        child: Center(
+                          child: Text(
+                            'No routes loaded',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                      )
+                    else
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 260),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: routes.length,
+                          itemBuilder: (context, index) {
+                            final route = routes[index];
+                            final isVisible = visibleIds.contains(route.id);
+
+                            return CheckboxListTile(
+                              dense: true,
+                              visualDensity: VisualDensity.compact,
+                              contentPadding: EdgeInsets.zero,
+                              value: isVisible,
+                              secondary: Container(
+                                width: 14,
+                                height: 14,
+                                decoration: BoxDecoration(
+                                  color: Color(
+                                    int.parse(
+                                      route.color.replaceFirst('#', '0xff'),
+                                    ),
+                                  ),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              title: Text(
+                                route.name,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                              onChanged: (_) {
+                                context
+                                    .read<MapHelperProvider>()
+                                    .toggleJeepneyRoute(route);
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+}
+>>>>>>> origin/temp-old-version
