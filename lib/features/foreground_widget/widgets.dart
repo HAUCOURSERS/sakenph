@@ -1,7 +1,5 @@
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:http/http.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:sakenph/api/nominatim.dart';
 import 'package:sakenph/features/background_widget/functions.dart';
@@ -13,7 +11,6 @@ import 'package:sakenph/providers/provider_system_tasks.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 import 'package:sakenph/pages/settings_page.dart' show SettingsPage;
 import 'package:provider/provider.dart';
-import 'dart:math' as Math;
 
 import '../../providers/provider_map_helper.dart';
 
@@ -646,7 +643,7 @@ class _RouteOpenerButton extends StatelessWidget {
           width: MediaQuery.sizeOf(context).width * 0.75,
           padding: EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Color.fromARGB(255, 176, 221, 255),
+            color:  Color.fromARGB(255, 41, 114, 110),
             border: Border.all(width: 1),
             borderRadius: BorderRadius.circular(5),
           ),
@@ -900,6 +897,7 @@ class _SelectedLocationDecisionHelper extends StatelessWidget {
     );
   }
 }
+
 /// A floating button that can be dragged around the screen.
 /// When pressed, it opens a panel that shows the list of jeepney routes and their visibility status on the map.
 class JeepneyRouteFloatingControl extends StatefulWidget {
@@ -914,6 +912,9 @@ class _JeepneyRouteFloatingControlState
     extends State<JeepneyRouteFloatingControl> {
   bool _isOpen = false;
   Offset _position = const Offset(0, 120);
+  double _panelWidth = 280.0;
+  double _panelHeight = 320.0;
+  _JeepneyPanelSection _selectedSection = _JeepneyPanelSection.jeepneyRoutes;
 
   @override
   Widget build(BuildContext context) {
@@ -929,21 +930,22 @@ class _JeepneyRouteFloatingControlState
       (provider) => provider.isLoadingJeepneyRoutes,
     );
 
-  final screenSize = MediaQuery.sizeOf(context);
-  final bottomSafeArea = MediaQuery.paddingOf(context).bottom;
-  const buttonSize = 54.0;
-  const panelWidth = 280.0;
+    final screenSize = MediaQuery.sizeOf(context);
+    final bottomSafeArea = MediaQuery.paddingOf(context).bottom;
+    const buttonSize = 54.0;
+    final panelWidth = _panelWidth.clamp(220.0, screenSize.width - 32.0);
+    final panelHeight = _panelHeight.clamp(240.0, screenSize.height - 180.0);
 
-  final defaultX = screenSize.width - buttonSize - 16;
-  final currentX = _position.dx == 0 ? defaultX : _position.dx;
-  final currentY = _position.dy;
+    final defaultX = screenSize.width - buttonSize - 16;
+    final currentX = _position.dx == 0 ? defaultX : _position.dx;
+    final currentY = _position.dy;
 
-  final clampedX = currentX.clamp(8.0, screenSize.width - buttonSize - 8);
-  final clampedY = currentY.clamp(
-    90.0,
-    screenSize.height - buttonSize - bottomSafeArea - 100, 
-    // 100 is a buffer to avoid overlapping with the bottom navigation bar
-  );
+    final clampedX = currentX.clamp(8.0, screenSize.width - buttonSize - 8);
+    final clampedY = currentY.clamp(
+      90.0,
+      screenSize.height - buttonSize - bottomSafeArea - 100,
+      // 100 is a buffer to avoid overlapping with the bottom navigation bar
+    );
 
     final panelLeft = (clampedX - panelWidth + buttonSize).clamp(
       8.0,
@@ -960,6 +962,26 @@ class _JeepneyRouteFloatingControlState
               routes: routes,
               visibleIds: visibleIds,
               isLoading: isLoading,
+              width: panelWidth,
+              height: panelHeight,
+              selectedSection: _selectedSection,
+              onSectionSelected: (section) {
+                setState(() {
+                  _selectedSection = section;
+                });
+              },
+              onResize: (deltaX, deltaY) {
+                setState(() {
+                  _panelWidth = (_panelWidth + deltaX).clamp(
+                    220.0,
+                    screenSize.width - 32.0,
+                  );
+                  _panelHeight = (_panelHeight + deltaY).clamp(
+                    240.0,
+                    screenSize.height - 180.0,
+                  );
+                });
+              },
             ),
           ),
         Positioned(
@@ -1000,15 +1022,27 @@ class _JeepneyRouteFloatingControlState
 }
 
 /// A panel that displays a list of jeepney routes with checkboxes to toggle their visibility on the map.
+enum _JeepneyPanelSection { jeepneyRoutes, todaTerminals }
+
 class _JeepneyRouteDropdownPanel extends StatelessWidget {
   final List<JeepneyRoute> routes;
   final Set<String> visibleIds;
   final bool isLoading;
+  final double width;
+  final double height;
+  final _JeepneyPanelSection selectedSection;
+  final void Function(_JeepneyPanelSection section) onSectionSelected;
+  final void Function(double deltaX, double deltaY) onResize;
 
   const _JeepneyRouteDropdownPanel({
     required this.routes,
     required this.visibleIds,
     required this.isLoading,
+    required this.width,
+    required this.height,
+    required this.selectedSection,
+    required this.onSectionSelected,
+    required this.onResize,
   });
 
   @override
@@ -1020,121 +1054,324 @@ class _JeepneyRouteDropdownPanel extends StatelessWidget {
       elevation: 6,
       borderRadius: BorderRadius.circular(8),
       child: SizedBox(
-        width: 280,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: isLoading
-              ? const SizedBox(
-                  height: 90,
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
+        width: width,
+        height: height,
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: isLoading
+                  ? const SizedBox(
+                      height: 90,
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Expanded(
-                          child: Text(
-                            'Jeepney Routes',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _SectionToggleButton(
+                                isSelected: selectedSection ==
+                                    _JeepneyPanelSection.jeepneyRoutes,
+                                label: 'Jeepney Routes',
+                                onTap: () => onSectionSelected(
+                                    _JeepneyPanelSection.jeepneyRoutes),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _SectionToggleButton(
+                                isSelected: selectedSection ==
+                                    _JeepneyPanelSection.todaTerminals,
+                                label: 'TODA Terminals',
+                                onTap: () => onSectionSelected(
+                                    _JeepneyPanelSection.todaTerminals),
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          '$visibleCount/${routes.length}',
-                          style: TextStyle(
-                            color: Colors.grey.shade700,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            icon: const Icon(Icons.visibility, size: 18),
-                            label: const Text('Show'),
-                            onPressed: () {
-                              context
-                                  .read<MapHelperProvider>()
-                                  .showAllJeepneyRoutes();
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            icon: const Icon(Icons.visibility_off, size: 18),
-                            label: const Text('Hide'),
-                            onPressed: () {
-                              context
-                                  .read<MapHelperProvider>()
-                                  .hideAllJeepneyRoutes();
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(),
-                    if (routes.isEmpty)
-                      const SizedBox(
-                        height: 70,
-                        child: Center(
-                          child: Text(
-                            'No routes loaded',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ),
-                      )
-                    else
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 260),
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: routes.length,
-                          itemBuilder: (context, index) {
-                            final route = routes[index];
-                            final isVisible = visibleIds.contains(route.id);
-
-                            return CheckboxListTile(
-                              dense: true,
-                              visualDensity: VisualDensity.compact,
-                              contentPadding: EdgeInsets.zero,
-                              value: isVisible,
-                              secondary: Container(
-                                width: 14,
-                                height: 14,
-                                decoration: BoxDecoration(
-                                  color: Color(
-                                    int.parse(
-                                      route.color.replaceFirst('#', '0xff'),
+                        const SizedBox(height: 12),
+                        if (selectedSection == _JeepneyPanelSection.jeepneyRoutes) ...[
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    textStyle: const TextStyle(fontSize: 13),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    foregroundColor: selectedSection == _JeepneyPanelSection.jeepneyRoutes
+                                        ? const Color.fromARGB(255, 41, 114, 110)
+                                        : null,
+                                    side: BorderSide(
+                                      color: selectedSection == _JeepneyPanelSection.jeepneyRoutes
+                                          ? const Color.fromARGB(255, 41, 114, 110)
+                                          : Colors.grey.shade300,
                                     ),
                                   ),
-                                  shape: BoxShape.circle,
+                                  icon: Icon(Icons.visibility, size: 18, color: selectedSection == _JeepneyPanelSection.jeepneyRoutes ? const Color.fromARGB(255, 41, 114, 110) : null),
+                                  label: const Text('Show'),
+                                  onPressed: () {
+                                    context
+                                        .read<MapHelperProvider>()
+                                        .showAllJeepneyRoutes();
+                                  },
                                 ),
                               ),
-                              title: Text(
-                                route.name,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 13),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    textStyle: const TextStyle(fontSize: 13),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    foregroundColor: selectedSection == _JeepneyPanelSection.jeepneyRoutes
+                                        ? const Color.fromARGB(255, 41, 114, 110)
+                                        : null,
+                                    side: BorderSide(
+                                      color: selectedSection == _JeepneyPanelSection.jeepneyRoutes
+                                          ? const Color.fromARGB(255, 41, 114, 110)
+                                          : Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  icon: Icon(
+                                    Icons.visibility_off,
+                                    size: 18,
+                                    color: selectedSection == _JeepneyPanelSection.jeepneyRoutes ? const Color.fromARGB(255, 41, 114, 110) : null,
+                                  ),
+                                  label: const Text('Hide'),
+                                  onPressed: () {
+                                    context
+                                        .read<MapHelperProvider>()
+                                        .hideAllJeepneyRoutes();
+                                  },
+                                ),
                               ),
-                              onChanged: (_) {
-                                context
-                                    .read<MapHelperProvider>()
-                                    .toggleJeepneyRoute(route);
-                              },
-                            );
-                          },
-                        ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Center(
+                            child: Text(
+                              '$visibleCount/${routes.length}',
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                          const Divider(),
+                          Expanded(
+                            child: routes.isEmpty
+                                ? const Center(
+                                    child: Text(
+                                      'No routes loaded',
+                                      style: TextStyle(color: Colors.grey),
+                                    ),
+                                  )
+                                : Scrollbar(
+                                    thumbVisibility: true,
+                                    radius: const Radius.circular(6),
+                                    thickness: 6,
+                                    child: ListView.builder(
+                                      primary: true,
+                                      itemCount: routes.length,
+                                      itemBuilder: (context, index) {
+                                        final route = routes[index];
+                                        final isVisible = visibleIds.contains(
+                                          route.id,
+                                        );
+
+                                        return CheckboxListTile(
+                                          dense: true,
+                                          visualDensity:
+                                              const VisualDensity(
+                                            vertical: -2,
+                                            horizontal: -4,
+                                          ),
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 4,
+                                          ),
+                                          value: isVisible,
+                                          activeColor: const Color.fromARGB(255, 41, 114, 110),
+                                          checkColor: Colors.white,
+                                          secondary: Container(
+                                            width: 14,
+                                            height: 14,
+                                            decoration: BoxDecoration(
+                                              color: Color(
+                                                int.parse(
+                                                  route.color.replaceFirst(
+                                                    '#',
+                                                    '0xff',
+                                                  ),
+                                                ),
+                                              ),
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                          title: Text(
+                                            route.name,
+                                            maxLines: 2,
+                                            overflow:
+                                                TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          onChanged: (_) {
+                                            context
+                                                .read<MapHelperProvider>()
+                                                .toggleJeepneyRoute(route);
+                                          },
+                                        );
+                                      },
+                                    ),
+                                  ),
+                          ),
+                        ] else ...[
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                'TODA Terminals placeholder',
+                                style: TextStyle(
+                                  color: Colors.grey.shade700,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+            ),
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onPanUpdate: (details) => onResize(-details.delta.dx, 0),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.resizeLeftRight,
+                  child: Container(
+                    width: 24,
+                    color: Colors.transparent,
+                    padding: const EdgeInsets.only(left: 8),
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      width: 4,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(255, 48, 143, 138),
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                  ],
+                    ),
+                  ),
                 ),
+              ),
+            ),
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onPanUpdate: (details) => onResize(details.delta.dx, 0),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.resizeLeftRight,
+                  child: Container(
+                    width: 24,
+                    color: Colors.transparent,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 30,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onPanUpdate: (details) => onResize(0, details.delta.dy),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.resizeUpDown,
+                  child: Container(
+                    color: Colors.transparent,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              right: 8,
+              bottom: 8,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onPanUpdate: (details) =>
+                    onResize(details.delta.dx, details.delta.dy),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.resizeUpDown,
+                  child: Icon(
+                    Icons.drag_handle,
+                    size: 18,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+class _SectionToggleButton extends StatelessWidget {
+ final bool isSelected;
+ final String label;
+ final VoidCallback onTap;
+
+ const _SectionToggleButton({
+   required this.isSelected,
+   required this.label,
+   required this.onTap,
+ });
+
+ @override
+ Widget build(BuildContext context) {
+   final colorScheme = Theme.of(context).colorScheme;
+   return OutlinedButton(
+     style: OutlinedButton.styleFrom(
+       backgroundColor: isSelected
+           ? colorScheme.primary.withAlpha(31)
+           : Colors.transparent,
+       foregroundColor:
+           isSelected ? colorScheme.primary : Colors.grey.shade800,
+       side: BorderSide(
+         color: isSelected
+             ? colorScheme.primary
+             : Colors.grey.shade300,
+       ),
+       shape: RoundedRectangleBorder(
+         borderRadius: BorderRadius.circular(8),
+       ),
+       padding: const EdgeInsets.symmetric(vertical: 14),
+     ),
+     onPressed: onTap,
+     child: Text(
+       label,
+       textAlign: TextAlign.center,
+       style: const TextStyle(
+         fontWeight: FontWeight.w600,
+         fontSize: 13,
+       ),
+     ),
+   );
+ }
 }

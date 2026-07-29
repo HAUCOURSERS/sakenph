@@ -32,10 +32,10 @@ Future<Map<String, dynamic>> queryForShortestPath(
     final response = await http.get(
       Uri.parse(
         // local backend
-        'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}&algo=astar&debug=true',
+        //'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}&algo=astar&debug=true',
 
         // AWS EC2
-        //'${Env.API_ENDPOINT_LINK}k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
+        '${Env.API_ENDPOINT_LINK}k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
       ),
     );
 
@@ -64,7 +64,7 @@ Future<Map<String, dynamic>> queryForShortestPath(
 // Fetches jeepney routes from the backend service and returns a list of JeepneyRoute objects.
 Future<List<JeepneyRoute>> fetchJeepRoutes() async {
   final response = await http.get(
-    Uri.parse('http://18.142.233.77:8000/jeep_routes'),       // local backend service link for ui toggle
+    Uri.parse('http://{Env.API_ENDPOINT_LINK IP/jeep_routes'),       // local backend service link for ui toggle
   );
 
   if (response.statusCode != 200) {
