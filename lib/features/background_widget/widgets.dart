@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:sakenph/api/nominatim.dart';
 import 'package:sakenph/classes/nominatim_response.dart';
 import 'package:sakenph/features/background_widget/functions.dart';
+import 'package:sakenph/features/foreground_widget/functions.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
@@ -34,6 +35,7 @@ class BackgroundWidget extends StatelessWidget {
         .select<SystemVariablesProvider, Color>(
           (value) => value.backgroundWidgetColor,
         );
+
     return IgnorePointer(
       ignoring: !backgroundWidgetVisibility,
       child: AnimatedOpacity(
@@ -61,8 +63,8 @@ class BackgroundWidget extends StatelessWidget {
                 .read<SystemVariablesProvider>()
                 .backgroundWidgetVisibility,
             onPopInvokedWithResult: (didPop, result) {
-              print("Pop Trigger $didPop");
-              if (!didPop) {
+              //print("Pop Trigger $didPop");
+              if (!didPop && currentSystemState != SystemState.peekAtRoute) {
                 context
                         .read<SystemVariablesProvider>()
                         .setBackgroundWidgetVisibility =
@@ -108,6 +110,7 @@ class _BackgroundWidgetContentRenderer extends StatelessWidget {
       case SystemState.peekAtRoute:
       case SystemState.hideWidgets:
       case SystemState.isCurrentlyTravelling:
+      case SystemState.confirmingLocationSelection:
         child = SizedBox.shrink();
         break;
       case SystemState.backendRequestFail:
@@ -265,7 +268,7 @@ class _ViewForRequestingFromLocationState
     return Column(
       children: [
         SizedBox(height: 60),
-        if (context.read<MapHelperProvider>().getIsFromLocationDetailsEmpty)
+        if (!context.read<MapHelperProvider>().getIsFromLocationDetailsEmpty)
           SizedBox(height: 60),
         _UseCurrentLocationButton(),
         SizedBox(height: 10),
@@ -605,50 +608,47 @@ class _DisplaySuggestedPaths extends StatelessWidget {
     // Meant to absorb onTap hits to prevent closure due to the main background
     // widget's nature
     return SizedBox(
-      child: GestureDetector(
-        onTap: () {},
-        child: Stack(
-          children: [
-            Positioned(
-              top: 200,
-              left: MediaQuery.sizeOf(context).width * 0.0625,
-              right: MediaQuery.sizeOf(context).width * 0.0625,
-              child: Container(
-                color: Colors.transparent,
-                alignment: Alignment.center,
-                width: MediaQuery.sizeOf(context).width,
-                height: MediaQuery.sizeOf(context).height,
-                child: Center(child: _SuggestedPathWidgetListBuilder()),
+      child: Stack(
+        children: [
+          Positioned(
+            top: 200,
+            left: MediaQuery.sizeOf(context).width * 0.0625,
+            right: MediaQuery.sizeOf(context).width * 0.0625,
+            child: Container(
+              color: Colors.transparent,
+              alignment: Alignment.center,
+              width: MediaQuery.sizeOf(context).width,
+              height: MediaQuery.sizeOf(context).height,
+              child: Center(child: _SuggestedPathWidgetListBuilder()),
+            ),
+          ),
+          Positioned(
+            top: 120,
+            left: MediaQuery.sizeOf(context).width * 0.125,
+            right: MediaQuery.sizeOf(context).width * 0.125,
+            child: Container(
+              padding: EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(color: Colors.black, width: 1),
+                // black outline
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 6,
+                    offset: Offset(0, 3), // shadow goes downward
+                  ),
+                ],
+              ),
+              child: Text(
+                "Tap to view path",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.black, fontSize: 30),
               ),
             ),
-            Positioned(
-              top: 120,
-              left: MediaQuery.sizeOf(context).width * 0.125,
-              right: MediaQuery.sizeOf(context).width * 0.125,
-              child: Container(
-                padding: EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(5),
-                  border: Border.all(color: Colors.black, width: 1),
-                  // black outline
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 6,
-                      offset: Offset(0, 3), // shadow goes downward
-                    ),
-                  ],
-                ),
-                child: Text(
-                  "Tap to view path",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.black, fontSize: 30),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -757,9 +757,12 @@ class _SuggestedPathWidgetTemplate extends StatelessWidget {
         .read<MapHelperProvider>()
         .getFilteredRouteByID(route_id);
     double travelTime = computeTravel(pathJSON, route_id);
+    MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
+    (double, double) fareRates = computeFareTotalForRoute(pathJSON, route_id);
 
     return GestureDetector(
       onTap: () async {
+        mapHelperProvider.setSelectedRouteId = route_id;
         EasyDebounce.debounce(
           DebounceId.routeSelection.toString(),
           Duration(milliseconds: 50),
@@ -820,7 +823,6 @@ class _SuggestedPathWidgetTemplate extends StatelessWidget {
                 color: const Color.fromARGB(255, 217, 220, 223),
                 borderRadius: BorderRadius.all(Radius.circular(16)),
               ),
-              height: 120,
               width: MediaQuery.sizeOf(context).width,
               child: Column(
                 children: [
@@ -870,6 +872,42 @@ class _SuggestedPathWidgetTemplate extends StatelessWidget {
                       ],
                     ),
                   ),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: "Fare Amount: ",
+                          style: TextStyle(fontSize: 20),
+                        ),
+                        TextSpan(
+                          text: "${fareRates.$1} php",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: "Fare Amount (Discounted): ",
+                          style: TextStyle(fontSize: 20),
+                        ),
+                        TextSpan(
+                          text: "${fareRates.$2} php",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 10),
                 ],
               ),
             ),

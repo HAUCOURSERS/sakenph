@@ -27,6 +27,14 @@ enum SystemState {
   /// When this state is achieved, origin and destination location is now identified. It will
   /// now start the looping job of checking
   isCurrentlyTravelling,
+
+  /// This state is achieved by the user long-pressing the map while in the state that's not related to
+  /// peeking route, user currently travelling and other states that allow map interaction while having
+  /// the search features disabled.
+  ///
+  /// This state will also create buttons that allow the user to decide if they will use this location
+  /// as their source/destination
+  confirmingLocationSelection,
 }
 
 /// To easily track where all the debouncers are. If strings alone are used to set

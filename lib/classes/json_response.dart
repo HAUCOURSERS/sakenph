@@ -5,10 +5,7 @@ class ModeFare {
   ModeFare({required this.regular, required this.discounted});
 
   factory ModeFare.fromJson(Map<String, dynamic> json) {
-    return ModeFare(
-      regular: json['regular'],
-      discounted: json['discounted']
-    );
+    return ModeFare(regular: json['regular'], discounted: json['discounted']);
   }
 }
 
@@ -17,7 +14,11 @@ class ModeDetails {
   final String color;
   final ModeFare modeFare;
 
-  ModeDetails({required this.name, required this.color, required this.modeFare});
+  ModeDetails({
+    required this.name,
+    required this.color,
+    required this.modeFare,
+  });
 
   factory ModeDetails.fromJson(Map<String, dynamic> json) {
     return ModeDetails(

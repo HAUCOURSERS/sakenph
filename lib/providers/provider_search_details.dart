@@ -1,6 +1,7 @@
 // ignore_for_file: non_constant_identifier_names
 
 import 'package:flutter/material.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:sakenph/classes/nominatim_response.dart';
 import 'package:sakenph/globals/enums.dart';
 
@@ -13,6 +14,9 @@ class SearchDetailsProvider extends ChangeNotifier {
   final TextEditingController _fromLocTextController = TextEditingController();
   final TextEditingController _toLocTextController = TextEditingController();
   final FocusNode _toLocFocusNode = FocusNode(); //
+
+  // Obtained from interactive where you long-press the map
+  LatLng _longPressedLocation = LatLng(0, 0);
 
   // Used to show/hide the widget set that holds the search result depending if the user is
   // currently using the textfields.
@@ -48,6 +52,8 @@ class SearchDetailsProvider extends ChangeNotifier {
 
   bool get isUsingCurrentGeoLoc => _isUsingCurrentGeoLoc;
 
+  LatLng get getLongPressedLocation => _longPressedLocation;
+
   List<NominatimPlace> get getFromLocSearchResults => _fromLocSearchResults;
   List<NominatimPlace> get getToLocSearchResults => _toLocSearchResults;
   TextEditingController get getFromLocTextController => _fromLocTextController;
@@ -81,6 +87,10 @@ class SearchDetailsProvider extends ChangeNotifier {
 
   set setIsBackendRouteFetchFailed(bool value) {
     _isBackendRouteFetchFailed = value;
+  }
+
+  set setLongPressedLocation(LatLng coordinates) {
+    _longPressedLocation = coordinates;
   }
 
   /// Will only notify listeners if provided a different value from the existing value
@@ -140,62 +150,3 @@ class SearchDetailsProvider extends ChangeNotifier {
     _toLocFocusNode.unfocus();
   }
 }
-
-  /// When the user is selecting the ToLocation, the FromLocation is assumed to be
-  /// filled in already.
-  ///
-  /// After selecting the ToLocation, the lat lon of the two locations are obtained,
-  /// ready for computing the shortest path
-  ///
-  /*
-  void setToLocationDetails_andStartCalculating(
-    NominatimPlace nomiDetails,
-    BuildContext buildContext,
-  ) {
-    _setToLocationDetails_andStartCalculating(
-      nomiDetails.lat,
-      nomiDetails.lon,
-      nomiDetails.name,
-      buildContext,
-    );
-  }*/
-
-  // TODO: REWORK THIS METHOD. COMPACTING EVERYTHING IN ONE PLACE SEEMS RLLY STUPID
-  /*
-  void _setToLocationDetails_andStartCalculating(
-    double lat,
-    double lon,
-    String name,
-    BuildContext buildContext,
-  ) async {
-    //wipeSuggestedShortestPaths();
-
-    SystemVariablesProvider systemVariablesProvider = buildContext
-        .read<SystemVariablesProvider>();
-    SearchDetailsProvider searchDetailsProvider = buildContext
-        .read<SearchDetailsProvider>();
-    MapHelperProvider mapHelperProvider = buildContext
-        .read<MapHelperProvider>();
-
-    toLocController.text = name;
-    //_selectedToLocationDetails = LatLng(lat, lon);
-    notifyListeners();
-    await Future.delayed(
-      Duration(milliseconds: 200),
-    ); // Give time to let the user see that the ToLocation textfield was changed
-
-    toLocFocusNode.unfocus();
-    systemVariablesProvider.setAppCurrentState(
-      SystemState.waitingForBackendResponse,
-    );
-
-    searchDetailsProvider.saveSuggestedShortestPaths(
-      await queryForShortestPath(
-        _selectedFromLocationDetails!,
-        _selectedToLocationDetails!,
-      ),
-    );
-    systemVariablesProvider.setAppCurrentState(SystemState.showSuggestedRoutes);
-  }
-  */
-

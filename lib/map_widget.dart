@@ -5,13 +5,17 @@ import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:http/http.dart' as http;
 import 'package:sakenph/api/database_service.dart';
+import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions.dart';
 import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
 import 'package:sakenph/classes/terminal_class.dart';
 import 'package:sakenph/classes/json_response.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
+import 'package:sakenph/providers/provider_search_details.dart';
 import 'dart:math' show min, max, pi, sin, cos, asin, atan2, Point;
+
+import 'package:sakenph/providers/provider_system_vars.dart';
 
 /// Holds the view for the map
 class MapWidget extends StatefulWidget {
@@ -63,8 +67,13 @@ class MapWidgetController {
   Future<void> addUserMarker(LatLng coords, double rotation) =>
       _state?._addUserMarker(coords, rotation) ?? Future.value();
 
+  /// Removes source and layers. During removal, the source and layer
+  /// ids are given the prefix of "route-"
   Future<void> removeMarker(String sourceId, String layerId) =>
       _state?._removeMarker(sourceId, layerId) ?? Future.value();
+
+  Future<void> fullRemoveSourceLayer(String sourceId, String layerId) =>
+      _state?._fullRemoveSourceLayer(sourceId, layerId) ?? Future.value();
 }
 
 class _MapWidget extends State<MapWidget> {
@@ -74,6 +83,17 @@ class _MapWidget extends State<MapWidget> {
   // Keeps track of sourceIds and routeIds created from rendering a route
   List<String> routeSourceIds = [];
   List<String> routeLayerIds = [];
+
+  Future<void> _fullRemoveSourceLayer(String sourceId, String layerId) async {
+    if (routeLayerIds.contains(layerId)) {
+      routeLayerIds.remove(layerId);
+    }
+    if (routeSourceIds.contains(sourceId)) {
+      routeSourceIds.remove(sourceId);
+    }
+    _controller?.removeSource(sourceId);
+    _controller?.removeLayer(layerId);
+  }
 
   // Loads custom map style from assets based on Stadia Map's OSM Bright style
   Future<void> _loadStyle() async {
@@ -1004,6 +1024,11 @@ class _MapWidget extends State<MapWidget> {
 
   @override
   Widget build(BuildContext context) {
+    SystemVariablesProvider systemVariablesProvider = context
+        .read<SystemVariablesProvider>();
+    SearchDetailsProvider searchDetailsProvider = context
+        .read<SearchDetailsProvider>();
+
     return MapLibreMap(
       styleString: mapStyle,
 
@@ -1077,44 +1102,66 @@ class _MapWidget extends State<MapWidget> {
       },
 
       onMapLongClick: (point, coordinates) async {
+        SystemState currentState = systemVariablesProvider.appCurrentState;
+
+        // Disable this behavior if user is in these systemstates.
+        if (currentState == SystemState.peekAtRoute ||
+            currentState == SystemState.isCurrentlyTravelling) {
+          return;
+        }
+
         // Remove layer and source of pin if there is one currently on the map
         _controller?.removeLayer('layer_selectedPoint');
         _controller?.removeSource('source_selectedPoint');
 
+        // remove and add the layer and source ids of the marker for proper practice
+        if (routeLayerIds.contains('layer_selectedPoint')) {
+          routeLayerIds.remove('layer_selectedPoint');
+        }
+        if (routeLayerIds.contains('source_selectedPoint')) {
+          routeLayerIds.remove('source_selectedPoint');
+        }
+
+        routeLayerIds.add('layer_selectedPoint');
+        routeSourceIds.add('source_selectedPoint');
+
         // --- Add source and layer of long press pin --- //
-        // await _controller?.addSource(
-        //   'source_selectedPoint',
-        //   GeojsonSourceProperties(
-        //     data: {
-        //       'type': 'FeatureCollection',
-        //       'features': [
-        //         {
-        //           'type': 'Feature',
-        //           'geometry': {
-        //             'type': 'Point',
-        //             'coordinates': [coordinates.longitude, coordinates.latitude],
-        //           },
-        //         },
-        //       ],
-        //     },
-        //   ),
-        // );
+        await _controller?.addSource(
+          'source_selectedPoint',
+          GeojsonSourceProperties(
+            data: {
+              'type': 'FeatureCollection',
+              'features': [
+                {
+                  'type': 'Feature',
+                  'geometry': {
+                    'type': 'Point',
+                    'coordinates': [
+                      coordinates.longitude,
+                      coordinates.latitude,
+                    ],
+                  },
+                },
+              ],
+            },
+          ),
+        );
 
-        // await _controller?.addLayer(
-        //   'source_selectedPoint',
-        //   'layer_selectedPoint',
-        //   const SymbolLayerProperties(
-        //     iconImage: 'mapmarker',
-        //     iconSize: 0.4,
-        //   ),
-        //   minzoom: 8,
-        // );
+        await _controller?.addLayer(
+          'source_selectedPoint',
+          'layer_selectedPoint',
+          const SymbolLayerProperties(iconImage: 'mapmarker', iconSize: 0.4),
+          minzoom: 8,
+        );
 
-        // ---------------------------------------------- //
+        // to auto-zoom to selected coords
+        _flyToLoc(coordinates);
 
-        // Used to remove long press pin icon from map
-        // _controller?.removeLayer('layer_selectedPoint');
-        // _controller?.removeSource('source_selectedPoint');
+        searchDetailsProvider.setLongPressedLocation = coordinates;
+
+        // change app state
+        systemVariablesProvider.setAppCurrentState =
+            SystemState.confirmingLocationSelection;
       },
       // onStyleLoadedCallback: addLayers, (COMMENTED OUT UNTIL WE FIGURE OUT IF TO DISPLAY JEEPNEY AND TRICYCLE TERMINALS)
 
