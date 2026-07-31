@@ -6,7 +6,7 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:http/http.dart' as http;
 import 'package:sakenph/api/database_service.dart';
 import 'package:sakenph/globals/enums.dart';
-import 'package:sakenph/globals/functions.dart';
+import 'package:sakenph/globals/functions/computations.dart';
 import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
 import 'package:sakenph/classes/terminal_class.dart';
 import 'package:sakenph/classes/json_response.dart';

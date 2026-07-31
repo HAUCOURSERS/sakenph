@@ -3,7 +3,7 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/api/backend_service.dart';
 import 'package:sakenph/globals/enums.dart';
-import 'package:sakenph/globals/functions.dart';
+import 'package:sakenph/globals/functions/computations.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
@@ -21,7 +21,7 @@ void startComputingForRoutes(BuildContext context) async {
     mapHelperProvider.getSelectedToLocationDetails!,
     context,
   );
-  if (backendResponse.length == 0) {
+  if (backendResponse.isEmpty) {
     // queryForShortestPath() will always return a non-empty map if backend response worked.
     throw UnimplementedError(
       "Note to developer: Add a retry button here since the backend response failed.",

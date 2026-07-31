@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sakenph/globals/functions/system/on_app_start.dart';
 
 // import 'package:sakenph/auth_gate.dart';
 // import 'package:sakenph/login_register.dart';
@@ -12,12 +13,7 @@ import 'package:sakenph/providers/provider_system_tasks.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
 void main() async {
-  // WidgetsFlutterBinding.ensureInitialized();
-
-  // await Supabase.initialize(
-  //   url: 'https://tfycptprhagrgpxccjiy.supabase.co',
-  //   anonKey: 'sb_publishable_M6rcjMdAMWceiBpMkQQOVg_ejVFeKK7'
-  // );
+  runAtMain();
 
   runApp(
     MultiProvider(
