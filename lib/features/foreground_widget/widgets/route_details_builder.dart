@@ -176,7 +176,7 @@ class RouteDetailsBuilder extends StatelessWidget {
               child: Container(
                 padding: EdgeInsets.all(5),
                 child: Text(
-                  "${fares.$1} ₱",
+                  "${fares.$1.toStringAsFixed(2)} ₱",
                   style: TextStyle(fontSize: responsiveSizeHeight(20)),
                   textAlign: TextAlign.right,
                 ),
@@ -212,7 +212,7 @@ class RouteDetailsBuilder extends StatelessWidget {
               child: Container(
                 padding: EdgeInsets.all(5),
                 child: Text(
-                  "${fares.$2} ₱",
+                  "${fares.$2.toStringAsFixed(2)} ₱",
                   style: TextStyle(fontSize: responsiveSizeHeight(20)),
                   textAlign: TextAlign.right,
                 ),

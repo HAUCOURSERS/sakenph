@@ -239,3 +239,28 @@ class _LinePainter extends CustomPainter {
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
+
+/// To check if a nominatim result points to a place that's within the thesis's
+/// scope, which is Angeles City and Mabalacat/Dau of Central Luzon
+bool isPlaceWithinScope(String fullAddress) {
+  // possible entries of angeles city and mabalacat/dau
+  List<String> validAddresses = ["angeles", "mabalacat", "dau"];
+  // there might be a chance where angeles/mabalacat/dau names can be
+  // present outside of central luzon
+  List<String> requiredAddresses = ["central luzon"];
+
+  bool hasValidAddress = false;
+  bool hasRequiredAddress = false;
+
+  // displayName result of NominatimPlace has its details separated with ", "
+  List<String> segmentedAddress = fullAddress.split(", ");
+  for (String segmentAddress in segmentedAddress) {
+    if (validAddresses.contains(segmentAddress.toLowerCase())) {
+      hasValidAddress = true;
+    }
+    if (requiredAddresses.contains(segmentAddress.toLowerCase())) {
+      hasRequiredAddress = true;
+    }
+  }
+  return hasValidAddress && hasRequiredAddress;
+}

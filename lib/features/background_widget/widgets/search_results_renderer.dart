@@ -34,6 +34,8 @@ class _SearchResultRendererState extends State<SearchResultRenderer> {
     // force rebuild upon res change
     MediaQuery.sizeOf(context);
 
+    bool isPlaceOutOfScope = !isPlaceWithinScope(widget.nomiPlace.displayName);
+
     return AnimatedContainer(
       color: _showColor ? Colors.grey.shade400 : Colors.transparent,
       duration: Duration(milliseconds: 200),
@@ -75,8 +77,10 @@ class _SearchResultRendererState extends State<SearchResultRenderer> {
         child: Column(
           children: [
             Container(
-              color: Colors.transparent,
-              height: responsiveSizeHeight(60),
+              color: isPlaceOutOfScope
+                  ? Color.fromARGB(100, 237, 111, 132)
+                  : Colors.transparent,
+              height: responsiveSizeHeight(isPlaceOutOfScope ? 80 : 60),
               child: Row(
                 children: [
                   Container(
@@ -106,6 +110,22 @@ class _SearchResultRendererState extends State<SearchResultRenderer> {
                           style: TextStyle(fontSize: responsiveSizeHeight(12)),
                           textAlign: TextAlign.left,
                         ),
+                        if (isPlaceOutOfScope)
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Icon(Icons.warning, color: Colors.red),
+                                Text(
+                                  "This place is outside of this app's scope.",
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: responsiveSizeHeight(15),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
                   ),

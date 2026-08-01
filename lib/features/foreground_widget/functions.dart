@@ -136,7 +136,7 @@ List<(String, String, double, String)> buildTravelDetails(
         formatLabelForJeepneyName(jeepName),
         routeColor,
         (distanceInKM * 1000),
-        "${fareRegular}₱ / ${fareDiscounted}₱",
+        "${fareRegular.toStringAsFixed(2)}₱ / ${fareDiscounted.toStringAsFixed(2)}₱",
       ));
     } else if (modeType == "trike") {
       returnDetails.add((
@@ -144,7 +144,7 @@ List<(String, String, double, String)> buildTravelDetails(
         "Tricycle",
         routeColor,
         (distanceInKM * 1000),
-        "${fareRegular}₱ / ${fareDiscounted}₱",
+        "${fareRegular.toStringAsFixed(2)}₱ / ${fareDiscounted.toStringAsFixed(2)}₱",
       ));
     }
   }

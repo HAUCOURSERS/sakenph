@@ -167,7 +167,7 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
                           style: TextStyle(fontSize: responsiveSizeHeight(20)),
                         ),
                         TextSpan(
-                          text: "${fareRates.$1} ₱",
+                          text: "${fareRates.$1.toStringAsFixed(2)} ₱",
                           style: TextStyle(
                             fontSize: responsiveSizeHeight(20),
                             fontWeight: FontWeight.bold,
@@ -185,7 +185,7 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
                           style: TextStyle(fontSize: responsiveSizeHeight(20)),
                         ),
                         TextSpan(
-                          text: "${fareRates.$2} ₱",
+                          text: "${fareRates.$2.toStringAsFixed(2)} ₱",
                           style: TextStyle(
                             fontSize: responsiveSizeHeight(20),
                             fontWeight: FontWeight.bold,

@@ -44,8 +44,8 @@ String darkenHex(String hex, [double amount = 0.7]) {
 /// Converts given meters into formatted meters or kilometers
 String formatDistance(double value) {
   if (value >= 1000) {
-    return "${((value / 1000) * 100).round() / 100}km";
+    return "${(value / 1000).toStringAsFixed(2)}km";
   } else {
-    return "${(value * 100).round() / 100}m";
+    return "${(value).toStringAsFixed(2)}m";
   }
 }
