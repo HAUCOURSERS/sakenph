@@ -16,6 +16,8 @@ import '../../providers/provider_map_helper.dart';
 
 /// Added to import the backend service to use its functions for querying shortest paths and fetching jeepney routes.
 import 'package:sakenph/classes/jeepney_route.dart';
+import 'package:sakenph/classes/terminal_class.dart';
+import 'package:sakenph/api/backend_service.dart';
 
 /// The main widget for the Foreground. Any widgets that are needed to be displayed
 /// at the top of the main widget's stack is written here.
@@ -643,7 +645,7 @@ class _RouteOpenerButton extends StatelessWidget {
           width: MediaQuery.sizeOf(context).width * 0.75,
           padding: EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color:  Color.fromARGB(255, 41, 114, 110),
+            color: Color.fromARGB(255, 41, 114, 110),
             border: Border.all(width: 1),
             borderRadius: BorderRadius.circular(5),
           ),
@@ -915,6 +917,28 @@ class _JeepneyRouteFloatingControlState
   double _panelWidth = 280.0;
   double _panelHeight = 320.0;
   _JeepneyPanelSection _selectedSection = _JeepneyPanelSection.jeepneyRoutes;
+  Future<List<Terminal>>? _todaTerminalsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load terminals quickly from backend so the UI can show them immediately.
+    // Then run enrichment in the background and update the Future when done.
+    _todaTerminalsFuture = fetchTodaTerminals();
+
+    // Start enrichment in background without blocking the UI
+    fetchAndEnrichTodaTerminals().then((enriched) {
+      if (!mounted) return;
+      setState(() {
+        // Replace future with already-resolved enriched list so FutureBuilder rebuilds
+        _todaTerminalsFuture = Future.value(enriched);
+      });
+    }).catchError((e) {
+      // Log and ignore enrichment errors so the UI stays responsive
+      // ignore: avoid_print
+      print('[TODA] enrichment failed: $e');
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -954,10 +978,11 @@ class _JeepneyRouteFloatingControlState
 
     return Stack(
       children: [
-        if (_isOpen)
-          Positioned(
-            left: panelLeft,
-            top: clampedY + buttonSize + 8,
+        Positioned(
+          left: panelLeft,
+          top: clampedY + buttonSize + 8,
+          child: Offstage(
+            offstage: !_isOpen,
             child: _JeepneyRouteDropdownPanel(
               routes: routes,
               visibleIds: visibleIds,
@@ -965,6 +990,7 @@ class _JeepneyRouteFloatingControlState
               width: panelWidth,
               height: panelHeight,
               selectedSection: _selectedSection,
+              todaTerminalsFuture: _todaTerminalsFuture,
               onSectionSelected: (section) {
                 setState(() {
                   _selectedSection = section;
@@ -982,8 +1008,14 @@ class _JeepneyRouteFloatingControlState
                   );
                 });
               },
+              onClose: () {
+                setState(() {
+                  _isOpen = false;
+                });
+              },
             ),
           ),
+        ),
         Positioned(
           left: clampedX,
           top: clampedY,
@@ -1024,7 +1056,7 @@ class _JeepneyRouteFloatingControlState
 /// A panel that displays a list of jeepney routes with checkboxes to toggle their visibility on the map.
 enum _JeepneyPanelSection { jeepneyRoutes, todaTerminals }
 
-class _JeepneyRouteDropdownPanel extends StatelessWidget {
+class _JeepneyRouteDropdownPanel extends StatefulWidget {
   final List<JeepneyRoute> routes;
   final Set<String> visibleIds;
   final bool isLoading;
@@ -1033,6 +1065,8 @@ class _JeepneyRouteDropdownPanel extends StatelessWidget {
   final _JeepneyPanelSection selectedSection;
   final void Function(_JeepneyPanelSection section) onSectionSelected;
   final void Function(double deltaX, double deltaY) onResize;
+  final VoidCallback? onClose;
+  final Future<List<Terminal>>? todaTerminalsFuture;
 
   const _JeepneyRouteDropdownPanel({
     required this.routes,
@@ -1041,26 +1075,54 @@ class _JeepneyRouteDropdownPanel extends StatelessWidget {
     required this.width,
     required this.height,
     required this.selectedSection,
+    required this.todaTerminalsFuture,
     required this.onSectionSelected,
     required this.onResize,
+    this.onClose,
   });
 
   @override
+  State<_JeepneyRouteDropdownPanel> createState() =>
+      _JeepneyRouteDropdownPanelState();
+}
+
+class _JeepneyRouteDropdownPanelState
+    extends State<_JeepneyRouteDropdownPanel> {
+  late final ScrollController scrollController;
+  bool _ignoreResize = false;
+
+  @override
+  void initState() {
+    super.initState();
+    scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final visibleCount = visibleIds.length;
+    final visibleCount = widget.visibleIds.length;
+    // ScrollController used for both lists so the scrollbar thumb is draggable/touchable.
+    // Note: created here for simplicity; if this widget rebuilds frequently consider
+    // hoisting the controller to state to properly dispose it.
+    final ScrollController scrollController = this.scrollController;
 
     return Material(
       color: Colors.white,
       elevation: 6,
       borderRadius: BorderRadius.circular(8),
       child: SizedBox(
-        width: width,
-        height: height,
+        width: widget.width,
+        height: widget.height,
         child: Stack(
           children: [
             Padding(
               padding: const EdgeInsets.all(10),
-              child: isLoading
+              child: widget.isLoading
                   ? const SizedBox(
                       height: 90,
                       child: Center(child: CircularProgressIndicator()),
@@ -1072,27 +1134,32 @@ class _JeepneyRouteDropdownPanel extends StatelessWidget {
                           children: [
                             Expanded(
                               child: _SectionToggleButton(
-                                isSelected: selectedSection ==
+                                isSelected:
+                                    widget.selectedSection ==
                                     _JeepneyPanelSection.jeepneyRoutes,
                                 label: 'Jeepney Routes',
-                                onTap: () => onSectionSelected(
-                                    _JeepneyPanelSection.jeepneyRoutes),
+                                onTap: () => widget.onSectionSelected(
+                                  _JeepneyPanelSection.jeepneyRoutes,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: _SectionToggleButton(
-                                isSelected: selectedSection ==
+                                isSelected:
+                                    widget.selectedSection ==
                                     _JeepneyPanelSection.todaTerminals,
                                 label: 'TODA Terminals',
-                                onTap: () => onSectionSelected(
-                                    _JeepneyPanelSection.todaTerminals),
+                                onTap: () => widget.onSectionSelected(
+                                  _JeepneyPanelSection.todaTerminals,
+                                ),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 12),
-                        if (selectedSection == _JeepneyPanelSection.jeepneyRoutes) ...[
+                        if (widget.selectedSection ==
+                            _JeepneyPanelSection.jeepneyRoutes) ...[
                           Row(
                             children: [
                               Expanded(
@@ -1102,16 +1169,43 @@ class _JeepneyRouteDropdownPanel extends StatelessWidget {
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 12,
                                     ),
-                                    foregroundColor: selectedSection == _JeepneyPanelSection.jeepneyRoutes
-                                        ? const Color.fromARGB(255, 41, 114, 110)
+                                    foregroundColor:
+                                        widget.selectedSection ==
+                                            _JeepneyPanelSection.jeepneyRoutes
+                                        ? const Color.fromARGB(
+                                            255,
+                                            41,
+                                            114,
+                                            110,
+                                          )
                                         : null,
                                     side: BorderSide(
-                                      color: selectedSection == _JeepneyPanelSection.jeepneyRoutes
-                                          ? const Color.fromARGB(255, 41, 114, 110)
+                                      color:
+                                          widget.selectedSection ==
+                                              _JeepneyPanelSection.jeepneyRoutes
+                                          ? const Color.fromARGB(
+                                              255,
+                                              41,
+                                              114,
+                                              110,
+                                            )
                                           : Colors.grey.shade300,
                                     ),
                                   ),
-                                  icon: Icon(Icons.visibility, size: 18, color: selectedSection == _JeepneyPanelSection.jeepneyRoutes ? const Color.fromARGB(255, 41, 114, 110) : null),
+                                  icon: Icon(
+                                    Icons.visibility,
+                                    size: 18,
+                                    color:
+                                        widget.selectedSection ==
+                                            _JeepneyPanelSection.jeepneyRoutes
+                                        ? const Color.fromARGB(
+                                            255,
+                                            41,
+                                            114,
+                                            110,
+                                          )
+                                        : null,
+                                  ),
                                   label: const Text('Show'),
                                   onPressed: () {
                                     context
@@ -1128,19 +1222,42 @@ class _JeepneyRouteDropdownPanel extends StatelessWidget {
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 12,
                                     ),
-                                    foregroundColor: selectedSection == _JeepneyPanelSection.jeepneyRoutes
-                                        ? const Color.fromARGB(255, 41, 114, 110)
+                                    foregroundColor:
+                                        widget.selectedSection ==
+                                            _JeepneyPanelSection.jeepneyRoutes
+                                        ? const Color.fromARGB(
+                                            255,
+                                            41,
+                                            114,
+                                            110,
+                                          )
                                         : null,
                                     side: BorderSide(
-                                      color: selectedSection == _JeepneyPanelSection.jeepneyRoutes
-                                          ? const Color.fromARGB(255, 41, 114, 110)
+                                      color:
+                                          widget.selectedSection ==
+                                              _JeepneyPanelSection.jeepneyRoutes
+                                          ? const Color.fromARGB(
+                                              255,
+                                              41,
+                                              114,
+                                              110,
+                                            )
                                           : Colors.grey.shade300,
                                     ),
                                   ),
                                   icon: Icon(
                                     Icons.visibility_off,
                                     size: 18,
-                                    color: selectedSection == _JeepneyPanelSection.jeepneyRoutes ? const Color.fromARGB(255, 41, 114, 110) : null,
+                                    color:
+                                        widget.selectedSection ==
+                                            _JeepneyPanelSection.jeepneyRoutes
+                                        ? const Color.fromARGB(
+                                            255,
+                                            41,
+                                            114,
+                                            110,
+                                          )
+                                        : null,
                                   ),
                                   label: const Text('Hide'),
                                   onPressed: () {
@@ -1155,7 +1272,7 @@ class _JeepneyRouteDropdownPanel extends StatelessWidget {
                           const SizedBox(height: 8),
                           Center(
                             child: Text(
-                              '$visibleCount/${routes.length}',
+                              '$visibleCount/${widget.routes.length}',
                               style: TextStyle(
                                 color: Colors.grey.shade700,
                                 fontSize: 13,
@@ -1164,87 +1281,445 @@ class _JeepneyRouteDropdownPanel extends StatelessWidget {
                           ),
                           const Divider(),
                           Expanded(
-                            child: routes.isEmpty
+                            child: widget.routes.isEmpty
                                 ? const Center(
                                     child: Text(
                                       'No routes loaded',
                                       style: TextStyle(color: Colors.grey),
                                     ),
                                   )
-                                : Scrollbar(
-                                    thumbVisibility: true,
-                                    radius: const Radius.circular(6),
-                                    thickness: 6,
-                                    child: ListView.builder(
-                                      primary: true,
-                                      itemCount: routes.length,
-                                      itemBuilder: (context, index) {
-                                        final route = routes[index];
-                                        final isVisible = visibleIds.contains(
-                                          route.id,
-                                        );
+                                : Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      // Teal visual indicator clamped to the list area (below the divider)
+                                      Container(
+                                        width: 12,
+                                        padding: const EdgeInsets.only(left: 4),
+                                        alignment: Alignment.centerLeft,
+                                        child: Container(
+                                          width: 4,
+                                          decoration: BoxDecoration(
+                                            color: const Color.fromARGB(
+                                              255,
+                                              48,
+                                              143,
+                                              138,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              2,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      // The actual scrollable list takes the remaining space
+                                      Expanded(
+                                        child: Scrollbar(
+                                          controller: scrollController,
+                                          interactive: true,
+                                          thumbVisibility: true,
+                                          radius: const Radius.circular(6),
+                                          thickness: 6,
+                                          child: ListView.builder(
+                                            controller: scrollController,
+                                            itemCount: widget.routes.length,
+                                            itemBuilder: (context, index) {
+                                              final route =
+                                                  widget.routes[index];
+                                              final isVisible = widget
+                                                  .visibleIds
+                                                  .contains(route.id);
 
-                                        return CheckboxListTile(
-                                          dense: true,
-                                          visualDensity:
-                                              const VisualDensity(
-                                            vertical: -2,
-                                            horizontal: -4,
-                                          ),
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 4,
-                                          ),
-                                          value: isVisible,
-                                          activeColor: const Color.fromARGB(255, 41, 114, 110),
-                                          checkColor: Colors.white,
-                                          secondary: Container(
-                                            width: 14,
-                                            height: 14,
-                                            decoration: BoxDecoration(
-                                              color: Color(
-                                                int.parse(
-                                                  route.color.replaceFirst(
-                                                    '#',
-                                                    '0xff',
+                                              return CheckboxListTile(
+                                                dense: true,
+                                                visualDensity:
+                                                    const VisualDensity(
+                                                      vertical: -2,
+                                                      horizontal: -4,
+                                                    ),
+                                                contentPadding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 4,
+                                                    ),
+                                                value: isVisible,
+                                                activeColor:
+                                                    const Color.fromARGB(
+                                                      255,
+                                                      41,
+                                                      114,
+                                                      110,
+                                                    ),
+                                                checkColor: Colors.white,
+                                                secondary: Container(
+                                                  width: 14,
+                                                  height: 14,
+                                                  decoration: BoxDecoration(
+                                                    color: Color(
+                                                      int.parse(
+                                                        route.color
+                                                            .replaceFirst(
+                                                              '#',
+                                                              '0xff',
+                                                            ),
+                                                      ),
+                                                    ),
+                                                    shape: BoxShape.circle,
                                                   ),
                                                 ),
-                                              ),
-                                              shape: BoxShape.circle,
-                                            ),
+                                                title: Text(
+                                                  route.name,
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                                onChanged: (_) {
+                                                  context
+                                                      .read<MapHelperProvider>()
+                                                      .toggleJeepneyRoute(
+                                                        route,
+                                                      );
+                                                },
+                                              );
+                                            },
                                           ),
-                                          title: Text(
-                                            route.name,
-                                            maxLines: 2,
-                                            overflow:
-                                                TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                          onChanged: (_) {
-                                            context
-                                                .read<MapHelperProvider>()
-                                                .toggleJeepneyRoute(route);
-                                          },
-                                        );
-                                      },
-                                    ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                           ),
                         ] else ...[
                           Expanded(
-                            child: Center(
-                              child: Text(
-                                'TODA Terminals placeholder',
-                                style: TextStyle(
-                                  color: Colors.grey.shade700,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
+                            child: widget.todaTerminalsFuture == null
+                                ? const Center(
+                                    child: Text(
+                                      'No TODA terminal data available',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  )
+                                : FutureBuilder<List<Terminal>>(
+                                    future: widget.todaTerminalsFuture,
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting) {
+                                        return const Center(
+                                          child: CircularProgressIndicator(),
+                                        );
+                                      }
+                                      if (snapshot.hasError) {
+                                        return Center(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(16.0),
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                const Text(
+                                                  'Failed to load TODA terminals',
+                                                  style: TextStyle(
+                                                    color: Colors.grey,
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  snapshot.error.toString(),
+                                                  style: const TextStyle(
+                                                    color: Colors.red,
+                                                    fontSize: 11,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      }
+
+                                      final terminals = snapshot.data ?? [];
+
+                                      if (terminals.isEmpty) {
+                                        return const Center(
+                                          child: Text(
+                                            'No TODA terminals found',
+                                            style: TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        );
+                                      }
+
+                                      return Scrollbar(
+                                        controller: scrollController,
+                                        interactive: true,
+                                        thumbVisibility: true,
+                                        radius: const Radius.circular(6),
+                                        thickness: 6,
+                                        child: ListView.builder(
+                                          controller: scrollController,
+                                          itemCount: terminals.length,
+                                          itemBuilder: (context, index) {
+                                            final terminal = terminals[index];
+                                            return ListTile(
+                                              dense: true,
+                                              contentPadding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 4,
+                                                  ),
+                                              title: Text(
+                                                terminal.name,
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                              subtitle: Text(
+                                                terminal.barangay ?? '',
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                              onTap: () async {
+                                                // Fly the map to the terminal location first
+                                                try {
+                                                  final mapHelper =
+                                                      Provider.of<
+                                                        MapHelperProvider
+                                                      >(context, listen: false);
+                                                  await mapHelper
+                                                      .mapWidgetController
+                                                      .flyToLoc(
+                                                        LatLng(
+                                                          terminal.latitude,
+                                                          terminal.longitude,
+                                                        ),
+                                                      );
+                                                } catch (e) {
+                                                  print(
+                                                    '[TODA] Failed to fly to terminal from list: $e',
+                                                  );
+                                                }
+ 
+                                                widget.onClose?.call();
+ 
+                                                final futureLocationLabel = terminal.barangay != null
+                                                    ? Future.value(terminal.barangay ?? 'Unknown location')
+                                                    : reverseGeocode(
+                                                        latitude: terminal.latitude,
+                                                        longitude: terminal.longitude,
+                                                      );
+ 
+                                                // Then show a persistent bottom sheet (non-modal) so UI remains interactive
+                                                late PersistentBottomSheetController
+                                                controller;
+                                                controller = Scaffold.of(context).showBottomSheet(
+                                                  (ctx) {
+                                                    final theme = Theme.of(ctx);
+                                                    return Container(
+                                                      decoration: BoxDecoration(
+                                                        color: theme
+                                                            .colorScheme
+                                                            .surface,
+                                                        borderRadius:
+                                                            const BorderRadius.only(
+                                                              topLeft:
+                                                                  Radius.circular(
+                                                                    24,
+                                                                  ),
+                                                              topRight:
+                                                                  Radius.circular(
+                                                                    24,
+                                                                  ),
+                                                            ),
+                                                        boxShadow: [
+                                                          BoxShadow(
+                                                            color:
+                                                                Colors.black26,
+                                                            blurRadius: 18,
+                                                            offset:
+                                                                const Offset(
+                                                                  0,
+                                                                  -8,
+                                                                ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      padding: EdgeInsets.fromLTRB(
+                                                        20,
+                                                        16,
+                                                        20,
+                                                        16 +
+                                                            MediaQuery.viewPaddingOf(
+                                                              ctx,
+                                                            ).bottom,
+                                                      ),
+                                                      child: Column(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .stretch,
+                                                        children: [
+                                                          Center(
+                                                            child: Container(
+                                                              width: 40,
+                                                              height: 4,
+                                                              margin:
+                                                                  const EdgeInsets.only(
+                                                                    bottom: 16,
+                                                                  ),
+                                                              decoration: BoxDecoration(
+                                                                color: theme
+                                                                    .colorScheme
+                                                                    .onSurface
+                                                                    .withOpacity(
+                                                                      0.2,
+                                                                    ),
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      2,
+                                                                    ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          Row(
+                                                            children: [
+                                                              Expanded(
+                                                                child: Text(
+                                                                  terminal.name,
+                                                                  style: theme
+                                                                      .textTheme
+                                                                      .titleMedium
+                                                                      ?.copyWith(
+                                                                        fontWeight:
+                                                                            FontWeight.w700,
+                                                                      ),
+                                                                ),
+                                                              ),
+                                                              Container(
+                                                                padding:
+                                                                    const EdgeInsets.symmetric(
+                                                                      horizontal:
+                                                                          10,
+                                                                      vertical:
+                                                                          6,
+                                                                    ),
+                                                                decoration: BoxDecoration(
+                                                                  color: theme
+                                                                      .colorScheme
+                                                                      .primary
+                                                                      .withOpacity(
+                                                                        0.12,
+                                                                      ),
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        12,
+                                                                      ),
+                                                                ),
+                                                                child: Text(
+                                                                  'TODA',
+                                                                  style: theme
+                                                                      .textTheme
+                                                                      .labelMedium
+                                                                      ?.copyWith(
+                                                                        color: theme
+                                                                            .colorScheme
+                                                                            .primary,
+                                                                        fontWeight:
+                                                                            FontWeight.w600,
+                                                                      ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          const SizedBox(
+                                                            height: 14,
+                                                          ),
+                                                          FutureBuilder<String>(
+                                                            future:
+                                                                futureLocationLabel,
+                                                            builder: (ctx2, snapshot) {
+                                                              final label =
+                                                                  snapshot.connectionState ==
+                                                                          ConnectionState.waiting
+                                                                      ? 'Resolving barangay...'
+                                                                      : snapshot.hasError
+                                                                          ? 'Unknown location'
+                                                                          : snapshot.data ??
+                                                                              'Unknown location';
+                                                              return Row(
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons.place,
+                                                                    size: 18,
+                                                                    color: theme
+                                                                        .colorScheme
+                                                                        .primary,
+                                                                  ),
+                                                                  const SizedBox(
+                                                                    width: 10,
+                                                                  ),
+                                                                  Expanded(
+                                                                    child: Text(
+                                                                      label,
+                                                                      style: theme
+                                                                          .textTheme
+                                                                          .bodyMedium,
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              );
+                                                            },
+                                                          ),
+                                                          const SizedBox(
+                                                            height: 20,
+                                                          ),
+                                                          SizedBox(
+                                                            width:
+                                                                double.infinity,
+                                                            child: ElevatedButton(
+                                                              style: ElevatedButton.styleFrom(
+                                                                shape: RoundedRectangleBorder(
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        14,
+                                                                      ),
+                                                                ),
+                                                                padding:
+                                                                    const EdgeInsets.symmetric(
+                                                                      vertical:
+                                                                          14,
+                                                                    ),
+                                                              ),
+                                                              onPressed: () =>
+                                                                  controller
+                                                                      .close(),
+                                                              child: const Text(
+                                                                'Close',
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    );
+                                                  },
+                                                  backgroundColor:
+                                                      Colors.transparent,
+                                                );
+                                              },
+                                            );
+                                          },
+                                        ),
+                                      );
+                                    },
+                                  ),
                           ),
                         ],
                       ],
@@ -1256,39 +1731,46 @@ class _JeepneyRouteDropdownPanel extends StatelessWidget {
               bottom: 0,
               child: GestureDetector(
                 behavior: HitTestBehavior.translucent,
-                onPanUpdate: (details) => onResize(-details.delta.dx, 0),
+                onPanStart: (details) {
+                  final box = context.findRenderObject() as RenderBox;
+                  final local = box.globalToLocal(details.globalPosition);
+                  _ignoreResize = local.dx >= box.size.width - 40;
+                },
+                onPanUpdate: (details) {
+                  if (!_ignoreResize) widget.onResize(-details.delta.dx, 0);
+                },
+                onPanEnd: (_) {
+                  _ignoreResize = false;
+                },
                 child: MouseRegion(
                   cursor: SystemMouseCursors.resizeLeftRight,
-                  child: Container(
-                    width: 24,
-                    color: Colors.transparent,
-                    padding: const EdgeInsets.only(left: 8),
-                    alignment: Alignment.centerLeft,
-                    child: Container(
-                      width: 4,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 48, 143, 138),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
+                  child: Container(width: 24, color: Colors.transparent),
                 ),
               ),
             ),
+            // Right resize handle moved slightly outside the panel to avoid
+            // blocking the vertical scrollbar thumb. This makes the thumb
+            // draggable while keeping the resize affordance.
             Positioned(
-              right: 0,
+              right: -12,
               top: 0,
               bottom: 0,
               child: GestureDetector(
                 behavior: HitTestBehavior.translucent,
-                onPanUpdate: (details) => onResize(details.delta.dx, 0),
+                onPanStart: (details) {
+                  final box = context.findRenderObject() as RenderBox;
+                  final local = box.globalToLocal(details.globalPosition);
+                  _ignoreResize = local.dx >= box.size.width - 40;
+                },
+                onPanUpdate: (details) {
+                  if (!_ignoreResize) widget.onResize(details.delta.dx, 0);
+                },
+                onPanEnd: (_) {
+                  _ignoreResize = false;
+                },
                 child: MouseRegion(
                   cursor: SystemMouseCursors.resizeLeftRight,
-                  child: Container(
-                    width: 24,
-                    color: Colors.transparent,
-                  ),
+                  child: Container(width: 24, color: Colors.transparent),
                 ),
               ),
             ),
@@ -1299,28 +1781,52 @@ class _JeepneyRouteDropdownPanel extends StatelessWidget {
               height: 30,
               child: GestureDetector(
                 behavior: HitTestBehavior.translucent,
-                onPanUpdate: (details) => onResize(0, details.delta.dy),
+                onPanStart: (details) {
+                  final box = context.findRenderObject() as RenderBox;
+                  final local = box.globalToLocal(details.globalPosition);
+                  _ignoreResize = local.dx >= box.size.width - 40;
+                },
+                onPanUpdate: (details) {
+                  if (!_ignoreResize) widget.onResize(0, details.delta.dy);
+                },
+                onPanEnd: (_) {
+                  _ignoreResize = false;
+                },
                 child: MouseRegion(
                   cursor: SystemMouseCursors.resizeUpDown,
-                  child: Container(
-                    color: Colors.transparent,
-                  ),
+                  child: Container(color: Colors.transparent),
                 ),
               ),
             ),
             Positioned(
-              right: 8,
-              bottom: 8,
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onPanUpdate: (details) =>
-                    onResize(details.delta.dx, details.delta.dy),
-                child: MouseRegion(
-                  cursor: SystemMouseCursors.resizeUpDown,
-                  child: Icon(
-                    Icons.drag_handle,
-                    size: 18,
-                    color: Colors.grey.shade600,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Center(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onPanStart: (details) {
+                    final box = context.findRenderObject() as RenderBox;
+                    final local = box.globalToLocal(details.globalPosition);
+                    _ignoreResize = local.dx >= box.size.width - 40;
+                  },
+                  onPanUpdate: (details) {
+                    if (!_ignoreResize)
+                      widget.onResize(details.delta.dx, details.delta.dy);
+                  },
+                  onPanEnd: (_) {
+                    _ignoreResize = false;
+                  },
+                  child: SizedBox(
+                    width: 40,
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.resizeUpDown,
+                      child: Icon(
+                        Icons.drag_handle,
+                        size: 18,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -1333,45 +1839,39 @@ class _JeepneyRouteDropdownPanel extends StatelessWidget {
 }
 
 class _SectionToggleButton extends StatelessWidget {
- final bool isSelected;
- final String label;
- final VoidCallback onTap;
+  final bool isSelected;
+  final String label;
+  final VoidCallback onTap;
 
- const _SectionToggleButton({
-   required this.isSelected,
-   required this.label,
-   required this.onTap,
- });
+  const _SectionToggleButton({
+    required this.isSelected,
+    required this.label,
+    required this.onTap,
+  });
 
- @override
- Widget build(BuildContext context) {
-   final colorScheme = Theme.of(context).colorScheme;
-   return OutlinedButton(
-     style: OutlinedButton.styleFrom(
-       backgroundColor: isSelected
-           ? colorScheme.primary.withAlpha(31)
-           : Colors.transparent,
-       foregroundColor:
-           isSelected ? colorScheme.primary : Colors.grey.shade800,
-       side: BorderSide(
-         color: isSelected
-             ? colorScheme.primary
-             : Colors.grey.shade300,
-       ),
-       shape: RoundedRectangleBorder(
-         borderRadius: BorderRadius.circular(8),
-       ),
-       padding: const EdgeInsets.symmetric(vertical: 14),
-     ),
-     onPressed: onTap,
-     child: Text(
-       label,
-       textAlign: TextAlign.center,
-       style: const TextStyle(
-         fontWeight: FontWeight.w600,
-         fontSize: 13,
-       ),
-     ),
-   );
- }
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return OutlinedButton(
+      style: OutlinedButton.styleFrom(
+        backgroundColor: isSelected
+            ? colorScheme.primary.withAlpha(31)
+            : Colors.transparent,
+        foregroundColor: isSelected
+            ? colorScheme.primary
+            : Colors.grey.shade800,
+        side: BorderSide(
+          color: isSelected ? colorScheme.primary : Colors.grey.shade300,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+      ),
+      onPressed: onTap,
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+      ),
+    );
+  }
 }

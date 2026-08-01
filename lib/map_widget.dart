@@ -5,8 +5,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:http/http.dart' as http;
 import 'package:sakenph/api/database_service.dart';
+import 'package:sakenph/api/backend_service.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions.dart';
+import 'package:sakenph/features/foreground_widget/functions.dart';
 import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
 import 'package:sakenph/classes/terminal_class.dart';
 import 'package:sakenph/classes/json_response.dart';
@@ -77,12 +79,13 @@ class MapWidgetController {
 
   Future<void> fullRemoveSourceLayer(String sourceId, String layerId) =>
       _state?._fullRemoveSourceLayer(sourceId, layerId) ?? Future.value();
-/// Added to fetch the jeepney routes from the backend.
+
+  /// Added to fetch the jeepney routes from the backend.
   Future<void> showJeepneyRoute(JeepneyRoute route) =>
-    _state?.showJeepneyRoute(route) ?? Future.value();
+      _state?.showJeepneyRoute(route) ?? Future.value();
 
   Future<void> hideJeepneyRoute(String routeId) =>
-      _state?.hideJeepneyRoute(routeId) ?? Future.value();    
+      _state?.hideJeepneyRoute(routeId) ?? Future.value();
 }
 
 class _MapWidget extends State<MapWidget> {
@@ -92,6 +95,8 @@ class _MapWidget extends State<MapWidget> {
   // Keeps track of sourceIds and routeIds created from rendering a route
   List<String> routeSourceIds = [];
   List<String> routeLayerIds = [];
+
+  List<Terminal> _todaTerminals = [];
 
   Future<void> _fullRemoveSourceLayer(String sourceId, String layerId) async {
     if (routeLayerIds.contains(layerId)) {
@@ -540,16 +545,15 @@ class _MapWidget extends State<MapWidget> {
   /// Added for loading jeepney routes from the backend.
   /// Generates a unique source ID for a jeepney route based on its route ID.
   String _jeepneyRouteSourceId(String routeId) {
-  return 'jeepney-route-source-$routeId';
+    return 'jeepney-route-source-$routeId';
   }
 
   String _jeepneyRouteLayerId(String routeId) {
     return 'jeepney-route-layer-$routeId';
   }
 
-  
-/// Draws one jeepney route line on the map.
-/// Draws one jeepney route line on the map.
+  /// Draws one jeepney route line on the map.
+  /// Draws one jeepney route line on the map.
   Future<void> showJeepneyRoute(JeepneyRoute route) async {
     if (_controller == null) return;
 
@@ -577,7 +581,7 @@ class _MapWidget extends State<MapWidget> {
     jeepneyRouteLayerIds.add(layerId);
   }
 
-    /// Removes one jeepney route line from the map.
+  /// Removes one jeepney route line from the map.
   Future<void> hideJeepneyRoute(String routeId) async {
     if (_controller == null) return;
 
@@ -768,6 +772,136 @@ class _MapWidget extends State<MapWidget> {
     );
   }
 
+  Future<void> _loadTodaTerminals() async {
+    try {
+      // Enrich terminals with barangay where possible for better UX
+      _todaTerminals = await fetchAndEnrichTodaTerminals();
+      await addTodaLayers();
+    } catch (e) {
+      print('[TEMP] Failed to load TODA terminals: $e');
+    }
+  }
+
+  void _showTerminalDetails(BuildContext context, Terminal terminal) {
+    // Use a persistent bottom sheet so the rest of the UI remains interactive
+    final futureLocationLabel = terminal.barangay != null
+        ? Future.value(terminal.barangay ?? 'Unknown location')
+        : reverseGeocode(
+            latitude: terminal.latitude,
+            longitude: terminal.longitude,
+          );
+
+    late PersistentBottomSheetController controller;
+    controller = Scaffold.of(context).showBottomSheet((ctx) {
+      final theme = Theme.of(ctx);
+      return Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 18,
+              offset: const Offset(0, -8),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          16,
+          20,
+          16 + MediaQuery.viewPaddingOf(ctx).bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurface.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    terminal.name,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'TODA',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            FutureBuilder<String>(
+              future: futureLocationLabel,
+              builder: (ctx2, snapshot) {
+                final label = snapshot.connectionState == ConnectionState.waiting
+                    ? 'Resolving barangay...'
+                    : snapshot.hasError
+                        ? 'Unknown location'
+                        : snapshot.data ?? 'Unknown location';
+                return Row(
+                  children: [
+                    Icon(Icons.place, size: 18, color: theme.colorScheme.primary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        label,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: () => controller.close(),
+                child: const Text('Close'),
+              ),
+            ),
+          ],
+        ),
+      );
+    }, backgroundColor: Colors.transparent);
+  }
+
   // Adjusts camera based on coordinates
   Future<void> flyToBounds(List<LatLng> coordinates) async {
     if (coordinates.isEmpty) return;
@@ -856,17 +990,19 @@ class _MapWidget extends State<MapWidget> {
   }
 
   Future<void> addTodaLayers() async {
-    final todaList = await DatabaseService().todaList;
+    for (Terminal t in _todaTerminals) {
+      final sourceId = 'toda_source_${t.id}';
+      final layerId = 'toda_layer_${t.id}';
 
-    for (Terminal t in todaList) {
       await _controller?.addSource(
-        'source_${t.id}',
+        sourceId,
         GeojsonSourceProperties(
           data: {
             'type': 'FeatureCollection',
             'features': [
               {
                 'type': 'Feature',
+                'properties': {'name': t.name},
                 'geometry': {
                   'type': 'Point',
                   'coordinates': [t.longitude, t.latitude],
@@ -878,8 +1014,8 @@ class _MapWidget extends State<MapWidget> {
       );
 
       await _controller?.addLayer(
-        'source_${t.id}',
-        'layer_${t.id}',
+        sourceId,
+        layerId,
         const SymbolLayerProperties(iconImage: 'toda', iconSize: 0.25),
         minzoom: 12,
       );
@@ -1117,13 +1253,41 @@ class _MapWidget extends State<MapWidget> {
         await context.read<MapHelperProvider>().loadJeepneyRoutes();
         await context.read<MapHelperProvider>().showAllJeepneyRoutes();
 
-        // Function that triggers when you click on a TODA icon
-        // _controller!.onFeatureTapped.add((point, coordinates, id, layerId, annotation) {
-        //   clickedTLayer(layerId);
-        // },);
-
         // Load tricycle icon to list of icons
         _addImageToController('assets/img/toda.png', 'toda', false);
+
+        _controller!.onFeatureTapped.add((
+          point,
+          coordinates,
+          id,
+          layerId,
+          annotation,
+        ) async {
+          if (layerId.toString().startsWith('toda_layer_')) {
+            final selected = _todaTerminals.firstWhere(
+              (terminal) => 'toda_layer_${terminal.id}' == layerId,
+              orElse: () => Terminal(
+                id: -1,
+                name: 'Unknown Terminal',
+                longitude: 0,
+                latitude: 0,
+              ),
+            );
+            if (selected.id != -1) {
+              // Animate camera to the terminal location before showing details
+              try {
+                await _flyToLoc(LatLng(selected.latitude, selected.longitude));
+              } catch (e) {
+                // If animation fails, still show details
+                print('[TODA] Failed to fly to terminal: $e');
+              }
+
+              _showTerminalDetails(context, selected);
+            }
+          }
+        });
+
+        await _loadTodaTerminals();
 
         // Load map marker (GPS Location) icon to list of icons
         _addImageToController('assets/img/mapmarker.png', 'mapmarker', true);

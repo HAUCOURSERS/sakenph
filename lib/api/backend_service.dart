@@ -5,11 +5,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'package:provider/provider.dart';
-import 'package:sakenph/globals/enums.dart';
-import 'package:sakenph/api/local/env.dart';
 import 'package:sakenph/globals/variables.dart' as global_vars;
 import 'package:sakenph/classes/jeepney_route.dart';
+import 'package:sakenph/classes/terminal_class.dart';
+import 'package:sakenph/api/local/env.dart';
 
 /// Attempts to get json results by submitting origin and destination [LatLng] values.
 /// Returns a nullable <code>Map&lt;String, dynamic&gt;</code> value. BuildContext is passed
@@ -64,7 +63,9 @@ Future<Map<String, dynamic>> queryForShortestPath(
 // Fetches jeepney routes from the backend service and returns a list of JeepneyRoute objects.
 Future<List<JeepneyRoute>> fetchJeepRoutes() async {
   final response = await http.get(
-    Uri.parse('http://{Env.API_ENDPOINT_LINK IP/jeep_routes'),       // local backend service link for ui toggle
+    Uri.parse(
+     'http://{Env.API_ENDPOINT_LINK IP/jeep_routes',
+    ), // local backend service link for ui toggle
   );
 
   if (response.statusCode != 200) {
@@ -77,5 +78,33 @@ Future<List<JeepneyRoute>> fetchJeepRoutes() async {
   return routes
       .map((route) => JeepneyRoute.fromJson(route as Map<String, dynamic>))
       .toList();
+}
+
+/// Fetches all TODA terminal points from the backend service.
+Future<List<Terminal>> fetchTodaTerminals() async {
+  final response = await http.get(
+    Uri.parse(
+      'http://{Env.API_ENDPOINT_LINK IP/trike_terminals_list'),
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception('Failed to load TODA terminals');
   }
 
+  final Map<String, dynamic> body = jsonDecode(response.body);
+  final List<dynamic> terminals = body['terminalList'] ?? [];
+
+  return terminals.asMap().entries.map((entry) {
+    final index = entry.key;
+    final terminal = entry.value as Map<String, dynamic>;
+    final coords = terminal['coordinates'] as Map<String, dynamic>;
+
+    return Terminal(
+      id: index + 1,
+      name: terminal['terminalName']?.toString() ?? 'TODA Terminal',
+      longitude: (coords['long'] as num).toDouble(),
+      latitude: (coords['lat'] as num).toDouble(),
+      type: 'trike',
+    );
+  }).toList();
+}

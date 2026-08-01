@@ -4,12 +4,14 @@ class Terminal {
   double longitude;
   double latitude;
   String type = 'misc';
+  String? barangay;
 
   Terminal({
     required this.id,
     required this.name,
     required this.longitude,
     required this.latitude,
-    type
+    this.type = 'misc',
+    this.barangay,
   });
 }
