@@ -49,7 +49,7 @@ class SuggestedPathWidgetListBuilder extends StatelessWidget {
             },
             child: SizedBox(
               width: responsiveSizeWidth(
-                MediaQuery.sizeOf(context).width * 0.8,
+                MediaQuery.sizeOf(context).width * 0.6,
               ),
               child: Container(
                 padding: EdgeInsets.all(responsiveSizeHeight(10)),
@@ -58,7 +58,7 @@ class SuggestedPathWidgetListBuilder extends StatelessWidget {
                   borderRadius: BorderRadius.circular(responsiveSizeHeight(5)),
                   border: Border.all(
                     color: Colors.black,
-                    width: responsiveSizeWidth(1),
+                    width: responsiveSizeHeight(1),
                   ),
                   // black outline
                   boxShadow: [

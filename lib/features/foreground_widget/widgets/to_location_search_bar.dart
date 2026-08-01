@@ -17,7 +17,10 @@ class ToLocationSearchBar extends StatelessWidget {
     return Align(
       alignment: Alignment.topCenter,
       child: SizedBox(
-        width: responsiveSizeWidth(MediaQuery.sizeOf(context).width * 0.95),
+        width: responsiveSizeWidth(
+          MediaQuery.sizeOf(context).width * 0.95,
+          500,
+        ),
         child: Column(
           children: [
             TextField(
@@ -62,16 +65,26 @@ class ToLocationSearchBar extends StatelessWidget {
                     SystemState.gatheringToLoc;
               },
               decoration: InputDecoration(
+                isDense: true,
+
                 /// Expected to change state whether the background widget is
                 /// visible or not
                 hintText: "Your Destination",
                 contentPadding: EdgeInsets.symmetric(
-                  vertical: 0,
-                  horizontal: responsiveSizeWidth(48),
+                  vertical: responsiveSizeHeight(15),
+                  horizontal: responsiveSizeWidth(15),
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
+                prefixIcon: SizedBox(
+                  width: responsiveSizeHeight(24 + 15 + 7.5),
+                ),
+                prefixIconConstraints: BoxConstraints(
+                  minWidth: responsiveSizeWidth(24),
+                  minHeight: responsiveSizeHeight(24),
+                ),
+
                 fillColor: Colors.white,
                 filled: true,
               ),

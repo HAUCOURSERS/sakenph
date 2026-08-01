@@ -1,5 +1,7 @@
 // ignore_for_file: non_constant_identifier_names
 
+import 'dart:math';
+
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -73,10 +75,10 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
           children: [
             SizedBox(height: responsiveSizeHeight(10)),
             Container(
-              width: responsiveSizeWidth(
+              width: responsiveSizeHeight(
                 MediaQuery.sizeOf(context).width * 0.5,
+                300,
               ),
-              padding: EdgeInsets.all(responsiveSizeHeight(2.5)),
               decoration: BoxDecoration(
                 color: const Color.fromARGB(255, 217, 220, 223),
                 borderRadius: BorderRadius.only(
@@ -84,11 +86,16 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
                   topRight: Radius.circular(16),
                 ),
               ),
-              height: responsiveSizeHeight(30),
-              child: Text(
-                "Path #${choice_idx + 1}",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 25),
+              height: responsiveSizeHeight(25),
+              child: Center(
+                child: Text(
+                  "Path #${choice_idx + 1}",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: responsiveSizeHeight(20),
+                  ),
+                ),
               ),
             ),
             Container(
@@ -96,6 +103,7 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
                 color: const Color.fromARGB(255, 217, 220, 223),
                 borderRadius: BorderRadius.all(Radius.circular(16)),
               ),
+              padding: EdgeInsets.only(left: 10, right: 10),
               width: responsiveSizeWidth(MediaQuery.sizeOf(context).width),
               child: Column(
                 children: [
@@ -124,7 +132,7 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
                   ),
                   SizedBox(
                     height: responsiveSizeHeight(30),
-                    width: responsiveSizeWidth(
+                    width: responsiveSizeHeight(
                       MediaQuery.sizeOf(context).width * 0.75,
                     ),
                     child: navPainter(pathJSON, route_id),

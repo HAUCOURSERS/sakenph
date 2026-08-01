@@ -21,11 +21,14 @@ class RouteOpenerButton extends StatelessWidget {
               true;
         },
         child: Container(
-          width: responsiveSizeWidth(MediaQuery.sizeOf(context).width * 0.75),
+          width: responsiveSizeWidth(
+            MediaQuery.sizeOf(context).width * 0.75,
+            500,
+          ),
           padding: EdgeInsets.all(responsiveSizeHeight(10)),
           decoration: BoxDecoration(
             color: Color.fromARGB(255, 176, 221, 255),
-            border: Border.all(width: responsiveSizeWidth(1)),
+            border: Border.all(width: responsiveSizeHeight(1)),
             borderRadius: BorderRadius.circular(responsiveSizeHeight(5)),
           ),
           child: Column(

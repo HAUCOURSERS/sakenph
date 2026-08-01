@@ -136,10 +136,8 @@ class ViewForRequestingToLocation extends StatelessWidget {
     return Column(
       children: [
         SizedBox(height: responsiveSizeHeight(60)),
-        if (context.read<MapHelperProvider>().getIsToLocationDetailsEmpty)
-          SizedBox(height: responsiveSizeHeight(60)),
-        UseCurrentLocationButton(),
-        SizedBox(height: responsiveSizeHeight(10)),
+        Container(),
+        SizedBox(height: responsiveSizeHeight(60)),
         if (isActiveSearching) toShowSuggestionResults(),
       ],
     );

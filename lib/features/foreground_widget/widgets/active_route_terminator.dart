@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:provider/provider.dart';
@@ -54,20 +56,21 @@ class ActiveRouteTerminator extends StatelessWidget {
                 Container(
                   width: responsiveSizeWidth(
                     MediaQuery.sizeOf(context).width * 0.95,
+                    500,
                   ),
                   padding: EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: distanceTillDestinationInMeters < 20
                         ? Colors.green
                         : Colors.red,
-                    border: Border.all(width: responsiveSizeWidth(1)),
+                    border: Border.all(width: responsiveSizeHeight(1)),
                     borderRadius: BorderRadius.circular(5),
                   ),
                   child: Text(
                     "Stop Tracking",
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: responsiveSizeHeight(20),
+                      fontSize: max(20, responsiveSizeHeight(20)),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -81,14 +84,14 @@ class ActiveRouteTerminator extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade300,
-                    border: Border.all(width: responsiveSizeWidth(1)),
+                    border: Border.all(width: responsiveSizeHeight(1)),
                     borderRadius: BorderRadius.circular(5),
                   ),
                   child: Text(
                     "Distance till Destination: ${distanceTillDestinationInMeters.toStringAsFixed(2)} m",
                     style: TextStyle(
                       color: Colors.black,
-                      fontSize: responsiveSizeHeight(20),
+                      fontSize: max(18, responsiveSizeHeight(20)),
                     ),
                     textAlign: TextAlign.center,
                   ),

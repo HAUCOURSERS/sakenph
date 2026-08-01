@@ -41,7 +41,7 @@ double get getResolutionHeight {
 }
 
 /// Mainly for widget properties to adjust their sizes based on user device's width.
-/// Best utilized on horizontal properties
+/// Best utilized on horizontal properties. If you want to set minimum value, provide it at the 2nd argument
 double responsiveSizeWidth(
   double estimateSize, [
   double maxSize = double.infinity,
@@ -52,7 +52,7 @@ double responsiveSizeWidth(
 }
 
 /// Mainly for widget properties to adjust their sizes based on user device's height.
-/// Best utilized on vertical properties
+/// Best utilized on vertical properties. If you want to set minimum value, provide it at the 2nd argument
 double responsiveSizeHeight(
   double estimateSize, [
   double maxSize = double.infinity,

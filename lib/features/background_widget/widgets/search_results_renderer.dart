@@ -72,42 +72,48 @@ class _SearchResultRendererState extends State<SearchResultRenderer> {
             _showColor = false;
           });
         },
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: Colors.black,
-                width: responsiveSizeWidth(1),
+        child: Column(
+          children: [
+            Container(
+              color: Colors.transparent,
+              height: responsiveSizeHeight(60),
+              child: Row(
+                children: [
+                  Container(
+                    width: responsiveSizeHeight(34),
+                    height: responsiveSizeHeight(34),
+                    color: Colors.transparent,
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.location_on,
+                      size: responsiveSizeHeight(24),
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: responsiveSizeHeight(4)),
+                        Text(
+                          widget.nomiPlace.name,
+                          style: TextStyle(
+                            fontSize: responsiveSizeHeight(20),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          widget.nomiPlace.displayName,
+                          style: TextStyle(fontSize: responsiveSizeHeight(12)),
+                          textAlign: TextAlign.left,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-          child: ListTile(
-            title: Row(
-              children: [
-                Icon(Icons.location_on),
-                SizedBox(width: responsiveSizeWidth(10), height: 0),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.nomiPlace.name,
-                        style: TextStyle(
-                          fontSize: responsiveSizeHeight(20),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        widget.nomiPlace.displayName,
-                        style: TextStyle(fontSize: responsiveSizeHeight(12)),
-                        textAlign: TextAlign.left,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+            Container(color: Colors.black, height: responsiveSizeHeight(2)),
+          ],
         ),
       ),
     );

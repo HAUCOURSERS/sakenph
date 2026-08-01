@@ -8,25 +8,23 @@ import 'package:sakenph/globals/functions/utils_responsiveness.dart';
 class DisplaySuggestedPaths extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // Meant to absorb onTap hits to prevent closure due to the main background
-    // widget's nature
+    // If you want to change the width of the route choice display widgets, modify this
+    double choiceWidgetWidth = responsiveSizeWidth(400, 370);
+
     return SizedBox(
       child: Stack(
         children: [
           Positioned(
             top: responsiveSizeHeight(200),
-            left: responsiveSizeWidth(
-              MediaQuery.sizeOf(context).width * 0.0625,
-            ),
-            right: responsiveSizeWidth(
-              MediaQuery.sizeOf(context).width * 0.0625,
-            ),
+            left:
+                (MediaQuery.sizeOf(context).width / 2) -
+                (choiceWidgetWidth / 2),
+
             child: Container(
-              color: Colors.transparent,
               alignment: Alignment.center,
-              width: MediaQuery.sizeOf(context).width,
+              width: choiceWidgetWidth,
               height: MediaQuery.sizeOf(context).height,
-              child: Center(child: SuggestedPathWidgetListBuilder()),
+              child: SuggestedPathWidgetListBuilder(),
             ),
           ),
           Positioned(
