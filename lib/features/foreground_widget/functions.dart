@@ -32,20 +32,6 @@ Future<String> reverseGeocode({
   }
 }
 
-/// Currently used to test connection towards backend.
-/// If connection is successful, it will return "Hello from FastAPI!"
-Future<Map<String, dynamic>> fetchData() async {
-  String localIp = global_vars.localIP;
-  final response = await http.get(
-    Uri.parse('http://${localIp}:8000/flutterTest'),
-  );
-
-  if (response.statusCode == 200) {
-    return jsonDecode(response.body);
-  } else {
-    throw Exception('Failed to load JSON');
-  }
-}
 
 /// To get location perms
 Future<bool> handleLocationPermission(BuildContext context) async {

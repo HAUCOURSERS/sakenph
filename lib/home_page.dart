@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/features/background_widget/widgets.dart';
 import 'package:sakenph/features/foreground_widget/functions.dart'
-    show fetchData, handleLocationPermission;
+    show handleLocationPermission;
 import 'package:sakenph/features/foreground_widget/widgets.dart';
 import 'package:sakenph/map_widget.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
@@ -18,12 +18,10 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePage extends State<HomePage> {
-  late Future<Map<dynamic, dynamic>> json;
 
   @override
   void initState() {
     super.initState();
-    json = fetchData();
     context.read<MapHelperProvider>().fetchUserCurrentGeolocationAndSave();
     context.read<SystemTasksProvder>().mountProviders(context);
   }

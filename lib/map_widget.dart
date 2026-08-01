@@ -8,6 +8,7 @@ import 'package:sakenph/api/database_service.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions.dart';
 import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
+import 'package:sakenph/api/local/env.dart';
 import 'package:sakenph/classes/terminal_class.dart';
 import 'package:sakenph/classes/json_response.dart';
 import 'package:provider/provider.dart';
@@ -862,7 +863,7 @@ class _MapWidget extends State<MapWidget> {
     );
     final response = await http.get(
       Uri.parse(
-        'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
+        'http://192.168.100.7:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
       ),
     );
 
