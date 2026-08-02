@@ -1,5 +1,3 @@
-// ignore_for_file: unused_local_variable
-
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -34,7 +32,8 @@ Future<Map<String, dynamic>> queryForShortestPath(
         //'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}&algo=astar&debug=true',
 
         // AWS EC2
-        '${Env.API_ENDPOINT_LINK}k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
+        //'${Env.API_ENDPOINT_LINK}k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
+        'http://ec2-18-142-233-77.ap-southeast-1.compute.amazonaws.com:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}'
       ),
     );
 
@@ -84,7 +83,8 @@ Future<List<JeepneyRoute>> fetchJeepRoutes() async {
 Future<List<Terminal>> fetchTodaTerminals() async {
   final response = await http.get(
     Uri.parse(
-      'http://{Env.API_ENDPOINT_LINK IP/trike_terminals_list'),
+      'http://{Env.API_ENDPOINT_LINK IP/trike_terminals_list',
+    ), // local backend service link for TODA Terminals
   );
 
   if (response.statusCode != 200) {

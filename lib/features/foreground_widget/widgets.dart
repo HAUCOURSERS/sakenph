@@ -655,7 +655,7 @@ class _RouteOpenerButton extends StatelessWidget {
               Text(
                 "View Searched Routes",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
               ),
             ],
           ),
@@ -1008,6 +1008,14 @@ class _JeepneyRouteFloatingControlState
                   );
                 });
               },
+              onDrag: (deltaX, deltaY) {
+                setState(() {
+                  _position = Offset(
+                    clampedX + deltaX,
+                    clampedY + deltaY,
+                  );
+                });
+              },
               onClose: () {
                 setState(() {
                   _isOpen = false;
@@ -1065,6 +1073,7 @@ class _JeepneyRouteDropdownPanel extends StatefulWidget {
   final _JeepneyPanelSection selectedSection;
   final void Function(_JeepneyPanelSection section) onSectionSelected;
   final void Function(double deltaX, double deltaY) onResize;
+  final void Function(double deltaX, double deltaY) onDrag;
   final VoidCallback? onClose;
   final Future<List<Terminal>>? todaTerminalsFuture;
 
@@ -1078,6 +1087,7 @@ class _JeepneyRouteDropdownPanel extends StatefulWidget {
     required this.todaTerminalsFuture,
     required this.onSectionSelected,
     required this.onResize,
+    required this.onDrag,
     this.onClose,
   });
 
@@ -1090,6 +1100,9 @@ class _JeepneyRouteDropdownPanelState
     extends State<_JeepneyRouteDropdownPanel> {
   late final ScrollController scrollController;
   bool _ignoreResize = false;
+  bool _showAllSelected = true;
+  final TextEditingController _terminalSearchController = TextEditingController();
+  String _terminalSearchQuery = '';
 
   @override
   void initState() {
@@ -1100,6 +1113,7 @@ class _JeepneyRouteDropdownPanelState
   @override
   void dispose() {
     scrollController.dispose();
+    _terminalSearchController.dispose();
     super.dispose();
   }
 
@@ -1130,6 +1144,22 @@ class _JeepneyRouteDropdownPanelState
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        GestureDetector(
+                          onPanUpdate: (details) {
+                            widget.onDrag(details.delta.dx, details.delta.dy);
+                          },
+                          child: Center(
+                            child: Container(
+                              width: 90,
+                              height: 7.5,
+                              margin: const EdgeInsets.only(bottom: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade400,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                          ),
+                        ),
                         Row(
                           children: [
                             Expanded(
@@ -1149,7 +1179,7 @@ class _JeepneyRouteDropdownPanelState
                                 isSelected:
                                     widget.selectedSection ==
                                     _JeepneyPanelSection.todaTerminals,
-                                label: 'TODA Terminals',
+                                label: 'Tricycle Terminals',
                                 onTap: () => widget.onSectionSelected(
                                   _JeepneyPanelSection.todaTerminals,
                                 ),
@@ -1157,129 +1187,64 @@ class _JeepneyRouteDropdownPanelState
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
+                        Divider(height: 1, color: Colors.grey.shade700),
+                        const SizedBox(height: 6),
                         if (widget.selectedSection ==
                             _JeepneyPanelSection.jeepneyRoutes) ...[
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  style: OutlinedButton.styleFrom(
-                                    textStyle: const TextStyle(fontSize: 13),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12,
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _CompactTextButton(
+                                      label: 'Show all',
+                                      icon: Icons.visibility,
+                                      isSelected: _showAllSelected,
+                                      onTap: () {
+                                        setState(() => _showAllSelected = true);
+                                        context
+                                            .read<MapHelperProvider>()
+                                            .showAllJeepneyRoutes();
+                                      },
                                     ),
-                                    foregroundColor:
-                                        widget.selectedSection ==
-                                            _JeepneyPanelSection.jeepneyRoutes
-                                        ? const Color.fromARGB(
-                                            255,
-                                            41,
-                                            114,
-                                            110,
-                                          )
-                                        : null,
-                                    side: BorderSide(
-                                      color:
-                                          widget.selectedSection ==
-                                              _JeepneyPanelSection.jeepneyRoutes
-                                          ? const Color.fromARGB(
-                                              255,
-                                              41,
-                                              114,
-                                              110,
-                                            )
-                                          : Colors.grey.shade300,
+                                    const SizedBox(width: 8),
+                                    _CompactTextButton(
+                                      label: 'Hide all',
+                                      icon: Icons.visibility_off,
+                                      isSelected: !_showAllSelected,
+                                      onTap: () {
+                                        setState(() => _showAllSelected = false);
+                                        context
+                                            .read<MapHelperProvider>()
+                                            .hideAllJeepneyRoutes();
+                                      },
                                     ),
-                                  ),
-                                  icon: Icon(
-                                    Icons.visibility,
-                                    size: 18,
-                                    color:
-                                        widget.selectedSection ==
-                                            _JeepneyPanelSection.jeepneyRoutes
-                                        ? const Color.fromARGB(
-                                            255,
-                                            41,
-                                            114,
-                                            110,
-                                          )
-                                        : null,
-                                  ),
-                                  label: const Text('Show'),
-                                  onPressed: () {
-                                    context
-                                        .read<MapHelperProvider>()
-                                        .showAllJeepneyRoutes();
-                                  },
+                                  ],
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  style: OutlinedButton.styleFrom(
-                                    textStyle: const TextStyle(fontSize: 13),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12,
-                                    ),
-                                    foregroundColor:
-                                        widget.selectedSection ==
-                                            _JeepneyPanelSection.jeepneyRoutes
-                                        ? const Color.fromARGB(
-                                            255,
-                                            41,
-                                            114,
-                                            110,
-                                          )
-                                        : null,
-                                    side: BorderSide(
-                                      color:
-                                          widget.selectedSection ==
-                                              _JeepneyPanelSection.jeepneyRoutes
-                                          ? const Color.fromARGB(
-                                              255,
-                                              41,
-                                              114,
-                                              110,
-                                            )
-                                          : Colors.grey.shade300,
-                                    ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  '$visibleCount/${widget.routes.length} Selected Routes',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade800,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
                                   ),
-                                  icon: Icon(
-                                    Icons.visibility_off,
-                                    size: 18,
-                                    color:
-                                        widget.selectedSection ==
-                                            _JeepneyPanelSection.jeepneyRoutes
-                                        ? const Color.fromARGB(
-                                            255,
-                                            41,
-                                            114,
-                                            110,
-                                          )
-                                        : null,
-                                  ),
-                                  label: const Text('Hide'),
-                                  onPressed: () {
-                                    context
-                                        .read<MapHelperProvider>()
-                                        .hideAllJeepneyRoutes();
-                                  },
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Center(
-                            child: Text(
-                              '$visibleCount/${widget.routes.length}',
-                              style: TextStyle(
-                                color: Colors.grey.shade700,
-                                fontSize: 13,
-                              ),
+                              ],
                             ),
                           ),
-                          const Divider(),
+                          Divider(height: 1, color: Colors.black54),
+                          const SizedBox(height: 4),
                           Expanded(
                             child: widget.routes.isEmpty
                                 ? const Center(
@@ -1319,9 +1284,10 @@ class _JeepneyRouteDropdownPanelState
                                           interactive: true,
                                           thumbVisibility: true,
                                           radius: const Radius.circular(6),
-                                          thickness: 6,
+                                          thickness: 7,
                                           child: ListView.builder(
                                             controller: scrollController,
+                                            padding: const EdgeInsets.only(bottom: 20),
                                             itemCount: widget.routes.length,
                                             itemBuilder: (context, index) {
                                               final route =
@@ -1334,13 +1300,13 @@ class _JeepneyRouteDropdownPanelState
                                                 dense: true,
                                                 visualDensity:
                                                     const VisualDensity(
-                                                      vertical: -2,
+                                                      vertical: -1,
                                                       horizontal: -4,
                                                     ),
                                                 contentPadding:
                                                     const EdgeInsets.symmetric(
                                                       horizontal: 12,
-                                                      vertical: 4,
+                                                      vertical: 2,
                                                     ),
                                                 value: isVisible,
                                                 activeColor:
@@ -1352,8 +1318,8 @@ class _JeepneyRouteDropdownPanelState
                                                     ),
                                                 checkColor: Colors.white,
                                                 secondary: Container(
-                                                  width: 14,
-                                                  height: 14,
+                                                  width: 18,
+                                                  height: 18,
                                                   decoration: BoxDecoration(
                                                     color: Color(
                                                       int.parse(
@@ -1365,15 +1331,14 @@ class _JeepneyRouteDropdownPanelState
                                                       ),
                                                     ),
                                                     shape: BoxShape.circle,
+                                                    border: Border.all(color: Colors.grey.shade200, width: 1.5),
                                                   ),
                                                 ),
                                                 title: Text(
                                                   route.name,
-                                                  maxLines: 2,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
                                                   style: const TextStyle(
-                                                    fontSize: 12,
+                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w500,
                                                   ),
                                                 ),
                                                 onChanged: (_) {
@@ -1392,6 +1357,69 @@ class _JeepneyRouteDropdownPanelState
                                   ),
                           ),
                         ] else ...[
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: TextField(
+                              controller: _terminalSearchController,
+                              style: const TextStyle(fontSize: 13, color: Color.fromARGB(200, 0, 0, 0)),
+                              decoration: InputDecoration(
+                                hintText: 'Search by location or name...',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey.shade800,
+                                  fontSize: 13,
+                                ),
+                                prefixIcon: Icon(
+                                  Icons.search,
+                                  size: 18,
+                                  color: Colors.grey.shade800,
+                                ),
+                                suffixIcon: _terminalSearchQuery.isNotEmpty
+                                    ? IconButton(
+                                        icon: Icon(
+                                          Icons.clear,
+                                          size: 16,
+                                          color: Colors.grey.shade400,
+                                        ),
+                                        onPressed: () {
+                                          setState(() {
+                                            _terminalSearchController.clear();
+                                            _terminalSearchQuery = '';
+                                          });
+                                        },
+                                      )
+                                    : null,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Color.fromARGB(255, 41, 114, 110),
+                                  ),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey.shade50,
+                              ),
+                              onChanged: (value) {
+                                setState(() {
+                                  _terminalSearchQuery = value.toLowerCase();
+                                });
+                              },
+                            ),
+                          ),
                           Expanded(
                             child: widget.todaTerminalsFuture == null
                                 ? const Center(
@@ -1424,7 +1452,7 @@ class _JeepneyRouteDropdownPanelState
                                                   'Failed to load TODA terminals',
                                                   style: TextStyle(
                                                     color: Colors.grey,
-                                                    fontSize: 14,
+                fontSize: 16,
                                                   ),
                                                 ),
                                                 const SizedBox(height: 8),
@@ -1442,13 +1470,31 @@ class _JeepneyRouteDropdownPanelState
                                         );
                                       }
 
-                                      final terminals = snapshot.data ?? [];
+                                      final allTerminals = snapshot.data ?? [];
+
+                                      List<Terminal> terminals;
+                                      if (_terminalSearchQuery.isEmpty) {
+                                        terminals = allTerminals;
+                                      } else {
+                                        final query = _terminalSearchQuery;
+                                        final barangayMatches = allTerminals
+                                            .where((t) => (t.barangay ?? '').toLowerCase().contains(query))
+                                            .toList();
+                                        final nameMatches = allTerminals
+                                            .where((t) =>
+                                                t.name.toLowerCase().contains(query) &&
+                                                !(t.barangay ?? '').toLowerCase().contains(query))
+                                            .toList();
+                                        terminals = [...barangayMatches, ...nameMatches];
+                                      }
 
                                       if (terminals.isEmpty) {
-                                        return const Center(
+                                        return Center(
                                           child: Text(
-                                            'No TODA terminals found',
-                                            style: TextStyle(
+                                            _terminalSearchQuery.isNotEmpty
+                                                ? 'No terminals found for "$_terminalSearchQuery"'
+                                                : 'No TODA terminals found',
+                                            style: const TextStyle(
                                               color: Colors.grey,
                                               fontSize: 14,
                                             ),
@@ -1456,18 +1502,35 @@ class _JeepneyRouteDropdownPanelState
                                         );
                                       }
 
-                                      return Scrollbar(
-                                        controller: scrollController,
-                                        interactive: true,
-                                        thumbVisibility: true,
-                                        radius: const Radius.circular(6),
-                                        thickness: 6,
-                                        child: ListView.builder(
-                                          controller: scrollController,
-                                          itemCount: terminals.length,
-                                          itemBuilder: (context, index) {
-                                            final terminal = terminals[index];
-                                            return ListTile(
+                                      return Row(
+                                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                                        children: [
+                                          Container(
+                                            width: 12,
+                                            padding: const EdgeInsets.only(left: 4),
+                                            alignment: Alignment.centerLeft,
+                                            child: Container(
+                                              width: 4,
+                                              decoration: BoxDecoration(
+                                                color: const Color.fromARGB(255, 48, 143, 138),
+                                                borderRadius: BorderRadius.circular(2),
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: Scrollbar(
+                                              controller: scrollController,
+                                              interactive: true,
+                                              thumbVisibility: true,
+                                              radius: const Radius.circular(6),
+                                              thickness: 7,
+                                              child: ListView.separated(
+                                                controller: scrollController,
+                                                itemCount: terminals.length,
+                                                separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey.shade700),
+                                                itemBuilder: (context, index) {
+                                                  final terminal = terminals[index];
+                                                  return ListTile(
                                               dense: true,
                                               contentPadding:
                                                   const EdgeInsets.symmetric(
@@ -1477,7 +1540,8 @@ class _JeepneyRouteDropdownPanelState
                                               title: Text(
                                                 terminal.name,
                                                 style: const TextStyle(
-                                                  fontSize: 13,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
                                                 ),
                                               ),
                                               subtitle: Text(
@@ -1715,11 +1779,14 @@ class _JeepneyRouteDropdownPanelState
                                                 );
                                               },
                                             );
-                                          },
-                                        ),
+                                           },
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       );
-                                    },
-                                  ),
+                                     },
+                                   ),
                           ),
                         ],
                       ],
@@ -1864,13 +1931,65 @@ class _SectionToggleButton extends StatelessWidget {
           color: isSelected ? colorScheme.primary : Colors.grey.shade300,
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
       ),
       onPressed: onTap,
       child: Text(
         label,
         textAlign: TextAlign.center,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w800, fontSize: 13 ),
+      ),
+    );
+  }
+}
+
+class _CompactTextButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _CompactTextButton({
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const selectedColor = Color.fromARGB(255, 41, 114, 110);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? selectedColor.withAlpha(30) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? selectedColor : Colors.grey.shade400,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 13,
+              color: isSelected ? selectedColor : Colors.grey.shade500,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+              color: isSelected ? selectedColor : Colors.grey.shade800,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
