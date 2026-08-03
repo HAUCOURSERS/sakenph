@@ -271,9 +271,9 @@ List<(String, String, double, String, int, int)> buildTravelDetails(
         segmentDelay,
       ));
     } else if (modeType == "trike") {
+      String todaTerminal = entry["mode"]["details"]["name"].toString();
       returnDetails.add((
-        // TODO: Add TODA Name here (For backend)
-        "Tricycle",
+        todaTerminal,
         routeColor,
         (distanceInKM * 1000),
         "${fareRegular.toStringAsFixed(2)}₱ / ${fareDiscounted.toStringAsFixed(2)}₱",
