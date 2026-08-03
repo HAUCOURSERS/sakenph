@@ -87,7 +87,7 @@ class _ViewForRequestingFromLocationState
                             searchDetailsProvider
                                     .setIsNominatimSearchFailed_TypeFrom =
                                 false;
-                            await Future.delayed(Duration(milliseconds: 750));
+                            await Future.delayed(Duration(milliseconds: 1100));
                             searchDetailsProvider.saveLocSearchResults(
                               await searchPlaces(
                                 searchDetailsProvider

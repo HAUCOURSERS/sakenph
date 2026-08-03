@@ -77,7 +77,7 @@ class ViewForRequestingToLocation extends StatelessWidget {
                             searchDetailsProvider
                                     .setIsNominatimSearchFailed_TypeTo =
                                 false;
-                            await Future.delayed(Duration(milliseconds: 750));
+                            await Future.delayed(Duration(milliseconds: 1100));
                             searchDetailsProvider.saveLocSearchResults(
                               await searchPlaces(
                                 searchDetailsProvider
