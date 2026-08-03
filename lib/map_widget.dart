@@ -7,8 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:sakenph/api/database_service.dart';
 import 'package:sakenph/api/backend_service.dart';
 import 'package:sakenph/globals/enums.dart';
-import 'package:sakenph/globals/functions.dart';
-import 'package:sakenph/features/foreground_widget/functions.dart';
+import 'package:sakenph/globals/functions/computations.dart';
 import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
 import 'package:sakenph/classes/terminal_class.dart';
 import 'package:sakenph/classes/json_response.dart';
@@ -18,6 +17,7 @@ import 'package:sakenph/providers/provider_search_details.dart';
 import 'dart:math' show min, max, pi, sin, cos, asin, atan2, Point;
 
 import 'package:sakenph/providers/provider_system_vars.dart';
+import 'package:sakenph/features/foreground_widget/functions.dart' show fetchAndEnrichTodaTerminals, reverseGeocode;
 
 /// Added to import the backend service to use its functions for querying shortest paths and fetching jeepney routes.
 import 'package:sakenph/classes/jeepney_route.dart';

@@ -12,7 +12,7 @@ class ModeFare {
 class ModeDetails {
   final String name;
   final String color;
-  final ModeFare? modeFare;
+  final ModeFare modeFare;
 
   ModeDetails({
     required this.name,
@@ -23,8 +23,8 @@ class ModeDetails {
   factory ModeDetails.fromJson(Map<String, dynamic> json) {
     return ModeDetails(
       name: json['name'],
+      modeFare: ModeFare.fromJson(json['fare']),
       color: json['color'],
-      modeFare: json['fare'] != null ? ModeFare.fromJson(json['fare']) : null,
     );
   }
 }

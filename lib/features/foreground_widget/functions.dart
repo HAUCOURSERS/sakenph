@@ -6,7 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/globals/enums.dart';
-import 'package:sakenph/globals/functions.dart';
+import 'package:sakenph/globals/functions/computations.dart';
+import 'package:sakenph/globals/functions/formattings.dart';
 import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_system_tasks.dart';
@@ -139,9 +140,11 @@ Future<bool> handleLocationPermission(BuildContext context) async {
   bool serviceEnabled;
   LocationPermission permission;
 
+  ScaffoldMessengerState scaffoldMessenger = ScaffoldMessenger.of(context);
+
   serviceEnabled = await Geolocator.isLocationServiceEnabled();
   if (!serviceEnabled) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    scaffoldMessenger.showSnackBar(
       const SnackBar(
         content: Text(
           'Location services are disabled. Please enable the services',
@@ -154,14 +157,14 @@ Future<bool> handleLocationPermission(BuildContext context) async {
   if (permission == LocationPermission.denied) {
     permission = await Geolocator.requestPermission();
     if (permission == LocationPermission.denied) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         const SnackBar(content: Text('Location permissions are denied')),
       );
       return false;
     }
   }
   if (permission == LocationPermission.deniedForever) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    scaffoldMessenger.showSnackBar(
       const SnackBar(
         content: Text(
           'Location permissions are permanently denied, we cannot request permissions.',
@@ -199,11 +202,12 @@ void startTraveling(BuildContext context) async {
 /// - Walk/Jeep Name
 /// - Color
 /// - Distance in meters
-List<(String, String, double)> buildTravelDetails(
+/// - Fare Rate (Formatted or Blank if no fare)
+List<(String, String, double, String)> buildTravelDetails(
   Map<String, dynamic> routeData,
   String route_id,
 ) {
-  List<(String, String, double)> returnDetails = [];
+  List<(String, String, double, String)> returnDetails = [];
   for (final entry in routeData["routes"][route_id]) {
     double distanceInKM = 0;
     // Each entry here represents a chop piece in the route caused by switching between
@@ -227,23 +231,27 @@ List<(String, String, double)> buildTravelDetails(
       );
     }
     String routeColor = entry["mode"]["details"]["color"].toString();
+    double fareRegular = entry["mode"]["details"]["fare"]["regular"];
+    double fareDiscounted = entry["mode"]["details"]["fare"]["discounted"];
     String modeType = entry["mode"]["type"].toString();
     if (modeType == "walk") {
-      returnDetails.add(("Walk", routeColor, (distanceInKM * 1000)));
+      returnDetails.add(("Walk", routeColor, (distanceInKM * 1000), ""));
     } else if (modeType == "jeep") {
       String jeepName = entry["mode"]["details"]["name"].toString();
       returnDetails.add((
         formatLabelForJeepneyName(jeepName),
         routeColor,
         (distanceInKM * 1000),
+        "${fareRegular.toStringAsFixed(2)}₱ / ${fareDiscounted.toStringAsFixed(2)}₱",
       ));
     } else if (modeType == "trike") {
       returnDetails.add((
         // TODO: Add TODA Name here (For backend)
         "Tricycle",
         routeColor,
-        (distanceInKM * 1000)
-        ));
+        (distanceInKM * 1000),
+        "${fareRegular.toStringAsFixed(2)}₱ / ${fareDiscounted.toStringAsFixed(2)}₱",
+      ));
     }
   }
 

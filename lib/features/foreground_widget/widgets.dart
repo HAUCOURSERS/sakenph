@@ -5,7 +5,8 @@ import 'package:sakenph/api/nominatim.dart';
 import 'package:sakenph/features/background_widget/functions.dart';
 import 'package:sakenph/features/foreground_widget/functions.dart';
 import 'package:sakenph/globals/enums.dart';
-import 'package:sakenph/globals/functions.dart';
+import 'package:sakenph/globals/functions/computations.dart';
+import 'package:sakenph/globals/functions/formattings.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_system_tasks.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
@@ -458,7 +459,7 @@ class _RouteDetailsBuilder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
-    List<(String, String, double)> routeDetails = buildTravelDetails(
+    List<(String, String, double, String)> routeDetails = buildTravelDetails(
       mapHelperProvider.getSuggestedShortestPaths,
       mapHelperProvider.getSelectedRouteId,
     );
@@ -473,7 +474,7 @@ class _RouteDetailsBuilder extends StatelessWidget {
     Widget routeList = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        for (final (i, (name, hexcolor, value)) in routeDetails.indexed) ...[
+        for (final (i, (name, hexcolor, value, _)) in routeDetails.indexed) ...[
           if (i > 0) Container(height: 2, color: Colors.grey.shade400),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
