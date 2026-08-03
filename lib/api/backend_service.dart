@@ -32,8 +32,7 @@ Future<Map<String, dynamic>> queryForShortestPath(
         //'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}&algo=astar&debug=true',
 
         // AWS EC2
-        //'${Env.API_ENDPOINT_LINK}k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
-        'http://ec2-18-142-233-77.ap-southeast-1.compute.amazonaws.com:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}'
+        '${Env.API_ENDPOINT_LINK}k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
       ),
     );
 
