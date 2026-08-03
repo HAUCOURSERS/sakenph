@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:sakenph/providers/provider_system_vars.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -9,8 +11,6 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPage extends State<SettingsPage> {
-  bool toggleToda = true;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -24,14 +24,22 @@ class _SettingsPage extends State<SettingsPage> {
       body: Column(
         children: [
           ListTile(
-            title: Text('Tricycles'),
+            title: Text('Include Traffic'),
             trailing: Switch(
-              value: toggleToda,
+              value: context
+                  .watch<SystemVariablesProvider>()
+                  .includeTraffic,
               onChanged: (value) {
-                setState(() {
-                  toggleToda = value;
-                });
+                context.read<SystemVariablesProvider>().setIncludeTraffic = value;
               },
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              'Traffic data is provided by the TomTom Traffic API.',
+              style: TextStyle(fontSize: 13, color: const Color.fromARGB(255, 53, 53, 53)),
+              textAlign: TextAlign.center,
             ),
           ),
         ],

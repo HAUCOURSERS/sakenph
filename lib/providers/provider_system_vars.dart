@@ -22,6 +22,10 @@ class SystemVariablesProvider with ChangeNotifier {
   Color _backgroundWidgetColor =
       Colors.white; // Default. May be changed by app logic
 
+  /// When <code>true</code>, the backend is asked to consider traffic when
+  /// computing the shortest paths.
+  bool _includeTraffic = false;
+
   LatLng currentLoc = LatLng(0, 0);
 
   // /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -34,6 +38,9 @@ class SystemVariablesProvider with ChangeNotifier {
   SystemState get appCurrentState => _appCurrentState;
 
   Color get backgroundWidgetColor => _backgroundWidgetColor;
+
+  /// Whether the backend should include traffic when computing shortest paths.
+  bool get includeTraffic => _includeTraffic;
 
   // /////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Functions
@@ -59,6 +66,13 @@ class SystemVariablesProvider with ChangeNotifier {
 
   set _setBackgroundWidgetColor(Color color) {
     _backgroundWidgetColor = color;
+    notifyListeners();
+  }
+
+  /// Toggles whether the backend should include traffic when computing
+  /// shortest paths.
+  set setIncludeTraffic(bool val) {
+    _includeTraffic = val;
     notifyListeners();
   }
 

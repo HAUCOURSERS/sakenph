@@ -14,8 +14,9 @@ import 'package:sakenph/api/local/env.dart';
 Future<Map<String, dynamic>> queryForShortestPath(
   LatLng origin,
   LatLng dest,
-  BuildContext context,
-) async {
+  BuildContext context, {
+  bool traffic = false,
+}) async {
   //SystemVariablesProvider systemVariablesProvider = context.read<SystemVariablesProvider>();
 
   try {
@@ -23,7 +24,7 @@ Future<Map<String, dynamic>> queryForShortestPath(
     String localIp = global_vars.localIP;
     // Position gpsLocation = await determinePosition();
     print(
-      'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}&algo=astar&debug=true',
+      'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}&algo=astar&debug=true&traffic=$traffic',
     );
 
     final response = await http.get(
@@ -62,7 +63,7 @@ Future<Map<String, dynamic>> queryForShortestPath(
 Future<List<JeepneyRoute>> fetchJeepRoutes() async {
   final response = await http.get(
     Uri.parse(
-     'http://{Env.API_ENDPOINT_LINK IP/jeep_routes',
+    'http://{Env.API_ENDPOINT_LINK IP/jeep_routes',
     ), // local backend service link for ui toggle
   );
 
@@ -82,7 +83,7 @@ Future<List<JeepneyRoute>> fetchJeepRoutes() async {
 Future<List<Terminal>> fetchTodaTerminals() async {
   final response = await http.get(
     Uri.parse(
-      'http://{Env.API_ENDPOINT_LINK IP/trike_terminals_list',
+    'http://{Env.API_ENDPOINT_LINK IP/trike_terminals_list',
     ), // local backend service link for TODA Terminals
   );
 

@@ -122,6 +122,7 @@ class ViewForRequestingToLocation extends StatelessWidget {
         } else {
           return Expanded(
             child: ListView.builder(
+              padding: EdgeInsets.only(top: responsiveSizeHeight(10)),
               itemBuilder: (context, index) => SearchResultRenderer(
                 searchFieldType: SearchFieldType.to,
                 nomiPlace: searchDetailsProvider.getToLocSearchResults[index],

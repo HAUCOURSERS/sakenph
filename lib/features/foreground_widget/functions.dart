@@ -196,18 +196,20 @@ void startTraveling(BuildContext context) async {
 }
 
 /// Upon providing the JSON return of backend along with the route_id of your choice,
-/// it will return a List<(String, double)> of data.
+/// it will return a List of data tuples.
 ///
 /// Data format:
 /// - Walk/Jeep Name
 /// - Color
 /// - Distance in meters
 /// - Fare Rate (Formatted or Blank if no fare)
-List<(String, String, double, String)> buildTravelDetails(
+/// - Estimated travel time in seconds (from traffic data or Haversine fallback)
+/// - Delay in seconds (actualDuration - expectedDuration, 0 if no traffic data)
+List<(String, String, double, String, int, int)> buildTravelDetails(
   Map<String, dynamic> routeData,
   String route_id,
 ) {
-  List<(String, String, double, String)> returnDetails = [];
+  List<(String, String, double, String, int, int)> returnDetails = [];
   for (final entry in routeData["routes"][route_id]) {
     double distanceInKM = 0;
     // Each entry here represents a chop piece in the route caused by switching between
@@ -234,8 +236,30 @@ List<(String, String, double, String)> buildTravelDetails(
     double fareRegular = entry["mode"]["details"]["fare"]["regular"];
     double fareDiscounted = entry["mode"]["details"]["fare"]["discounted"];
     String modeType = entry["mode"]["type"].toString();
+
+    // Compute per-segment travel time
+    int segmentTravelTime = 0;
+    int segmentDelay = 0;
+    if (entry.containsKey("traffic") &&
+        entry["traffic"] != null &&
+        entry["traffic"].containsKey("expectedDuration") &&
+        entry["traffic"].containsKey("actualDuration")) {
+      segmentTravelTime = (entry["traffic"]["actualDuration"] as num).toInt();
+      int expected = (entry["traffic"]["expectedDuration"] as num).toInt();
+      segmentDelay = segmentTravelTime - expected;
+    } else {
+      // Fallback: compute from Haversine speeds
+      if (modeType == "walk") {
+        segmentTravelTime = (distanceInKM / (4.5 / 3600)).toInt();
+      } else if (modeType == "jeep") {
+        segmentTravelTime = (distanceInKM / (14 / 3600)).toInt();
+      } else if (modeType == "trike") {
+        segmentTravelTime = (distanceInKM / (23 / 3600)).toInt();
+      }
+    }
+
     if (modeType == "walk") {
-      returnDetails.add(("Walk", routeColor, (distanceInKM * 1000), ""));
+      returnDetails.add(("Walk", routeColor, (distanceInKM * 1000), "", segmentTravelTime, segmentDelay));
     } else if (modeType == "jeep") {
       String jeepName = entry["mode"]["details"]["name"].toString();
       returnDetails.add((
@@ -243,6 +267,8 @@ List<(String, String, double, String)> buildTravelDetails(
         routeColor,
         (distanceInKM * 1000),
         "${fareRegular.toStringAsFixed(2)}₱ / ${fareDiscounted.toStringAsFixed(2)}₱",
+        segmentTravelTime,
+        segmentDelay,
       ));
     } else if (modeType == "trike") {
       returnDetails.add((
@@ -251,6 +277,8 @@ List<(String, String, double, String)> buildTravelDetails(
         routeColor,
         (distanceInKM * 1000),
         "${fareRegular.toStringAsFixed(2)}₱ / ${fareDiscounted.toStringAsFixed(2)}₱",
+        segmentTravelTime,
+        segmentDelay,
       ));
     }
   }

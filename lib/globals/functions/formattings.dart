@@ -20,6 +20,28 @@ String formatSecondsToHHMMSS(double totalSeconds) {
   return stringBuilder;
 }
 
+/// Converts time in seconds into formatted time with full words.
+/// Ex: 2 minutes 15 seconds, 1 hour 30 minutes
+String formatSecondsToWords(double totalSeconds) {
+  Duration duration = Duration(seconds: totalSeconds.toInt());
+
+  int hours = duration.inHours;
+  int minutes = (duration.inMinutes % 60);
+  int seconds = (duration.inSeconds % 60);
+
+  List<String> parts = [];
+  if (hours > 0) {
+    parts.add("$hours ${hours == 1 ? 'hour' : 'hours'}");
+  }
+  if (minutes > 0) {
+    parts.add("$minutes ${minutes == 1 ? 'minute' : 'minutes'}");
+  }
+  if (seconds > 0) {
+    parts.add("$seconds ${seconds == 1 ? 'second' : 'seconds'}");
+  }
+  return parts.join(" ");
+}
+
 Color hexToColor(String hex) {
   hex = hex.replaceAll('#', '');
   if (hex.length == 6) hex = 'FF$hex'; // add full opacity if no alpha given

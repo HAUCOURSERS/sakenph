@@ -9,7 +9,7 @@ class DisplaySuggestedPaths extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // If you want to change the width of the route choice display widgets, modify this
-    double choiceWidgetWidth = responsiveSizeWidth(400, 370);
+    double choiceWidgetWidth = responsiveSizeWidth(420, 380);
 
     return SizedBox(
       child: Stack(
@@ -21,43 +21,57 @@ class DisplaySuggestedPaths extends StatelessWidget {
                 (choiceWidgetWidth / 2),
 
             child: Container(
-              alignment: Alignment.center,
+              alignment: Alignment.topCenter,
               width: choiceWidgetWidth,
-              height: MediaQuery.sizeOf(context).height,
+              height: MediaQuery.sizeOf(context).height - responsiveSizeHeight(200),
               child: SuggestedPathWidgetListBuilder(),
             ),
           ),
           Positioned(
-            top: responsiveSizeHeight(120),
+            top: responsiveSizeHeight(135),
             left: responsiveSizeWidth(MediaQuery.sizeOf(context).width * 0.125),
             right: responsiveSizeWidth(
               MediaQuery.sizeOf(context).width * 0.125,
             ),
             child: Container(
-              padding: EdgeInsets.all(responsiveSizeHeight(10)),
+              padding: EdgeInsets.symmetric(
+                horizontal: responsiveSizeHeight(16),
+                vertical: responsiveSizeHeight(14),
+              ),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(5),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: Colors.black,
-                  width: responsiveSizeHeight(1),
+                  width: 1,
                 ),
-                // black outline
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 6,
-                    offset: Offset(0, 3), // shadow goes downward
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 12,
+                    offset: Offset(0, 4),
                   ),
                 ],
               ),
-              child: Text(
-                "Tap to view path",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: responsiveSizeHeight(30),
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.touch_app,
+                    size: 18,
+                    color: Colors.black,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    "Tap a path card to view route",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: responsiveSizeHeight(14),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

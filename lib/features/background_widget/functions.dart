@@ -20,6 +20,7 @@ void startComputingForRoutes(BuildContext context) async {
     mapHelperProvider.getSelectedFromLocationDetails!,
     mapHelperProvider.getSelectedToLocationDetails!,
     context,
+    traffic: systemVariablesProvider.includeTraffic,
   );
   if (backendResponse.isEmpty) {
     // queryForShortestPath() will always return a non-empty map if backend response worked.
@@ -97,6 +98,106 @@ double computeTravel(Map<String, dynamic> routeData, String route_id) {
   }
 
   return travelTimeInSeconds;
+}
+
+/// Returns the total walking distance in kilometers of a route by summing
+/// the haversine distances of all its walk segments.
+double computeTotalWalkingDistance(
+  Map<String, dynamic> routeData,
+  String routeId,
+) {
+  double walkingDistanceInKM = 0;
+  for (final entry in routeData["routes"][routeId]) {
+    if (entry["mode"]["type"] != "walk") continue;
+
+    List<LatLng> geometryDetails = (entry["geometry"] as List<dynamic>).map((
+      item,
+    ) {
+      final coords = (item as List<dynamic>)
+          .map((coord) => (coord as num).toDouble())
+          .toList();
+      return LatLng(coords[1], coords[0]); // [lng, lat] → LatLng(lat, lng)
+    }).toList();
+
+    for (int i = 0; i < geometryDetails.length - 1; i++) {
+      walkingDistanceInKM += getDistanceFromLatLonInKm(
+        geometryDetails[i].latitude,
+        geometryDetails[i].longitude,
+        geometryDetails[i + 1].latitude,
+        geometryDetails[i + 1].longitude,
+      );
+    }
+  }
+  return walkingDistanceInKM;
+}
+
+/// Counts the number of jeepney and tricycle rides (transfers) in a route.
+int countTransfersForRoute(Map<String, dynamic> routeData, String routeId) {
+  int transferCount = 0;
+  for (final entry in routeData["routes"][routeId]) {
+    String modeType = entry["mode"]["type"].toString();
+    if (modeType == "jeep" || modeType == "trike") {
+      transferCount++;
+    }
+  }
+  return transferCount;
+}
+
+/// Computes which badges a route deserves by comparing it against all other
+/// returned routes. Badges are only given when at least two routes exist.
+///
+/// The "Least Transfers" badge is withheld entirely when multiple routes tie
+/// for the fewest transfers.
+Set<String> computeRouteBadges(
+  Map<String, dynamic> routeData,
+  String routeId,
+) {
+  Set<String> badges = {};
+  Map<String, dynamic> routes = routeData["routes"];
+  if (routes.length < 2) return badges;
+
+  double fastestTime = double.infinity;
+  double leastWalk = double.infinity;
+  int fewestTransfers = 1 << 30;
+  int transferWinners = 0;
+  int leastWalkWinners = 0;
+  String? fastestRouteId;
+
+  for (final id in routes.keys) {
+    double time = computeTravel(routeData, id);
+    double walk = computeTotalWalkingDistance(routeData, id);
+    int transfers = countTransfersForRoute(routeData, id);
+
+    if (time < fastestTime) {
+      fastestTime = time;
+      fastestRouteId = id;
+    }
+    if (walk < leastWalk) {
+      leastWalk = walk;
+      leastWalkWinners = 1;
+    } else if (walk == leastWalk) {
+      leastWalkWinners++;
+    }
+    if (transfers < fewestTransfers) {
+      fewestTransfers = transfers;
+      transferWinners = 1;
+    } else if (transfers == fewestTransfers) {
+      transferWinners++;
+    }
+  }
+
+  if (fastestRouteId == routeId) {
+    badges.add("Fastest Route");
+  }
+  if (leastWalkWinners == 1 &&
+      computeTotalWalkingDistance(routeData, routeId) == leastWalk) {
+    badges.add("Least Walking");
+  }
+  if (transferWinners == 1 &&
+      countTransfersForRoute(routeData, routeId) == fewestTransfers) {
+    badges.add("Least Transfers");
+  }
+  return badges;
 }
 
 /// Creates a CustomPaint widget that visualizes travel details in color
@@ -238,6 +339,39 @@ class _LinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
+
+/// Computes the total expected and actual duration for a route by summing
+/// the traffic data from each segment.
+///
+/// Returns (expectedDuration, actualDuration) in seconds.
+/// Falls back to computeTravel() if traffic data is missing.
+(int, int) computeRouteDelay(
+  Map<String, dynamic> routeData,
+  String routeId,
+) {
+  int totalExpected = 0;
+  int totalActual = 0;
+  bool hasTrafficData = false;
+
+  for (final entry in routeData["routes"][routeId]) {
+    if (entry.containsKey("traffic") &&
+        entry["traffic"] != null &&
+        entry["traffic"].containsKey("expectedDuration") &&
+        entry["traffic"].containsKey("actualDuration")) {
+      hasTrafficData = true;
+      totalExpected += (entry["traffic"]["expectedDuration"] as num).toInt();
+      totalActual += (entry["traffic"]["actualDuration"] as num).toInt();
+    }
+  }
+
+  if (!hasTrafficData) {
+    // Fallback: use Haversine-based computation for both
+    int haversineTime = computeTravel(routeData, routeId).toInt();
+    return (haversineTime, haversineTime);
+  }
+
+  return (totalExpected, totalActual);
 }
 
 /// To check if a nominatim result points to a place that's within the thesis's

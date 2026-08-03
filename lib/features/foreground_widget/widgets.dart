@@ -459,7 +459,7 @@ class _RouteDetailsBuilder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
-    List<(String, String, double, String)> routeDetails = buildTravelDetails(
+    List<(String, String, double, String, int, int)> routeDetails = buildTravelDetails(
       mapHelperProvider.getSuggestedShortestPaths,
       mapHelperProvider.getSelectedRouteId,
     );
@@ -474,7 +474,7 @@ class _RouteDetailsBuilder extends StatelessWidget {
     Widget routeList = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        for (final (i, (name, hexcolor, value, _)) in routeDetails.indexed) ...[
+        for (final (i, (name, hexcolor, value, _, __, ___)) in routeDetails.indexed) ...[
           if (i > 0) Container(height: 2, color: Colors.grey.shade400),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

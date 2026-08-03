@@ -25,21 +25,38 @@ class RouteOpenerButton extends StatelessWidget {
             MediaQuery.sizeOf(context).width * 0.75,
             500,
           ),
-          padding: EdgeInsets.all(responsiveSizeHeight(10)),
+          padding: EdgeInsets.symmetric(
+            horizontal: responsiveSizeHeight(16),
+            vertical: responsiveSizeHeight(14),
+          ),
           decoration: BoxDecoration(
             color: Color.fromARGB(255, 176, 221, 255),
             border: Border.all(width: responsiveSizeHeight(1)),
-            borderRadius: BorderRadius.circular(responsiveSizeHeight(5)),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Icon(
+                Icons.explore,
+                size: responsiveSizeHeight(20),
+                color: Colors.black87,
+              ),
+              SizedBox(width: 8),
               Text(
                 "View Searched Routes",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: responsiveSizeHeight(15),
-                  fontWeight: FontWeight.bold,
+                  fontSize: responsiveSizeHeight(16),
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
                 ),
               ),
             ],

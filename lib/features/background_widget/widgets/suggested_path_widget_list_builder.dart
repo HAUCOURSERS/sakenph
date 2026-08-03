@@ -47,36 +47,48 @@ class SuggestedPathWidgetListBuilder extends StatelessWidget {
                 break; // only once
               }
             },
-            child: SizedBox(
-              width: responsiveSizeWidth(
-                MediaQuery.sizeOf(context).width * 0.6,
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
               ),
-              child: Container(
-                padding: EdgeInsets.all(responsiveSizeHeight(10)),
-                decoration: BoxDecoration(
-                  color: Colors.blueAccent,
-                  borderRadius: BorderRadius.circular(responsiveSizeHeight(5)),
-                  border: Border.all(
-                    color: Colors.black,
-                    width: responsiveSizeHeight(1),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Color(0xFF1A73E8).withValues(alpha: 0.3),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
                   ),
-                  // black outline
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 6,
-                      offset: Offset(0, 3), // shadow goes downward
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.map_outlined,
+                    size: 18,
+                    color: Color(0xFF1A73E8),
+                  ),
+                  SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      "Show other routes visited by A*",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFF1A73E8),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ],
-                ),
-                child: Text(
-                  "Press to show other routes visited by A*",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: responsiveSizeHeight(20),
                   ),
-                ),
+                ],
               ),
             ),
           ),
@@ -86,18 +98,18 @@ class SuggestedPathWidgetListBuilder extends StatelessWidget {
 
     return Column(
       children: [
-        ListView.separated(
-          shrinkWrap: true,
-          physics:
-              NeverScrollableScrollPhysics(), // avoid nested-scroll conflicts
-          itemBuilder: (context, index) {
-            return SuggestedPathWidgetTemplate(choice_idx: index);
-          },
-          separatorBuilder: (context, index) =>
-              SizedBox(height: responsiveSizeHeight(15)),
-          itemCount: shortestPaths.length,
+        Expanded(
+          child: ListView.separated(
+            padding: EdgeInsets.only(bottom: responsiveSizeHeight(100)),
+            itemBuilder: (context, index) {
+              return SuggestedPathWidgetTemplate(choice_idx: index);
+            },
+            separatorBuilder: (context, index) =>
+                SizedBox(height: responsiveSizeHeight(16)),
+            itemCount: shortestPaths.length,
+          ),
         ),
-        SizedBox(height: responsiveSizeHeight(15)),
+        SizedBox(height: responsiveSizeHeight(16)),
         footerWidget(),
       ],
     );

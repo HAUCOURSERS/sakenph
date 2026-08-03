@@ -132,6 +132,7 @@ class _ViewForRequestingFromLocationState
         } else {
           return Expanded(
             child: ListView.builder(
+              padding: EdgeInsets.only(top: responsiveSizeHeight(10)),
               itemBuilder: (context, index) => SearchResultRenderer(
                 searchFieldType: SearchFieldType.from,
                 nomiPlace: context
