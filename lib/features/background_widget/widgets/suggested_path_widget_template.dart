@@ -44,7 +44,7 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
     );
     (int, int) routeDurations = computeRouteDelay(pathJSON, route_id);
     int delaySeconds = routeDurations.$2 - routeDurations.$1;
-    bool isDelayed = delaySeconds > 60;
+    bool isDelayed = delaySeconds > 0;
 
     return GestureDetector(
       onTap: () async {
@@ -123,42 +123,12 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
                       letterSpacing: 0.3,
                     ),
                   ),
-                  if (badges.isNotEmpty || isDelayed) ...[
+                  if (badges.isNotEmpty) ...[
                     Spacer(),
                     Wrap(
                       spacing: 6,
                       runSpacing: 4,
                       children: [
-                        if (isDelayed)
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.warning_amber,
-                                  color: Color(0xFFDC2626),
-                                  size: 13,
-                                ),
-                                SizedBox(width: 3),
-                                Text(
-                                  "+${(delaySeconds / 60).floor()} min delay",
-                                  style: TextStyle(
-                                    color: Color(0xFFDC2626),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
                         for (final badge in badges)
                           _BadgePill(label: badge, isOnHeader: true),
                       ],
@@ -174,11 +144,63 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
               child: Column(
                 children: [
                   // Travel time row
-                  _buildInfoRow(
-                    icon: Icons.access_time,
-                    label: "Travel Time",
-                    value: formatSecondsToHHMMSS(travelTime),
-                    isHighlighted: true,
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        size: 18,
+                        color: Color(0xFF1A73E8),
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        "Travel Time: ",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        formatSecondsToHHMMSS(travelTime),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1A73E8),
+                        ),
+                      ),
+                      if (isDelayed) ...[
+                        SizedBox(width: 8),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Color(0xFFDC2626),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.warning_amber,
+                                color: Colors.white,
+                                size: 12,
+                              ),
+                              SizedBox(width: 3),
+                              Text(
+                                "+${(delaySeconds / 60).floor()} min delay",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
 
                   SizedBox(height: 12),

@@ -66,24 +66,30 @@ class RouteDetailsBuilder extends StatelessWidget {
                         ),
                       ],
                       SizedBox(height: 2),
-                      Row(
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 2,
                         children: [
-                          Icon(
-                            Icons.access_time,
-                            size: 12,
-                            color: Color(0xFF0D9488),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.access_time,
+                                size: 12,
+                                color: Color(0xFF0D9488),
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                formatSecondsToWords(travelTime.toDouble()),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF0D9488),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
-                          SizedBox(width: 4),
-                          Text(
-                            formatSecondsToWords(travelTime.toDouble()),
-                            style: TextStyle(
-                              fontSize: 12,
-                            color: Color(0xFF0D9488),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          if (delay > 60) ...[
-                            SizedBox(width: 6),
+                          if (delay > 0)
                             Text(
                               "+${(delay / 60).floor()} min delay",
                               style: TextStyle(
@@ -92,7 +98,6 @@ class RouteDetailsBuilder extends StatelessWidget {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                          ],
                         ],
                       ),
                     ],

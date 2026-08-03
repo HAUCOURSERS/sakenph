@@ -48,7 +48,7 @@ class PreviewWindowForSuggestedPath extends StatelessWidget {
       mapHelperProvider.getSelectedRouteId,
     );
     int delaySeconds = routeDurations.$2 - routeDurations.$1;
-    bool isDelayed = delaySeconds > 60;
+    bool isDelayed = delaySeconds > 0;
 
     return PopScope(
       canPop:
@@ -164,8 +164,8 @@ class PreviewWindowForSuggestedPath extends StatelessWidget {
                               ),
                             ),
                             Spacer(),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Container(
                                   padding: EdgeInsets.symmetric(
@@ -186,7 +186,7 @@ class PreviewWindowForSuggestedPath extends StatelessWidget {
                                   ),
                                 ),
                                 if (isDelayed) ...[
-                                  SizedBox(height: 4),
+                                  SizedBox(width: 6),
                                   Container(
                                     padding: EdgeInsets.symmetric(
                                       horizontal: 8,
