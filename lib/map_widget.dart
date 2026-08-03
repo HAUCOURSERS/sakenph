@@ -1249,9 +1249,8 @@ class _MapWidget extends State<MapWidget> {
 
         _controller = c;
 
-        // Load jeepney routes from backend and display them on the map
+        // Load jeepney routes from backend
         await context.read<MapHelperProvider>().loadJeepneyRoutes();
-        await context.read<MapHelperProvider>().showAllJeepneyRoutes();
 
         // Load tricycle icon to list of icons
         _addImageToController('assets/img/toda.png', 'toda', false);
