@@ -3,7 +3,7 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/api/backend_service.dart';
 import 'package:sakenph/globals/enums.dart';
-import 'package:sakenph/globals/functions.dart';
+import 'package:sakenph/globals/functions/computations.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
@@ -21,7 +21,7 @@ void startComputingForRoutes(BuildContext context) async {
     mapHelperProvider.getSelectedToLocationDetails!,
     context,
   );
-  if (backendResponse.length == 0) {
+  if (backendResponse.isEmpty) {
     // queryForShortestPath() will always return a non-empty map if backend response worked.
     throw UnimplementedError(
       "Note to developer: Add a retry button here since the backend response failed.",
@@ -238,4 +238,29 @@ class _LinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
+
+/// To check if a nominatim result points to a place that's within the thesis's
+/// scope, which is Angeles City and Mabalacat/Dau of Central Luzon
+bool isPlaceWithinScope(String fullAddress) {
+  // possible entries of angeles city and mabalacat/dau
+  List<String> validAddresses = ["angeles", "mabalacat", "dau"];
+  // there might be a chance where angeles/mabalacat/dau names can be
+  // present outside of central luzon
+  List<String> requiredAddresses = ["central luzon"];
+
+  bool hasValidAddress = false;
+  bool hasRequiredAddress = false;
+
+  // displayName result of NominatimPlace has its details separated with ", "
+  List<String> segmentedAddress = fullAddress.split(", ");
+  for (String segmentAddress in segmentedAddress) {
+    if (validAddresses.contains(segmentAddress.toLowerCase())) {
+      hasValidAddress = true;
+    }
+    if (requiredAddresses.contains(segmentAddress.toLowerCase())) {
+      hasRequiredAddress = true;
+    }
+  }
+  return hasValidAddress && hasRequiredAddress;
 }
