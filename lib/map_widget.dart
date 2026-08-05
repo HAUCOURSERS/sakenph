@@ -553,32 +553,41 @@ class _MapWidget extends State<MapWidget> {
   }
 
   /// Draws one jeepney route line on the map.
-  /// Draws one jeepney route line on the map.
   Future<void> showJeepneyRoute(JeepneyRoute route) async {
     if (_controller == null) return;
 
     final sourceId = _jeepneyRouteSourceId(route.id);
     final layerId = _jeepneyRouteLayerId(route.id);
 
-    if (await _sourceExists(sourceId)) return;
+    // Already drawn or currently being drawn by a concurrent call.
+    if (jeepneyRouteSourceIds.contains(sourceId)) return;
+    if (!_jeepneyRouteAddsInProgress.add(sourceId)) return;
 
-    await _controller!.addSource(
-      sourceId,
-      GeojsonSourceProperties(data: route.geojson),
-    );
+    try {
+      if (await _sourceExists(sourceId)) return;
 
-    await _controller!.addLineLayer(
-      sourceId,
-      layerId,
-      LineLayerProperties(
-        lineColor: route.color,
-        lineWidth: 3.5,
-        lineOpacity: 0.85,
-      ),
-    );
+      await _controller!.addSource(
+        sourceId,
+        GeojsonSourceProperties(data: route.geojson),
+      );
 
-    jeepneyRouteSourceIds.add(sourceId);
-    jeepneyRouteLayerIds.add(layerId);
+      await _controller!.addLineLayer(
+        sourceId,
+        layerId,
+        LineLayerProperties(
+          lineColor: route.color,
+          lineWidth: 3.5,
+          lineOpacity: 0.85,
+        ),
+      );
+
+      jeepneyRouteSourceIds.add(sourceId);
+      jeepneyRouteLayerIds.add(layerId);
+    } catch (_) {
+      // Swallow duplicate add errors from rapid repeated calls.
+    } finally {
+      _jeepneyRouteAddsInProgress.remove(sourceId);
+    }
   }
 
   /// Removes one jeepney route line from the map.
@@ -588,12 +597,16 @@ class _MapWidget extends State<MapWidget> {
     final sourceId = _jeepneyRouteSourceId(routeId);
     final layerId = _jeepneyRouteLayerId(routeId);
 
-    if (await _layerExists(layerId)) {
+    try {
       await _controller!.removeLayer(layerId);
+    } catch (_) {
+      // Layer may already be gone after rapid repeated calls.
     }
 
-    if (await _sourceExists(sourceId)) {
+    try {
       await _controller!.removeSource(sourceId);
+    } catch (_) {
+      // Source may already be gone after rapid repeated calls.
     }
 
     jeepneyRouteLayerIds.remove(layerId);
@@ -602,6 +615,7 @@ class _MapWidget extends State<MapWidget> {
 
   final Set<String> jeepneyRouteSourceIds = {};
   final Set<String> jeepneyRouteLayerIds = {};
+  final Set<String> _jeepneyRouteAddsInProgress = {};
 
   Future<void> _addUserMarker(LatLng coords, double rotation) async {
     final String sourceId = 'route-source_user_marker';

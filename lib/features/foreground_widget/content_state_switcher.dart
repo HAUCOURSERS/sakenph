@@ -7,6 +7,7 @@ import 'package:sakenph/features/foreground_widget/widgets/selected_location_dec
 import 'package:sakenph/features/foreground_widget/widgets/to_location_search_bar.dart';
 import 'package:sakenph/features/foreground_widget/widgets.dart' show JeepneyRouteFloatingControl;
 import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 import 'package:provider/provider.dart';
 
@@ -24,11 +25,30 @@ class ForegroundWidget extends StatefulWidget {
 class _ForegroundWidgetState extends State<ForegroundWidget> {
   @override
   Widget build(BuildContext context) {
+    final systemState = context.select<SystemVariablesProvider, SystemState>(
+      (provider) => provider.appCurrentState,
+    );
+    final isSearching = context.select<SearchDetailsProvider, bool>(
+      (provider) =>
+          provider.isActiveSearching_fromLoc ||
+          provider.isActiveSearching_toLoc,
+    );
+    final backgroundWidgetVisibility =
+        context.select<SystemVariablesProvider, bool>(
+          (provider) => provider.backgroundWidgetVisibility,
+        );
+    final showJeepneyControl =
+        !backgroundWidgetVisibility &&
+        !isSearching &&
+        (systemState == SystemState.gatheringFromLoc ||
+            systemState == SystemState.gatheringToLoc ||
+            systemState == SystemState.showSuggestedRoutes);
+
     return SafeArea(
       child: Stack(
         children: [
           _ForegroundWidgetContentRenderer(),
-          JeepneyRouteFloatingControl(),
+          if (showJeepneyControl) JeepneyRouteFloatingControl(),
         ],
       ),
     );

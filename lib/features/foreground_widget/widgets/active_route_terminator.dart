@@ -40,7 +40,7 @@ class ActiveRouteTerminator extends StatelessWidget {
             MapHelperProvider mapHelperProvider = context
                 .read<MapHelperProvider>();
             context.read<SystemVariablesProvider>().setAppCurrentState =
-                SystemState.showSuggestedRoutes;
+                SystemState.gatheringToLoc;
             context.read<SystemTasksProvder>().stop_repeatingTask();
 
             // First, stop potential edge drawings and after 40 milliseconds,

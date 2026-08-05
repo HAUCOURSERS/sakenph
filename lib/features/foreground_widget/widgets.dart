@@ -120,7 +120,7 @@ class JeepneyRouteFloatingControl extends StatefulWidget {
 class _JeepneyRouteFloatingControlState
     extends State<JeepneyRouteFloatingControl> {
   bool _isOpen = false;
-  Offset _position = const Offset(0, 120);
+   Offset _position = const Offset(0, 210);
   double _panelWidth = 280.0;
   double _panelHeight = 320.0;
   _JeepneyPanelSection _selectedSection = _JeepneyPanelSection.jeepneyRoutes;
@@ -556,11 +556,12 @@ class _JeepneyRouteDropdownPanelState
                                                     fontWeight: FontWeight.w500,
                                                   ),
                                                 ),
-                                                onChanged: (_) {
+                                                onChanged: (shouldBeVisible) {
                                                   context
                                                       .read<MapHelperProvider>()
-                                                      .toggleJeepneyRoute(
+                                                      .setJeepneyRouteVisibility(
                                                         route,
+                                                        shouldBeVisible ?? false,
                                                       );
                                                 },
                                               );

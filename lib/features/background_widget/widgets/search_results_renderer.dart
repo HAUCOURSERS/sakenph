@@ -51,6 +51,7 @@ class _SearchResultRendererState extends State<SearchResultRenderer> {
             switch (widget.searchFieldType) {
               case SearchFieldType.from:
                 mapHelperProvider.setFromLocationDetails = widget.nomiPlace;
+                searchDetailsProvider.setActiveSearching_fromLoc = false;
                 systemVariablesProvider.setAppCurrentState =
                     SystemState.gatheringToLoc;
                 searchDetailsProvider.setFromLocTextfieldText =
@@ -59,6 +60,7 @@ class _SearchResultRendererState extends State<SearchResultRenderer> {
                 break;
               case SearchFieldType.to:
                 mapHelperProvider.setToLocationDetails = widget.nomiPlace;
+                searchDetailsProvider.setActiveSearching_toLoc = false;
                 startComputingForRoutes(context);
                 searchDetailsProvider.setToLocTextfieldText =
                     widget.nomiPlace.name;

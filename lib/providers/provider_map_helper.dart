@@ -36,7 +36,12 @@ class MapHelperProvider extends ChangeNotifier {
   /// List of all jeepney routes fetched from the backend. This is used for toggling the visibility of jeepney routes on the map.
   List<JeepneyRoute> _jeepneyRoutes = [];
   Set<String> _visibleJeepneyRouteIds = {};
+  // The requested state is applied to the UI immediately. Map operations then
+  // catch up one at a time, using only the latest request for each route.
+  final Map<String, bool> _pendingJeepneyRouteVisibility = {};
+  final Set<String> _jeepneyRouteOpsInProgress = {};
   bool _isLoadingJeepneyRoutes = false;
+  bool _isBulkTogglingJeepneyRoutes = false;
 
   /// Originally obtained in a json format. Paths may contain more than one shortest paths.
   Map<String, dynamic> _suggestedShortestPathsAStar = {};
@@ -86,45 +91,92 @@ class MapHelperProvider extends ChangeNotifier {
 
   /// Shows or hides one jeepney route on the map.
   Future<void> toggleJeepneyRoute(JeepneyRoute route) async {
-    final updatedVisibleIds = Set<String>.from(_visibleJeepneyRouteIds);
+    await setJeepneyRouteVisibility(
+      route,
+      !_visibleJeepneyRouteIds.contains(route.id),
+    );
+  }
 
-    if (updatedVisibleIds.contains(route.id)) {
-      await mapWidgetController.hideJeepneyRoute(route.id);
-      updatedVisibleIds.remove(route.id);
-    } else {
-      await mapWidgetController.showJeepneyRoute(route);
-      updatedVisibleIds.add(route.id);
+  /// Applies the latest requested checkbox state for one route.
+  ///
+  /// Map operations are serialized per route and the pending desired state is
+  /// re-read after each operation, so rapid spamming can never leave the map
+  /// in the opposite state of the checkbox: the final request always wins.
+  Future<void> setJeepneyRouteVisibility(
+    JeepneyRoute route,
+    bool shouldBeVisible,
+  ) async {
+    final wasVisible = _visibleJeepneyRouteIds.contains(route.id);
+    if (shouldBeVisible != wasVisible) {
+      final updatedVisibleIds = Set<String>.from(_visibleJeepneyRouteIds);
+      if (shouldBeVisible) {
+        updatedVisibleIds.add(route.id);
+      } else {
+        updatedVisibleIds.remove(route.id);
+      }
+      _visibleJeepneyRouteIds = updatedVisibleIds;
+      notifyListeners();
     }
 
-    _visibleJeepneyRouteIds = updatedVisibleIds;
-    notifyListeners();
+    _pendingJeepneyRouteVisibility[route.id] = shouldBeVisible;
+    if (!_jeepneyRouteOpsInProgress.add(route.id)) return;
+
+    try {
+      while (_pendingJeepneyRouteVisibility.containsKey(route.id)) {
+        final desiredVisibility =
+            _pendingJeepneyRouteVisibility.remove(route.id)!;
+        if (desiredVisibility) {
+          await mapWidgetController.showJeepneyRoute(route);
+        } else {
+          await mapWidgetController.hideJeepneyRoute(route.id);
+        }
+      }
+    } finally {
+      _jeepneyRouteOpsInProgress.remove(route.id);
+    }
   }
 
   /// Shows all jeepney routes on the map.
   Future<void> showAllJeepneyRoutes() async {
-    await loadJeepneyRoutes();
+    // Ignore repeated taps while a bulk operation is already running.
+    // Overlapping batches cause duplicate source/layer crashes on the map.
+    if (_isBulkTogglingJeepneyRoutes) return;
+    _isBulkTogglingJeepneyRoutes = true;
 
-    final updatedVisibleIds = Set<String>.from(_visibleJeepneyRouteIds);
+    try {
+      await loadJeepneyRoutes();
 
-    for (final route in _jeepneyRoutes) {
-      if (!updatedVisibleIds.contains(route.id)) {
-        await mapWidgetController.showJeepneyRoute(route);
-        updatedVisibleIds.add(route.id);
+      final updatedVisibleIds = Set<String>.from(_visibleJeepneyRouteIds);
+
+      for (final route in _jeepneyRoutes) {
+        if (!updatedVisibleIds.contains(route.id)) {
+          await mapWidgetController.showJeepneyRoute(route);
+          updatedVisibleIds.add(route.id);
+        }
       }
-    }
 
-    _visibleJeepneyRouteIds = updatedVisibleIds;
-    notifyListeners();
+      _visibleJeepneyRouteIds = updatedVisibleIds;
+      notifyListeners();
+    } finally {
+      _isBulkTogglingJeepneyRoutes = false;
+    }
   }
 
   /// Hides all jeepney routes from the map.
   Future<void> hideAllJeepneyRoutes() async {
-    for (final routeId in _visibleJeepneyRouteIds.toList()) {
-      await mapWidgetController.hideJeepneyRoute(routeId);
-    }
+    if (_isBulkTogglingJeepneyRoutes) return;
+    _isBulkTogglingJeepneyRoutes = true;
 
-    _visibleJeepneyRouteIds = {};
-    notifyListeners();
+    try {
+      for (final routeId in _visibleJeepneyRouteIds.toList()) {
+        await mapWidgetController.hideJeepneyRoute(routeId);
+      }
+
+      _visibleJeepneyRouteIds = {};
+      notifyListeners();
+    } finally {
+      _isBulkTogglingJeepneyRoutes = false;
+    }
   }
 
   /// Data is inserted usually by functions in backend_service.dart
