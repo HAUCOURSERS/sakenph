@@ -24,7 +24,7 @@ Future<Map<String, dynamic>> queryForShortestPath(
     String localIp = global_vars.localIP;
     // Position gpsLocation = await determinePosition();
     print(
-      'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}&algo=astar&debug=true&traffic=$traffic',
+      'http://${Env.API_ENDPOINT_LINK}:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}&traffic=$traffic',
     );
 
     final response = await http.get(
@@ -33,7 +33,7 @@ Future<Map<String, dynamic>> queryForShortestPath(
         //'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}&algo=astar&debug=true',
 
         // AWS EC2
-        'http://${Env.API_ENDPOINT_LINK}:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
+        'http://${Env.API_ENDPOINT_LINK}:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}&traffic=$traffic',
       ),
     );
 
