@@ -15,6 +15,22 @@ import 'package:sakenph/providers/provider_system_vars.dart';
 void main() async {
   runAtMain();
 
+  FlutterError.onError = (FlutterErrorDetails details) {
+    // Define the error or text you want to block
+    final errorMessage = details.exception.toString();
+
+    // keeps spamming while using chrome debugger.
+    if (errorMessage.contains(
+      'Another exception was thrown: Assertion failed:',
+    )) {
+      // Suppress/skip printing this specific error
+      return;
+    }
+
+    // Fallback to default behavior for all other errors
+    FlutterError.dumpErrorToConsole(details);
+  };
+
   runApp(
     MultiProvider(
       providers: [

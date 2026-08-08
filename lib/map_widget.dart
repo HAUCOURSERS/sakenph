@@ -17,7 +17,8 @@ import 'package:sakenph/providers/provider_search_details.dart';
 import 'dart:math' show min, max, pi, sin, cos, asin, atan2, Point;
 
 import 'package:sakenph/providers/provider_system_vars.dart';
-import 'package:sakenph/features/foreground_widget/functions.dart' show fetchAndEnrichTodaTerminals, reverseGeocode;
+import 'package:sakenph/features/foreground_widget/functions.dart'
+    show fetchAndEnrichTodaTerminals, reverseGeocode;
 
 /// Added to import the backend service to use its functions for querying shortest paths and fetching jeepney routes.
 import 'package:sakenph/classes/jeepney_route.dart';
@@ -877,20 +878,22 @@ class _MapWidget extends State<MapWidget> {
             FutureBuilder<String>(
               future: futureLocationLabel,
               builder: (ctx2, snapshot) {
-                final label = snapshot.connectionState == ConnectionState.waiting
+                final label =
+                    snapshot.connectionState == ConnectionState.waiting
                     ? 'Resolving barangay...'
                     : snapshot.hasError
-                        ? 'Unknown location'
-                        : snapshot.data ?? 'Unknown location';
+                    ? 'Unknown location'
+                    : snapshot.data ?? 'Unknown location';
                 return Row(
                   children: [
-                    Icon(Icons.place, size: 18, color: theme.colorScheme.primary),
+                    Icon(
+                      Icons.place,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: Text(
-                        label,
-                        style: theme.textTheme.bodyMedium,
-                      ),
+                      child: Text(label, style: theme.textTheme.bodyMedium),
                     ),
                   ],
                 );
@@ -1353,7 +1356,10 @@ class _MapWidget extends State<MapWidget> {
         // ------------------------------------------------------------------ //
       },
 
+      onMapClick: (point, coordinates) {},
+
       onMapLongClick: (point, coordinates) async {
+        print("long click trigger");
         SystemState currentState = systemVariablesProvider.appCurrentState;
 
         // Disable this behavior if user is in these systemstates.

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -15,12 +16,22 @@ Future<List<NominatimPlace>> searchPlaces(
   SearchDetailsProvider searchDetailsProvider,
   SearchFieldType searchFieldType,
 ) async {
+  // randomized delay
+  final random = Random();
+  final delayMs =
+      (random.nextInt(400 - 100 + 1) + 100) *
+      10; // 100–400 (x10 = ms), 1000–4000ms
+  await Future.delayed(Duration(milliseconds: delayMs));
+
+  // randomized user agent
+  final user_agent = "user_me_${Random().nextInt(1000000)}";
   final uri = Uri.parse('https://nominatim.openstreetmap.org/search').replace(
     queryParameters: {
       'q': query,
       'countrycodes': 'PH',
       'format': 'json',
       'limit': '10',
+      'user_agent': user_agent,
     },
   );
   try {
@@ -82,7 +93,7 @@ Future<List<NominatimPlace>> searchPlaces(
       );
       return errorReturn;
     }
-  } on http.ClientException {
+  } on http.ClientException catch (e) {
     List<NominatimPlace> errorReturn = [];
     errorReturn.add(
       NominatimPlace(
@@ -91,7 +102,7 @@ Future<List<NominatimPlace>> searchPlaces(
         osmId: -1,
         lat: -1,
         lon: -1,
-        name: "No Places Found",
+        name: "Rate Limit has reached",
         displayName:
             "An error has occurred while fetching location name suggestions",
         className: "No Places Found",
@@ -102,6 +113,8 @@ Future<List<NominatimPlace>> searchPlaces(
         boundingBox: ["null"],
       ),
     );
+
+    print("ERROR: $e");
 
     switch (searchFieldType) {
       case SearchFieldType.from:

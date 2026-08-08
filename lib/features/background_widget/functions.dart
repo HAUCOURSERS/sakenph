@@ -148,10 +148,7 @@ int countTransfersForRoute(Map<String, dynamic> routeData, String routeId) {
 ///
 /// The "Least Transfers" badge is withheld entirely when multiple routes tie
 /// for the fewest transfers.
-Set<String> computeRouteBadges(
-  Map<String, dynamic> routeData,
-  String routeId,
-) {
+Set<String> computeRouteBadges(Map<String, dynamic> routeData, String routeId) {
   Set<String> badges = {};
   Map<String, dynamic> routes = routeData["routes"];
   if (routes.length < 2) return badges;
@@ -346,10 +343,7 @@ class _LinePainter extends CustomPainter {
 ///
 /// Returns (expectedDuration, actualDuration) in seconds.
 /// Falls back to computeTravel() if traffic data is missing.
-(int, int) computeRouteDelay(
-  Map<String, dynamic> routeData,
-  String routeId,
-) {
+(int, int) computeRouteDelay(Map<String, dynamic> routeData, String routeId) {
   int totalExpected = 0;
   int totalActual = 0;
   bool hasTrafficData = false;
@@ -386,15 +380,15 @@ bool isPlaceWithinScope(String fullAddress) {
   bool hasValidAddress = false;
   bool hasRequiredAddress = false;
 
-  // displayName result of NominatimPlace has its details separated with ", "
-  List<String> segmentedAddress = fullAddress.split(", ");
-  for (String segmentAddress in segmentedAddress) {
-    if (validAddresses.contains(segmentAddress.toLowerCase())) {
+  // Checking if
+  for (String validAddress in validAddresses) {
+    if (fullAddress.toLowerCase().contains(validAddress)) {
       hasValidAddress = true;
     }
-    if (requiredAddresses.contains(segmentAddress.toLowerCase())) {
-      hasRequiredAddress = true;
-    }
   }
+  if (fullAddress.toLowerCase().contains(requiredAddresses[0])) {
+    hasRequiredAddress = true;
+  }
+
   return hasValidAddress && hasRequiredAddress;
 }
