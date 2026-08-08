@@ -28,18 +28,12 @@ class _ForegroundWidgetState extends State<ForegroundWidget> {
     final systemState = context.select<SystemVariablesProvider, SystemState>(
       (provider) => provider.appCurrentState,
     );
-    final isSearching = context.select<SearchDetailsProvider, bool>(
-      (provider) =>
-          provider.isActiveSearching_fromLoc ||
-          provider.isActiveSearching_toLoc,
-    );
     final backgroundWidgetVisibility =
         context.select<SystemVariablesProvider, bool>(
           (provider) => provider.backgroundWidgetVisibility,
         );
     final showJeepneyControl =
         !backgroundWidgetVisibility &&
-        !isSearching &&
         (systemState == SystemState.gatheringFromLoc ||
             systemState == SystemState.gatheringToLoc ||
             systemState == SystemState.showSuggestedRoutes);

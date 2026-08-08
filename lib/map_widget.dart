@@ -1412,9 +1412,6 @@ class _MapWidget extends State<MapWidget> {
           minzoom: 8,
         );
 
-        // to auto-zoom to selected coords
-        _flyToLoc(coordinates);
-
         searchDetailsProvider.setLongPressedLocation = coordinates;
 
         // change app state
