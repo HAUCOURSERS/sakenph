@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
@@ -17,8 +18,6 @@ import 'package:sakenph/providers/provider_search_details.dart';
 import 'dart:math' show min, max, pi, sin, cos, asin, atan2, Point;
 
 import 'package:sakenph/providers/provider_system_vars.dart';
-import 'package:sakenph/features/foreground_widget/functions.dart'
-    show fetchAndEnrichTodaTerminals, reverseGeocode;
 
 /// Added to import the backend service to use its functions for querying shortest paths and fetching jeepney routes.
 import 'package:sakenph/classes/jeepney_route.dart';
@@ -789,8 +788,7 @@ class _MapWidget extends State<MapWidget> {
 
   Future<void> _loadTodaTerminals() async {
     try {
-      // Enrich terminals with barangay where possible for better UX
-      _todaTerminals = await fetchAndEnrichTodaTerminals();
+      _todaTerminals = await fetchTodaTerminals();
       await addTodaLayers();
     } catch (e) {
       print('[TEMP] Failed to load TODA terminals: $e');
@@ -799,12 +797,11 @@ class _MapWidget extends State<MapWidget> {
 
   void _showTerminalDetails(BuildContext context, Terminal terminal) {
     // Use a persistent bottom sheet so the rest of the UI remains interactive
-    final futureLocationLabel = terminal.barangay != null
-        ? Future.value(terminal.barangay ?? 'Unknown location')
-        : reverseGeocode(
-            latitude: terminal.latitude,
-            longitude: terminal.longitude,
-          );
+    final futureLocationLabel = Future.value(
+      terminal.barangay?.isNotEmpty == true
+          ? terminal.barangay!
+          : 'Unknown location',
+    );
 
     late PersistentBottomSheetController controller;
     controller = Scaffold.of(context).showBottomSheet((ctx) {
@@ -1033,7 +1030,12 @@ class _MapWidget extends State<MapWidget> {
       await _controller?.addLayer(
         sourceId,
         layerId,
-        const SymbolLayerProperties(iconImage: 'toda', iconSize: 0.25),
+        const SymbolLayerProperties(
+          iconImage: 'toda',
+          iconSize: kIsWeb ? 0.15 : 0.25,
+          iconAllowOverlap: true,
+          iconIgnorePlacement: true,
+        ),
         minzoom: 12,
       );
     }
@@ -1242,7 +1244,7 @@ class _MapWidget extends State<MapWidget> {
   ) async {
     final ByteData bytes = await rootBundle.load(imgDirectory);
     final Uint8List list = bytes.buffer.asUint8List();
-    _controller!.addImage(imgID, list);
+    await _controller!.addImage(imgID, list);
     _controller!.setSymbolIconAllowOverlap(symbolIconAllowOverlap);
   }
 
@@ -1268,9 +1270,6 @@ class _MapWidget extends State<MapWidget> {
 
         // Load jeepney routes from backend
         await context.read<MapHelperProvider>().loadJeepneyRoutes();
-
-        // Load tricycle icon to list of icons
-        _addImageToController('assets/img/toda.png', 'toda', false);
 
         _controller!.onFeatureTapped.add((
           point,
@@ -1303,26 +1302,6 @@ class _MapWidget extends State<MapWidget> {
           }
         });
 
-        await _loadTodaTerminals();
-
-        // Load map marker (GPS Location) icon to list of icons
-        _addImageToController('assets/img/mapmarker.png', 'mapmarker', true);
-        _addImageToController(
-          'assets/img/mapmarker_red.png',
-          'mapmarker_red',
-          true,
-        );
-        _addImageToController(
-          'assets/img/mapmarker_green.png',
-          'mapmarker_green',
-          true,
-        );
-        _addImageToController(
-          'assets/img/user_marker.png',
-          'user_marker',
-          true,
-        );
-
         // ----------- Add Source & Layer of current location ------------- //
         /*
         await _controller?.addSource(
@@ -1347,12 +1326,6 @@ class _MapWidget extends State<MapWidget> {
         );
         */
 
-        await _controller?.addLayer(
-          'source_currentLocation',
-          'layer_currentLocation',
-          const SymbolLayerProperties(iconImage: 'mapmarker', iconSize: 0.4),
-          minzoom: 8,
-        );
         // ------------------------------------------------------------------ //
       },
 
@@ -1418,7 +1391,31 @@ class _MapWidget extends State<MapWidget> {
         systemVariablesProvider.setAppCurrentState =
             SystemState.confirmingLocationSelection;
       },
-      // onStyleLoadedCallback: addLayers, (COMMENTED OUT UNTIL WE FIGURE OUT IF TO DISPLAY JEEPNEY AND TRICYCLE TERMINALS)
+      onStyleLoadedCallback: () async {
+        // Web MapLibre requires images to be registered after the style loads.
+        await _addImageToController('assets/img/toda.png', 'toda', false);
+        await _addImageToController(
+          'assets/img/mapmarker.png',
+          'mapmarker',
+          true,
+        );
+        await _addImageToController(
+          'assets/img/mapmarker_red.png',
+          'mapmarker_red',
+          true,
+        );
+        await _addImageToController(
+          'assets/img/mapmarker_green.png',
+          'mapmarker_green',
+          true,
+        );
+        await _addImageToController(
+          'assets/img/user_marker.png',
+          'user_marker',
+          true,
+        );
+        await _loadTodaTerminals();
+      },
 
       // Defaults to partial zoom of Pampanga
       initialCameraPosition: const CameraPosition(

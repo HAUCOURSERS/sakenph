@@ -12,52 +12,6 @@ import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_system_tasks.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
-import 'package:sakenph/api/backend_service.dart';
-import 'package:sakenph/classes/terminal_class.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert' as json_enc;
-
-/// Currently has no uses
-Future<String> reverseGeocode({
-  required double longitude,
-  required double latitude,
-}) async {
-  final uri = Uri.parse(
-    'https://nominatim.openstreetmap.org/reverse?lat=$latitude&lon=$longitude&format=jsonv2&addressdetails=1&zoom=18',
-  );
-
-  final response = await http.get(
-    uri,
-    headers: {
-      'User-Agent': 'SakenPH/1.0',
-      'Accept-Language': 'en',
-    },
-  ).timeout(const Duration(seconds: 8));
-
-  if (response.statusCode == 200) {
-    final Map<String, dynamic> jsonObject = jsonDecode(response.body);
-    final address = jsonObject['address'] as Map<String, dynamic>?;
-
-    if (address != null) {
-      if (address.containsKey('barangay')) {
-        final rawValue = address['barangay'];
-        if (rawValue is String && rawValue.isNotEmpty) {
-          return 'Barangay $rawValue';
-        }
-      }
-
-      final displayName = jsonObject['display_name'] as String?;
-      if (displayName != null && displayName.isNotEmpty) {
-        final parts = displayName.split(',').map((p) => p.trim()).toList();
-        return parts.take(2).join(', ');
-      }
-    }
-
-    return 'Unknown location';
-  } else {
-    throw Exception('Failed to load JSON');
-  }
-}
 
 /// Currently used to test connection towards backend.
 /// If connection is successful, it will return "Hello from FastAPI!"
@@ -72,66 +26,6 @@ Future<Map<String, dynamic>> fetchData() async {
   } else {
     throw Exception('Failed to load JSON');
   }
-}
-
-/// Fetch TODA terminals from backend and enrich each terminal with a barangay value
-/// by calling Nominatim reverse geocode for each one. This respects Nominatim
-/// rate limits by delaying between requests (default 1100ms).
-Future<List<Terminal>> fetchAndEnrichTodaTerminals({
-  Duration delayBetween = const Duration(milliseconds: 200),
-}) async {
-  final terminals = await fetchTodaTerminals();
-
-  final prefs = await SharedPreferences.getInstance();
-  final raw = prefs.getString('toda_barangay_cache');
-  Map<String, String> cache = {};
-  if (raw != null && raw.isNotEmpty) {
-    try {
-      cache = Map<String, String>.from(json_enc.jsonDecode(raw));
-    } catch (_) {
-      cache = {};
-    }
-  }
-
-  bool updated = false;
-
-  for (final t in terminals) {
-    final key = t.id.toString();
-
-    // If we already have a cached barangay, use it
-    if (cache.containsKey(key) && cache[key] != null && cache[key]!.isNotEmpty && cache[key] != 'Unknown location') {
-      t.barangay = cache[key];
-      continue;
-    }
-
-    try {
-      // Query Nominatim for barangay
-      final label = await reverseGeocode(
-        latitude: t.latitude,
-        longitude: t.longitude,
-      );
-
-      if (label.isNotEmpty && label != 'Unknown location') {
-        t.barangay = label;
-        cache[key] = label;
-        updated = true;
-      } else {
-        t.barangay = null;
-      }
-    } catch (e) {
-      // network or parsing error: leave barangay null
-      t.barangay = null;
-    }
-
-    // Respect Nominatim usage policy: do not flood the service. Delay between requests.
-    await Future.delayed(delayBetween);
-  }
-
-  if (updated) {
-    await prefs.setString('toda_barangay_cache', json_enc.jsonEncode(cache));
-  }
-
-  return terminals;
 }
 
 /// To get location perms
@@ -259,7 +153,14 @@ List<(String, String, double, String, int, int)> buildTravelDetails(
     }
 
     if (modeType == "walk") {
-      returnDetails.add(("Walk", routeColor, (distanceInKM * 1000), "", segmentTravelTime, segmentDelay));
+      returnDetails.add((
+        "Walk",
+        routeColor,
+        (distanceInKM * 1000),
+        "",
+        segmentTravelTime,
+        segmentDelay,
+      ));
     } else if (modeType == "jeep") {
       String jeepName = entry["mode"]["details"]["name"].toString();
       returnDetails.add((

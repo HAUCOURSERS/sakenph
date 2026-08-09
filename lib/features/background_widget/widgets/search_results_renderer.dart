@@ -68,10 +68,12 @@ class _SearchResultRendererState extends State<SearchResultRenderer> {
                 break;
             }
           }
+          if (!mounted) return;
           setState(() {
             _showColor = true;
           });
           await Future.delayed(Duration(milliseconds: 50));
+          if (!mounted) return;
           setState(() {
             _showColor = false;
           });
@@ -113,7 +115,9 @@ class _SearchResultRendererState extends State<SearchResultRenderer> {
                           ),
                           Text(
                             widget.nomiPlace.displayName,
-                            style: TextStyle(fontSize: responsiveSizeHeight(12)),
+                            style: TextStyle(
+                              fontSize: responsiveSizeHeight(12),
+                            ),
                             textAlign: TextAlign.left,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -123,7 +127,11 @@ class _SearchResultRendererState extends State<SearchResultRenderer> {
                               padding: EdgeInsets.only(top: 4),
                               child: Row(
                                 children: [
-                                  Icon(Icons.warning, color: Colors.red, size: responsiveSizeHeight(16)),
+                                  Icon(
+                                    Icons.warning,
+                                    color: Colors.red,
+                                    size: responsiveSizeHeight(16),
+                                  ),
                                   SizedBox(width: 4),
                                   Flexible(
                                     child: Text(

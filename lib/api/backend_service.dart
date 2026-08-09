@@ -30,10 +30,13 @@ Future<Map<String, dynamic>> queryForShortestPath(
     final response = await http.get(
       Uri.parse(
         // local backend
-        'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}&algo=astar&debug=true',
+        //'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}&algo=astar&debug=true',
 
         // AWS EC2
         //'http://${Env.API_ENDPOINT_LINK}:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}&traffic=$traffic',
+        
+        // for Web browser
+        'http://${global_vars.localIP}:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}&algo=astar&debug=true',
       ),
     );
 
@@ -63,7 +66,9 @@ Future<Map<String, dynamic>> queryForShortestPath(
 Future<List<JeepneyRoute>> fetchJeepRoutes() async {
   final response = await http.get(
     Uri.parse(
+      // For Mobile App
       //'http://${Env.API_ENDPOINT_LINK}:8000/jeep_routes',
+      // For Web Browser
       'http://${global_vars.localIP}:8000/jeep_routes',
     ), // local backend service link for ui toggle
   );
@@ -83,11 +88,14 @@ Future<List<JeepneyRoute>> fetchJeepRoutes() async {
 /// Fetches all TODA terminal points from the backend service.
 Future<List<Terminal>> fetchTodaTerminals() async {
   print(
+    //"[TEMP] TRY TO PARSE: ${'http://${Env.API_ENDPOINT_LINK}:8000/trike_terminals_list'}",
     "[TEMP] TRY TO PARSE: ${'http://${global_vars.localIP}:8000/trike_terminals_list'}",
   );
   final response = await http.get(
     Uri.parse(
-      //'${Env.API_ENDPOINT_LINK}/trike_terminals_list',
+      // For Mobile App
+      //'http://${Env.API_ENDPOINT_LINK}:8000/trike_terminals_list',
+      // For Web Browser
       'http://${global_vars.localIP}:8000/trike_terminals_list',
     ), // local backend service link for TODA Terminals
   );
@@ -110,6 +118,7 @@ Future<List<Terminal>> fetchTodaTerminals() async {
       longitude: (coords['long'] as num).toDouble(),
       latitude: (coords['lat'] as num).toDouble(),
       type: 'trike',
+      barangay: terminal['locationName']?.toString(),
     );
   }).toList();
 }

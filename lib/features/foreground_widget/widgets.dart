@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'package:sakenph/features/foreground_widget/functions.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/provider_map_helper.dart';
@@ -32,24 +31,8 @@ class _JeepneyRouteFloatingControlState
   @override
   void initState() {
     super.initState();
-    // Load terminals quickly from backend so the UI can show them immediately.
-    // Then run enrichment in the background and update the Future when done.
+    // Load terminal names, coordinates, and static locations from the backend.
     _todaTerminalsFuture = fetchTodaTerminals();
-
-    // Start enrichment in background without blocking the UI
-    fetchAndEnrichTodaTerminals()
-        .then((enriched) {
-          if (!mounted) return;
-          setState(() {
-            // Replace future with already-resolved enriched list so FutureBuilder rebuilds
-            _todaTerminalsFuture = Future.value(enriched);
-          });
-        })
-        .catchError((e) {
-          // Log and ignore enrichment errors so the UI stays responsive
-          // ignore: avoid_print
-          print('[TODA] enrichment failed: $e');
-        });
   }
 
   @override
@@ -207,7 +190,6 @@ class _JeepneyRouteDropdownPanel extends StatefulWidget {
 
 class _JeepneyRouteDropdownPanelState
     extends State<_JeepneyRouteDropdownPanel> {
-  late final ScrollController scrollController;
   bool _ignoreResize = false;
   bool _showAllSelected = true;
   final TextEditingController _terminalSearchController =
@@ -217,12 +199,10 @@ class _JeepneyRouteDropdownPanelState
   @override
   void initState() {
     super.initState();
-    scrollController = ScrollController();
   }
 
   @override
   void dispose() {
-    scrollController.dispose();
     _terminalSearchController.dispose();
     super.dispose();
   }
@@ -230,10 +210,6 @@ class _JeepneyRouteDropdownPanelState
   @override
   Widget build(BuildContext context) {
     final visibleCount = widget.visibleIds.length;
-    // ScrollController used for both lists so the scrollbar thumb is draggable/touchable.
-    // Note: created here for simplicity; if this widget rebuilds frequently consider
-    // hoisting the controller to state to properly dispose it.
-    final ScrollController scrollController = this.scrollController;
 
     return Material(
       color: Colors.white,
@@ -392,13 +368,12 @@ class _JeepneyRouteDropdownPanelState
                                       // The actual scrollable list takes the remaining space
                                       Expanded(
                                         child: Scrollbar(
-                                          controller: scrollController,
-                                          interactive: true,
-                                          thumbVisibility: true,
+                                          interactive: false,
+                                          thumbVisibility: false,
                                           radius: const Radius.circular(6),
                                           thickness: 7,
                                           child: ListView.builder(
-                                            controller: scrollController,
+                                            primary: true,
                                             padding: const EdgeInsets.only(
                                               bottom: 20,
                                             ),
@@ -664,13 +639,12 @@ class _JeepneyRouteDropdownPanelState
                                           ),
                                           Expanded(
                                             child: Scrollbar(
-                                              controller: scrollController,
-                                              interactive: true,
-                                              thumbVisibility: true,
+                                              interactive: false,
+                                              thumbVisibility: false,
                                               radius: const Radius.circular(6),
                                               thickness: 7,
                                               child: ListView.separated(
-                                                controller: scrollController,
+                                                primary: true,
                                                 itemCount: terminals.length,
                                                 separatorBuilder:
                                                     (context, index) => Divider(
@@ -731,18 +705,15 @@ class _JeepneyRouteDropdownPanelState
                                                       widget.onClose?.call();
 
                                                       final futureLocationLabel =
-                                                          terminal.barangay !=
-                                                              null
-                                                          ? Future.value(
-                                                              terminal.barangay ??
-                                                                  'Unknown location',
-                                                            )
-                                                          : reverseGeocode(
-                                                              latitude: terminal
-                                                                  .latitude,
-                                                              longitude: terminal
-                                                                  .longitude,
-                                                            );
+                                                          Future.value(
+                                                            terminal
+                                                                        .barangay
+                                                                        ?.isNotEmpty ==
+                                                                    true
+                                                                ? terminal
+                                                                      .barangay!
+                                                                : 'Unknown location',
+                                                          );
 
                                                       // Then show a persistent bottom sheet (non-modal) so UI remains interactive
                                                       late PersistentBottomSheetController
