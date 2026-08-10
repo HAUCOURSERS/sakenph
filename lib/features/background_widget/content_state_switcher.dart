@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:sakenph/features/background_widget/widgets/display_suggested_paths.dart';
+import 'package:sakenph/features/background_widget/widgets/display_suggested_routes.dart';
 import 'package:sakenph/features/background_widget/widgets/view_for_requesting_from_location.dart';
 import 'package:sakenph/features/background_widget/widgets/view_for_requesting_to_location.dart';
 import 'package:sakenph/features/background_widget/widgets/waiting_for_backend_response.dart';

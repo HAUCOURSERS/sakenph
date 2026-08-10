@@ -15,7 +15,7 @@ import 'package:sakenph/providers/provider_system_vars.dart';
 /// Widget where route details are already processed.
 ///
 /// The one with the colored lines indicating your walk/jeep/tricycle modes
-class SuggestedPathWidgetTemplate extends StatelessWidget {
+class SuggestedRouteWidgetTemplate extends StatelessWidget {
   /// Index number in the iteration when the widgets are being built
   final int choice_idx;
 
@@ -31,7 +31,7 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
     Color(0xFF0369A1), // Path #5 - Sky Blue
   ];
 
-  const SuggestedPathWidgetTemplate({
+  const SuggestedRouteWidgetTemplate({
     required this.choice_idx,
     required this.route_id,
   });

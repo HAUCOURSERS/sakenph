@@ -1,7 +1,7 @@
 // ignore_for_file: non_constant_identifier_names
 
 import 'package:flutter/material.dart';
-import 'package:sakenph/features/background_widget/widgets/suggested_path_widget_list_builder.dart';
+import 'package:sakenph/features/background_widget/widgets/suggested_route_widget_list_builder.dart';
 import 'package:sakenph/globals/functions/utils_responsiveness.dart';
 
 /// Widget that will display route choices given by backend
@@ -25,7 +25,7 @@ class DisplaySuggestedRoutes extends StatelessWidget {
               width: choiceWidgetWidth,
               height:
                   MediaQuery.sizeOf(context).height - responsiveSizeHeight(200),
-              child: SuggestedPathWidgetListBuilder(),
+              child: SuggestedRouteWidgetListBuilder(),
             ),
           ),
           Positioned(
