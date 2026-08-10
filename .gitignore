@@ -45,3 +45,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 pubspec.lock
+
+# Windows related
+/windows/flutter/generated_plugin_registrant.cc
+/windows/flutter/generated_plugins.cmake
