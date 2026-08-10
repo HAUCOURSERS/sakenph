@@ -1,11 +1,11 @@
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:sakenph/features/background_widget/functions.dart';
 import 'package:sakenph/features/foreground_widget/functions.dart';
 import 'package:sakenph/features/foreground_widget/widgets/route_details_builder.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions/formattings.dart';
+import 'package:sakenph/globals/functions/route_timing.dart';
 import 'package:sakenph/globals/functions/utils_responsiveness.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
@@ -35,19 +35,16 @@ class PreviewWindowForSuggestedPath extends StatelessWidget {
         ? searchDetailsProvider.getToLocTextController.text
         : "Destination";
 
-    double travelTime = computeTravel(
+    final routeTiming = computeRouteTiming(
       mapHelperProvider.getSuggestedShortestPaths,
       mapHelperProvider.getSelectedRouteId,
     );
+    double travelTime = routeTiming.actualSeconds.toDouble();
     (double, double) fares = computeFareTotalForRoute(
       mapHelperProvider.getSuggestedShortestPaths,
       mapHelperProvider.getSelectedRouteId,
     );
-    (int, int) routeDurations = computeRouteDelay(
-      mapHelperProvider.getSuggestedShortestPaths,
-      mapHelperProvider.getSelectedRouteId,
-    );
-    int delaySeconds = routeDurations.$2 - routeDurations.$1;
+    int delaySeconds = routeTiming.delaySeconds;
     bool isDelayed = delaySeconds > 0;
 
     return PopScope(
@@ -161,9 +158,10 @@ class PreviewWindowForSuggestedPath extends StatelessWidget {
                                   color: Colors.white,
                                   letterSpacing: 0.3,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            Spacer(),
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [

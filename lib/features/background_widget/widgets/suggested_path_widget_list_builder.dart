@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sakenph/features/background_widget/functions.dart';
 import 'package:sakenph/features/background_widget/widgets/suggested_path_widget_template.dart';
 import 'package:sakenph/globals/functions/utils_responsiveness.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
@@ -15,7 +16,8 @@ class SuggestedPathWidgetListBuilder extends StatelessWidget {
   Widget build(BuildContext context) {
     Map<String, dynamic> shortestPaths = context
         .read<MapHelperProvider>()
-        .getSuggestedShortestPaths["routes"];
+        .getSuggestedShortestPaths;
+    final routeIds = rankSuggestedRouteIds(shortestPaths);
 
     return Column(
       children: [
@@ -23,11 +25,14 @@ class SuggestedPathWidgetListBuilder extends StatelessWidget {
           child: ListView.separated(
             padding: EdgeInsets.only(bottom: responsiveSizeHeight(100)),
             itemBuilder: (context, index) {
-              return SuggestedPathWidgetTemplate(choice_idx: index);
+              return SuggestedPathWidgetTemplate(
+                choice_idx: index,
+                route_id: routeIds[index],
+              );
             },
             separatorBuilder: (context, index) =>
                 SizedBox(height: responsiveSizeHeight(16)),
-            itemCount: shortestPaths.length,
+            itemCount: routeIds.length,
           ),
         ),
         SizedBox(height: responsiveSizeHeight(16)),

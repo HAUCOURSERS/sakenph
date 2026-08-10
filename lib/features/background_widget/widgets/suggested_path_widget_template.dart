@@ -8,6 +8,7 @@ import 'package:sakenph/features/background_widget/functions.dart';
 import 'package:sakenph/features/foreground_widget/functions.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions/formattings.dart';
+import 'package:sakenph/globals/functions/route_timing.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
@@ -18,6 +19,9 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
   /// Index number in the iteration when the widgets are being built
   final int choice_idx;
 
+  /// Stable route ID from the backend, independent of display order.
+  final String route_id;
+
   /// Distinct colors for each path header (different from badge colors)
   static const List<Color> _pathColors = [
     Color(0xFF6750A4), // Path #1 - Purple
@@ -27,23 +31,25 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
     Color(0xFF0369A1), // Path #5 - Sky Blue
   ];
 
-  const SuggestedPathWidgetTemplate({required this.choice_idx});
+  const SuggestedPathWidgetTemplate({
+    required this.choice_idx,
+    required this.route_id,
+  });
 
   @override
   Widget build(BuildContext context) {
-    String route_id = "result-${choice_idx + 1}";
     Map<String, dynamic> pathJSON = context
         .read<MapHelperProvider>()
         .getFilteredRouteByID(route_id);
-    double travelTime = computeTravel(pathJSON, route_id);
+    final routeTiming = computeRouteTiming(pathJSON, route_id);
+    double travelTime = routeTiming.actualSeconds.toDouble();
     MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
     (double, double) fareRates = computeFareTotalForRoute(pathJSON, route_id);
     Set<String> badges = computeRouteBadges(
       mapHelperProvider.getSuggestedShortestPaths,
       route_id,
     );
-    (int, int) routeDurations = computeRouteDelay(pathJSON, route_id);
-    int delaySeconds = routeDurations.$2 - routeDurations.$1;
+    int delaySeconds = routeTiming.delaySeconds;
     bool isDelayed = delaySeconds > 0;
 
     return GestureDetector(
@@ -92,13 +98,10 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header with path number and badges
+            // Header with path number
             Container(
               width: double.infinity,
-              padding: EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: _pathColors[choice_idx % _pathColors.length],
                 borderRadius: BorderRadius.only(
@@ -108,11 +111,7 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.route,
-                    color: Colors.white,
-                    size: 20,
-                  ),
+                  Icon(Icons.route, color: Colors.white, size: 20),
                   SizedBox(width: 8),
                   Text(
                     "Path #${choice_idx + 1}",
@@ -123,17 +122,6 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
                       letterSpacing: 0.3,
                     ),
                   ),
-                  if (badges.isNotEmpty) ...[
-                    Spacer(),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: [
-                        for (final badge in badges)
-                          _BadgePill(label: badge, isOnHeader: true),
-                      ],
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -169,7 +157,7 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
                         ),
                       ),
                       if (isDelayed) ...[
-                        SizedBox(width: 8),
+                        SizedBox(width: 25),
                         Container(
                           padding: EdgeInsets.symmetric(
                             horizontal: 8,
@@ -203,19 +191,35 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
                     ],
                   ),
 
-                  SizedBox(height: 12),
+                  if (badges.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Wrap(
+                          spacing: 9,
+                          runSpacing: 6,
+                          children: [
+                            for (final badge in badges)
+                              _BadgePill(label: badge),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  SizedBox(height: 8),
 
                   // Route visualizer
                   Container(
-                    padding: EdgeInsets.symmetric(vertical: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                     child: SizedBox(
-                      height: 24,
+                      height: 26,
                       width: double.infinity,
                       child: navPainter(pathJSON, route_id),
                     ),
                   ),
 
-                  SizedBox(height: 8),
+                  SizedBox(height: 6),
 
                   // Time row
                   Row(
@@ -226,7 +230,7 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
                         label: "Depart",
                       ),
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        padding: EdgeInsets.symmetric(horizontal: 8),
                         child: Icon(
                           Icons.arrow_forward,
                           size: 16,
@@ -244,15 +248,12 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
                     ],
                   ),
 
-                  SizedBox(height: 12),
+                  SizedBox(height: 10),
 
                   // Divider
-                  Divider(
-                    height: 1,
-                    color: Colors.grey.withValues(alpha: 0.2),
-                  ),
+                  Divider(height: 1, color: Colors.grey.withValues(alpha: 0.3)),
 
-                  SizedBox(height: 12),
+                  SizedBox(height: 10),
 
                   // Fare information
                   _buildFareRow(
@@ -283,11 +284,7 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
   }) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 18,
-          color: Color(0xFF1A73E8),
-        ),
+        Icon(icon, size: 18, color: Color(0xFF1A73E8)),
         SizedBox(width: 8),
         Text(
           "$label: ",
@@ -311,10 +308,7 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
 
   Widget _buildTimeChip({required String time, required String label}) {
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 8,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: Color(0xFFF0F4FF),
         borderRadius: BorderRadius.circular(8),
@@ -386,9 +380,8 @@ class SuggestedPathWidgetTemplate extends StatelessWidget {
 /// advantage (fastest, least walking, least transfers).
 class _BadgePill extends StatelessWidget {
   final String label;
-  final bool isOnHeader;
 
-  const _BadgePill({required this.label, this.isOnHeader = false});
+  const _BadgePill({required this.label});
 
   static const Map<String, Color> _badgeColors = {
     "Fastest Route": Color(0xFF0D904F),
@@ -407,28 +400,22 @@ class _BadgePill extends StatelessWidget {
     Color badgeColor = _badgeColors[label] ?? Colors.grey;
 
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 4,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       decoration: BoxDecoration(
-        color: isOnHeader ? Colors.white : badgeColor,
+        color: badgeColor.withValues(alpha: 0.1),
+        border: Border.all(color: badgeColor.withValues(alpha: 0.25)),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            _badgeIcons[label] ?? Icons.star,
-            color: isOnHeader ? badgeColor : Colors.white,
-            size: 13,
-          ),
-          SizedBox(width: 3),
+          Icon(_badgeIcons[label] ?? Icons.star, color: badgeColor, size: 12),
+          SizedBox(width: 2),
           Text(
             label,
             style: TextStyle(
-              color: isOnHeader ? badgeColor : Colors.white,
-              fontSize: 12,
+              color: badgeColor,
+              fontSize: 11.5,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.2,
             ),

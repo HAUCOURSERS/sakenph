@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/globals/functions/transient_ui.dart';
 import 'package:sakenph/globals/functions/utils_responsiveness.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
@@ -13,6 +14,7 @@ class RouteOpenerButton extends StatelessWidget {
       alignment: Alignment.topCenter,
       child: GestureDetector(
         onTap: () {
+          dismissTransientUi(context);
           context.read<SystemVariablesProvider>().setAppCurrentState =
               SystemState.showSuggestedRoutes;
           context
@@ -30,8 +32,8 @@ class RouteOpenerButton extends StatelessWidget {
             vertical: responsiveSizeHeight(14),
           ),
           decoration: BoxDecoration(
-            color: Color.fromARGB(255, 176, 221, 255),
-            border: Border.all(width: responsiveSizeHeight(1)),
+             color: Color.fromARGB(255, 48, 99, 119),
+            border: Border.all(color: Colors.black, width: 1),
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
@@ -47,7 +49,7 @@ class RouteOpenerButton extends StatelessWidget {
               Icon(
                 Icons.explore,
                 size: responsiveSizeHeight(20),
-                color: Colors.black87,
+                 color: Colors.white,
               ),
               SizedBox(width: 8),
               Text(
@@ -56,7 +58,7 @@ class RouteOpenerButton extends StatelessWidget {
                 style: TextStyle(
                   fontSize: responsiveSizeHeight(16),
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                   color: Colors.white,
                 ),
               ),
             ],
