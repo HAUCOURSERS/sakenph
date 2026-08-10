@@ -98,7 +98,7 @@ class _BackgroundWidgetContentRenderer extends StatelessWidget {
         child = WaitingForBackendResponse();
         break;
       case SystemState.showSuggestedRoutes:
-        child = DisplaySuggestedPaths();
+        child = DisplaySuggestedRoutes();
         break;
       case SystemState.peekAtRoute:
       case SystemState.hideWidgets:

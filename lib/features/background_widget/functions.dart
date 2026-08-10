@@ -5,35 +5,6 @@ import 'package:sakenph/api/backend_service.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions/computations.dart';
 import 'package:sakenph/globals/functions/route_timing.dart';
-import 'package:sakenph/providers/provider_map_helper.dart';
-import 'package:sakenph/providers/provider_system_vars.dart';
-
-///
-void startComputingForRoutes(BuildContext context) async {
-  SystemVariablesProvider systemVariablesProvider = context
-      .read<SystemVariablesProvider>();
-  MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
-
-  systemVariablesProvider.setAppCurrentState =
-      SystemState.waitingForBackendResponse;
-
-  Map<String, dynamic> backendResponse = await queryForShortestPath(
-    mapHelperProvider.getSelectedFromLocationDetails!,
-    mapHelperProvider.getSelectedToLocationDetails!,
-    context,
-    traffic: systemVariablesProvider.includeTraffic,
-  );
-  if (backendResponse.isEmpty) {
-    // queryForShortestPath() will always return a non-empty map if backend response worked.
-    throw UnimplementedError(
-      "Note to developer: Add a retry button here since the backend response failed.",
-    );
-  } else {
-    mapHelperProvider.setSuggestedShortestPaths = backendResponse;
-    systemVariablesProvider.setAppCurrentState =
-        SystemState.showSuggestedRoutes;
-  }
-}
 
 /// Uses the geometry of a route, remake it into a List<LatLng> so the flyToBounds
 /// method can be used for proper zooming.

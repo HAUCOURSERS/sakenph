@@ -62,10 +62,12 @@ class MapHelperProvider extends ChangeNotifier {
   LatLng get getUserCurrentGeoLoc => _userCurrentGeoLoc;
 
   String get getSelectedRouteId => _selectedRouteId;
-  /// Added to fetch the jeepney routes from the backend.
-  /// Returns a list of all jeepney routes fetched from the backend. This is used for toggling the visibility of jeepney routes on the map.
+
+  /// Added to fetch the jeepney routes from the backend.<br/>
+  /// Returns a list of all jeepney routes fetched from the backend. This is used for toggling the visibility of jeepney routes on the map.<br/>
   List<JeepneyRoute> get jeepneyRoutes => _jeepneyRoutes;
-  Set<String> get visibleJeepneyRouteIds => Set.unmodifiable(_visibleJeepneyRouteIds);
+  Set<String> get visibleJeepneyRouteIds =>
+      Set.unmodifiable(_visibleJeepneyRouteIds);
   bool get isLoadingJeepneyRoutes => _isLoadingJeepneyRoutes;
 
   /// Uses Geolocator library to get user current position and extracts the lat lon values for later use
@@ -79,7 +81,7 @@ class MapHelperProvider extends ChangeNotifier {
   /// Added for loading jeepney routes from the backend.
   Future<void> loadJeepneyRoutes() async {
     if (_jeepneyRoutes.isNotEmpty || _isLoadingJeepneyRoutes) return;
-    
+
     _isLoadingJeepneyRoutes = true;
     notifyListeners();
 
@@ -97,11 +99,11 @@ class MapHelperProvider extends ChangeNotifier {
     );
   }
 
-  /// Applies the latest requested checkbox state for one route.
-  ///
-  /// Map operations are serialized per route and the pending desired state is
-  /// re-read after each operation, so rapid spamming can never leave the map
-  /// in the opposite state of the checkbox: the final request always wins.
+  /// Applies the latest requested checkbox state for one route.<br/>
+  ///<br/>
+  /// Map operations are serialized per route and the pending desired state is<br/>
+  /// re-read after each operation, so rapid spamming can never leave the map<br/>
+  /// in the opposite state of the checkbox: the final request always wins.<br/>
   Future<void> setJeepneyRouteVisibility(
     JeepneyRoute route,
     bool shouldBeVisible,
@@ -123,8 +125,9 @@ class MapHelperProvider extends ChangeNotifier {
 
     try {
       while (_pendingJeepneyRouteVisibility.containsKey(route.id)) {
-        final desiredVisibility =
-            _pendingJeepneyRouteVisibility.remove(route.id)!;
+        final desiredVisibility = _pendingJeepneyRouteVisibility.remove(
+          route.id,
+        )!;
         if (desiredVisibility) {
           await mapWidgetController.showJeepneyRoute(route);
         } else {
@@ -187,11 +190,11 @@ class MapHelperProvider extends ChangeNotifier {
 
   bool get shouldStopDrawing => _stopDrawing;
 
-  /// When someone searches for shortest routes, the backend may return more than one.
-  /// When displaying data, you'd wanna just get one of the routes.
-  ///
-  /// Valid route id format => "result-(number)"
-  /// Ex: result-1, result-2, result-3
+  /// When someone searches for shortest routes, the backend may return more than one.<br/>
+  /// When displaying data, you'd wanna just get one of the routes.<br/>
+  ///<br/>
+  /// Valid route id format => "result-(number)"<br/>
+  /// Ex: result-1, result-2, result-3<br/>
   Map<String, dynamic> getFilteredRouteByID(String routeId) {
     final routes = Map<String, dynamic>.from(
       _suggestedShortestPathsAStar['routes'] as Map<String, dynamic>,

@@ -5,7 +5,7 @@ import 'package:sakenph/features/background_widget/widgets/suggested_path_widget
 import 'package:sakenph/globals/functions/utils_responsiveness.dart';
 
 /// Widget that will display route choices given by backend
-class DisplaySuggestedPaths extends StatelessWidget {
+class DisplaySuggestedRoutes extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // If you want to change the width of the route choice display widgets, modify this
@@ -23,7 +23,8 @@ class DisplaySuggestedPaths extends StatelessWidget {
             child: Container(
               alignment: Alignment.topCenter,
               width: choiceWidgetWidth,
-              height: MediaQuery.sizeOf(context).height - responsiveSizeHeight(200),
+              height:
+                  MediaQuery.sizeOf(context).height - responsiveSizeHeight(200),
               child: SuggestedPathWidgetListBuilder(),
             ),
           ),
@@ -41,10 +42,7 @@ class DisplaySuggestedPaths extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.black,
-                  width: 1,
-                ),
+                border: Border.all(color: Colors.black, width: 1),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.1),
@@ -56,11 +54,7 @@ class DisplaySuggestedPaths extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.touch_app,
-                    size: 18,
-                    color: Colors.black,
-                  ),
+                  Icon(Icons.touch_app, size: 18, color: Colors.black),
                   SizedBox(width: 8),
                   Text(
                     "Tap a path card to view route",
