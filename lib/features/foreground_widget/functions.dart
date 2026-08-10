@@ -6,8 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/globals/enums.dart';
-import 'package:sakenph/globals/functions/computations.dart';
 import 'package:sakenph/globals/functions/formattings.dart';
+import 'package:sakenph/globals/functions/route_timing.dart';
 import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_system_tasks.dart';
@@ -99,67 +99,40 @@ void startTraveling(BuildContext context) async {
 /// - Fare Rate (Formatted or Blank if no fare)
 /// - Estimated travel time in seconds (from traffic data or Haversine fallback)
 /// - Delay in seconds (actualDuration - expectedDuration, 0 if no traffic data)
-List<(String, String, double, String, int, int)> buildTravelDetails(
-  Map<String, dynamic> routeData,
-  String route_id,
-) {
-  List<(String, String, double, String, int, int)> returnDetails = [];
-  for (final entry in routeData["routes"][route_id]) {
-    double distanceInKM = 0;
-    // Each entry here represents a chop piece in the route caused by switching between
-    // transpo modes like: walk -> jeep -> walk
-    List<LatLng> geometryDetails = (entry["geometry"] as List<dynamic>).map((
-      item,
-    ) {
-      final coords = (item as List<dynamic>)
-          .map((coord) => (coord as num).toDouble())
-          .toList();
-      return LatLng(coords[1], coords[0]);
-    }).toList();
-
-    // At this point, start computing the distance between in km
-    for (int i = 0; i < geometryDetails.length - 1; i++) {
-      distanceInKM += getDistanceFromLatLonInKm(
-        geometryDetails[i].latitude,
-        geometryDetails[i].longitude,
-        geometryDetails[i + 1].latitude,
-        geometryDetails[i + 1].longitude,
-      );
-    }
+List<(String, String, double, String, int, int, int, String)>
+buildTravelDetails(Map<String, dynamic> routeData, String route_id) {
+  List<(String, String, double, String, int, int, int, String)> returnDetails =
+      [];
+  final entries = routeData["routes"][route_id] as List<dynamic>;
+  final timings = computeRouteTiming(routeData, route_id).segments;
+  for (int segmentIndex = 0; segmentIndex < entries.length; segmentIndex++) {
+    final entry = entries[segmentIndex] as Map<String, dynamic>;
+    final timing = timings[segmentIndex];
+    final distanceInKM = timing.distanceInKm;
     String routeColor = entry["mode"]["details"]["color"].toString();
     double fareRegular = entry["mode"]["details"]["fare"]["regular"];
     double fareDiscounted = entry["mode"]["details"]["fare"]["discounted"];
     String modeType = entry["mode"]["type"].toString();
+    final isZeroDistanceTransfer =
+        modeType == "walk" &&
+        distanceInKM < 0.001 &&
+        timing.actualSeconds == 0 &&
+        timing.delaySeconds == 0;
 
-    // Compute per-segment travel time
-    int segmentTravelTime = 0;
-    int segmentDelay = 0;
-    if (entry.containsKey("traffic") &&
-        entry["traffic"] != null &&
-        entry["traffic"].containsKey("expectedDuration") &&
-        entry["traffic"].containsKey("actualDuration")) {
-      segmentTravelTime = (entry["traffic"]["actualDuration"] as num).toInt();
-      int expected = (entry["traffic"]["expectedDuration"] as num).toInt();
-      segmentDelay = segmentTravelTime - expected;
-    } else {
-      // Fallback: compute from Haversine speeds
-      if (modeType == "walk") {
-        segmentTravelTime = (distanceInKM / (4.5 / 3600)).toInt();
-      } else if (modeType == "jeep") {
-        segmentTravelTime = (distanceInKM / (14 / 3600)).toInt();
-      } else if (modeType == "trike") {
-        segmentTravelTime = (distanceInKM / (23 / 3600)).toInt();
-      }
-    }
+    int segmentTravelTime = timing.actualSeconds;
+    int segmentDelay = timing.delaySeconds;
+    int transferWait = timing.transferWaitSeconds;
 
     if (modeType == "walk") {
       returnDetails.add((
-        "Walk",
+        isZeroDistanceTransfer ? zeroDistanceTransferLabel : "Walk",
         routeColor,
         (distanceInKM * 1000),
         "",
         segmentTravelTime,
         segmentDelay,
+        transferWait,
+        modeType,
       ));
     } else if (modeType == "jeep") {
       String jeepName = entry["mode"]["details"]["name"].toString();
@@ -170,16 +143,20 @@ List<(String, String, double, String, int, int)> buildTravelDetails(
         "${fareRegular.toStringAsFixed(2)}₱ / ${fareDiscounted.toStringAsFixed(2)}₱",
         segmentTravelTime,
         segmentDelay,
+        transferWait,
+        modeType,
       ));
     } else if (modeType == "trike") {
       String todaTerminal = entry["mode"]["details"]["name"].toString();
       returnDetails.add((
-        todaTerminal,
+        "Tricycle - $todaTerminal",
         routeColor,
         (distanceInKM * 1000),
         "${fareRegular.toStringAsFixed(2)}₱ / ${fareDiscounted.toStringAsFixed(2)}₱",
         segmentTravelTime,
         segmentDelay,
+        transferWait,
+        modeType,
       ));
     }
   }

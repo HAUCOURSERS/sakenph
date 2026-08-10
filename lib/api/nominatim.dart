@@ -16,13 +16,6 @@ Future<List<NominatimPlace>> searchPlaces(
   SearchDetailsProvider searchDetailsProvider,
   SearchFieldType searchFieldType,
 ) async {
-  // randomized delay
-  final random = Random();
-  final delayMs =
-      (random.nextInt(400 - 100 + 1) + 100) *
-      10; // 100–400 (x10 = ms), 1000–4000ms
-  await Future.delayed(Duration(milliseconds: delayMs));
-
   // randomized user agent
   final user_agent = "user_me_${Random().nextInt(1000000)}";
   final uri = Uri.parse('https://nominatim.openstreetmap.org/search').replace(

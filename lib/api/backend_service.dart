@@ -86,8 +86,8 @@ Future<List<JeepneyRoute>> fetchJeepRoutes() async {
 /// Fetches all TODA terminal points from the backend service.
 Future<List<Terminal>> fetchTodaTerminals() async {
   print(
-    //"[TEMP] TRY TO PARSE: ${'http://${Env.API_ENDPOINT_LINK}:8000/trike_terminals_list'}",
     "[TEMP] TRY TO PARSE: ${'http://${Env.API_ENDPOINT_LINK}:8000/trike_terminals_list'}",
+   // "[TEMP] TRY TO PARSE: ${'http://${Env.API_ENDPOINT_LINK}:8000/trike_terminals_list'}",
   );
   final response = await http.get(
     Uri.parse(

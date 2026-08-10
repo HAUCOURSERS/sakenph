@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/api/nominatim.dart';
 import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/globals/functions/transient_ui.dart';
 import 'package:sakenph/globals/functions/utils_responsiveness.dart';
 import 'package:sakenph/pages/settings_page.dart' show SettingsPage;
 import 'package:sakenph/providers/provider_search_details.dart';
@@ -60,6 +61,7 @@ class FromLocationSearchBar extends StatelessWidget {
               },
               style: TextStyle(fontSize: responsiveSizeHeight(18)),
               onTap: () {
+                dismissTransientUi(context);
                 context
                         .read<SystemVariablesProvider>()
                         .setBackgroundWidgetVisibility =
@@ -85,6 +87,7 @@ class FromLocationSearchBar extends StatelessWidget {
                         ),
                         child: GestureDetector(
                           onTap: () {
+                            dismissTransientUi(context);
                             context
                                     .read<SystemVariablesProvider>()
                                     .setBackgroundWidgetVisibility =
@@ -105,6 +108,7 @@ class FromLocationSearchBar extends StatelessWidget {
                         ),
                         child: GestureDetector(
                           onTap: () {
+                            dismissTransientUi(context);
                             context
                                     .read<SystemVariablesProvider>()
                                     .setBackgroundWidgetVisibility =
