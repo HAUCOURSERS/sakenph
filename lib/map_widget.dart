@@ -1257,6 +1257,7 @@ class _MapWidget extends State<MapWidget> {
 
     return MapLibreMap(
       styleString: mapStyle,
+      doubleClickZoomEnabled: !kIsWeb,
 
       compassEnabled: true,
       compassViewPosition: CompassViewPosition.bottomRight,
@@ -1332,7 +1333,6 @@ class _MapWidget extends State<MapWidget> {
       onMapClick: (point, coordinates) {},
 
       onMapLongClick: (point, coordinates) async {
-        print("long click trigger");
         SystemState currentState = systemVariablesProvider.appCurrentState;
 
         // Disable this behavior if user is in these systemstates.

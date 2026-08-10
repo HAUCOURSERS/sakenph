@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:sakenph/api/backend_service.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions/computations.dart';
+import 'package:sakenph/globals/functions/route_timing.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
@@ -60,44 +61,7 @@ List<LatLng> compileCoordsIntoLatLngList(
 ///
 /// Returns time in seconds
 double computeTravel(Map<String, dynamic> routeData, String route_id) {
-  double travelTimeInSeconds = 0;
-  for (final entry in routeData["routes"][route_id]) {
-    double distanceInKM = 0;
-    // Each entry here represents a chop piece in the route caused by switching between
-    // transpo modes like: walk -> jeep -> walk
-    List<LatLng> geometryDetails = (entry["geometry"] as List<dynamic>).map((
-      item,
-    ) {
-      final coords = (item as List<dynamic>)
-          .map((coord) => (coord as num).toDouble())
-          .toList();
-      return LatLng(coords[1], coords[0]); // [lng, lat] → LatLng(lat, lng)
-    }).toList();
-
-    // At this point, start computing the distance between in km
-    for (int i = 0; i < geometryDetails.length - 1; i++) {
-      distanceInKM += getDistanceFromLatLonInKm(
-        geometryDetails[i].latitude,
-        geometryDetails[i].longitude,
-        geometryDetails[i + 1].latitude,
-        geometryDetails[i + 1].longitude,
-      );
-    }
-
-    String modeType = entry["mode"]["type"].toString();
-    if (modeType == "walk") {
-      double travelDuration = (distanceInKM / (4.5 / 3600));
-      travelTimeInSeconds += travelDuration;
-    } else if (modeType == "jeep") {
-      double travelDuration = (distanceInKM / (14 / 3600));
-      travelTimeInSeconds += travelDuration;
-    } else if (modeType == "trike") {
-      double travelDuration = (distanceInKM / (23 / 3600));
-      travelTimeInSeconds += travelDuration;
-    }
-  }
-
-  return travelTimeInSeconds;
+  return computeRouteTiming(routeData, route_id).actualSeconds.toDouble();
 }
 
 /// Returns the total walking distance in kilometers of a route by summing
@@ -197,6 +161,64 @@ Set<String> computeRouteBadges(Map<String, dynamic> routeData, String routeId) {
   return badges;
 }
 
+/// Returns route IDs in their display order.
+///
+/// Backend order remains the default. Equal-fare routes are tie-broken by
+/// total ETA, then by flair presence, then by flair count. The original index
+/// is retained as the final tie-breaker for stable rendering.
+List<String> rankSuggestedRouteIds(Map<String, dynamic> routeData) {
+  final routes = routeData["routes"] as Map<String, dynamic>?;
+  if (routes == null || routes.isEmpty) return [];
+
+  final rankedRoutes = [
+    for (final (index, entry) in routes.entries.indexed)
+      (
+        id: entry.key,
+        index: index,
+        fare: _computeRouteFareTotals(entry.value),
+        travelTime: computeTravel(routeData, entry.key),
+        badges: computeRouteBadges(routeData, entry.key),
+      ),
+  ];
+
+  rankedRoutes.sort((a, b) {
+    final sameRegularFare = (a.fare.$1 - b.fare.$1).abs() <= 0.005;
+    final sameDiscountedFare = (a.fare.$2 - b.fare.$2).abs() <= 0.005;
+    if (sameRegularFare && sameDiscountedFare) {
+      final timeComparison = a.travelTime.compareTo(b.travelTime);
+      if (timeComparison != 0) return timeComparison;
+
+      final flairPresenceComparison = (b.badges.isNotEmpty ? 1 : 0).compareTo(
+        a.badges.isNotEmpty ? 1 : 0,
+      );
+      if (flairPresenceComparison != 0) {
+        return flairPresenceComparison;
+      }
+
+      final flairCountComparison = b.badges.length.compareTo(a.badges.length);
+      if (flairCountComparison != 0) return flairCountComparison;
+    }
+
+    return a.index.compareTo(b.index);
+  });
+
+  return [for (final route in rankedRoutes) route.id];
+}
+
+(double, double) _computeRouteFareTotals(dynamic routeEntries) {
+  double regularFare = 0;
+  double discountedFare = 0;
+  if (routeEntries is! List) return (regularFare, discountedFare);
+
+  for (final entry in routeEntries) {
+    final fare = entry["mode"]?["details"]?["fare"];
+    if (fare is! Map) continue;
+    regularFare += (fare["regular"] as num?)?.toDouble() ?? 0;
+    discountedFare += (fare["discounted"] as num?)?.toDouble() ?? 0;
+  }
+  return (regularFare, discountedFare);
+}
+
 /// Creates a CustomPaint widget that visualizes travel details in color
 CustomPaint navPainter(Map<String, dynamic> routeData, String routeId) {
   // Store entry details for later use. Must be formatted like this:
@@ -268,7 +290,7 @@ class _LinePainter extends CustomPainter {
           ),
           Paint()
             ..color = color
-            ..strokeWidth = 4,
+            ..strokeWidth = 5,
         );
 
         // Make the points that indicate marker for jeepney travel
@@ -290,7 +312,7 @@ class _LinePainter extends CustomPainter {
         double startX = currentPlaceToDraw;
         double endX = currentPlaceToDraw + size.width * percentMakeup;
         final double tickSpacing = 8; // gap between each tick
-        final double tickHeight = 6; // how tall each vertical tick is
+        final double tickHeight = 8; // how tall each vertical tick is
 
         double x = startX;
 
@@ -300,7 +322,7 @@ class _LinePainter extends CustomPainter {
             Offset(x, size.height / 2 + tickHeight / 2),
             Paint()
               ..color = color
-              ..strokeWidth = 2
+              ..strokeWidth = 3
               ..style = PaintingStyle.stroke,
           );
           x += tickSpacing;
@@ -344,28 +366,8 @@ class _LinePainter extends CustomPainter {
 /// Returns (expectedDuration, actualDuration) in seconds.
 /// Falls back to computeTravel() if traffic data is missing.
 (int, int) computeRouteDelay(Map<String, dynamic> routeData, String routeId) {
-  int totalExpected = 0;
-  int totalActual = 0;
-  bool hasTrafficData = false;
-
-  for (final entry in routeData["routes"][routeId]) {
-    if (entry.containsKey("traffic") &&
-        entry["traffic"] != null &&
-        entry["traffic"].containsKey("expectedDuration") &&
-        entry["traffic"].containsKey("actualDuration")) {
-      hasTrafficData = true;
-      totalExpected += (entry["traffic"]["expectedDuration"] as num).toInt();
-      totalActual += (entry["traffic"]["actualDuration"] as num).toInt();
-    }
-  }
-
-  if (!hasTrafficData) {
-    // Fallback: use Haversine-based computation for both
-    int haversineTime = computeTravel(routeData, routeId).toInt();
-    return (haversineTime, haversineTime);
-  }
-
-  return (totalExpected, totalActual);
+  final timing = computeRouteTiming(routeData, routeId);
+  return (timing.expectedSeconds, timing.actualSeconds);
 }
 
 /// To check if a nominatim result points to a place that's within the thesis's

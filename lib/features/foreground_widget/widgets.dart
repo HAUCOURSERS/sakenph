@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +10,7 @@ import '../../providers/provider_map_helper.dart';
 import 'package:sakenph/classes/jeepney_route.dart';
 import 'package:sakenph/classes/terminal_class.dart';
 import 'package:sakenph/api/backend_service.dart';
+import 'package:sakenph/providers/provider_transient_ui.dart';
 
 /// A floating button that can be dragged around the screen.
 /// When pressed, it opens a panel that shows the list of jeepney routes and their visibility status on the map.
@@ -21,12 +24,58 @@ class JeepneyRouteFloatingControl extends StatefulWidget {
 
 class _JeepneyRouteFloatingControlState
     extends State<JeepneyRouteFloatingControl> {
+  static const double _buttonSize = 54.0;
+
   bool _isOpen = false;
+  bool _isDragging = false;
   Offset _position = const Offset(0, 210);
+  Offset? _dragStartPointer;
+  Offset? _dragStartPosition;
   double _panelWidth = 280.0;
   double _panelHeight = 320.0;
   _JeepneyPanelSection _selectedSection = _JeepneyPanelSection.jeepneyRoutes;
   Future<List<Terminal>>? _todaTerminalsFuture;
+
+  void _startDragging(Offset pointerPosition, Offset currentPosition) {
+    _dragStartPointer = pointerPosition;
+    _dragStartPosition = currentPosition;
+    if (!_isDragging) {
+      setState(() => _isDragging = true);
+    }
+  }
+
+  void _updateDragging(
+    Offset pointerPosition,
+    Size screenSize,
+    double bottomSafeArea,
+  ) {
+    final startPointer = _dragStartPointer;
+    final startPosition = _dragStartPosition;
+    if (startPointer == null || startPosition == null) return;
+
+    final pointerDelta = pointerPosition - startPointer;
+    final nextPosition = startPosition + pointerDelta;
+    final maxX = math.max(8.0, screenSize.width - _buttonSize - 8);
+    final maxY = math.max(
+      90.0,
+      screenSize.height - _buttonSize - bottomSafeArea - 100,
+    );
+    final clampedPosition = Offset(
+      nextPosition.dx.clamp(8.0, maxX).toDouble(),
+      nextPosition.dy.clamp(90.0, maxY).toDouble(),
+    );
+
+    if (clampedPosition == _position) return;
+    setState(() => _position = clampedPosition);
+  }
+
+  void _endDragging() {
+    _dragStartPointer = null;
+    _dragStartPosition = null;
+    if (_isDragging) {
+      setState(() => _isDragging = false);
+    }
+  }
 
   @override
   void initState() {
@@ -51,22 +100,25 @@ class _JeepneyRouteFloatingControlState
 
     final screenSize = MediaQuery.sizeOf(context);
     final bottomSafeArea = MediaQuery.paddingOf(context).bottom;
-    const buttonSize = 54.0;
     final panelWidth = _panelWidth.clamp(220.0, screenSize.width - 32.0);
     final panelHeight = _panelHeight.clamp(240.0, screenSize.height - 180.0);
 
-    final defaultX = screenSize.width - buttonSize - 16;
+    final defaultX = screenSize.width - _buttonSize - 16;
     final currentX = _position.dx == 0 ? defaultX : _position.dx;
     final currentY = _position.dy;
 
-    final clampedX = currentX.clamp(8.0, screenSize.width - buttonSize - 8);
-    final clampedY = currentY.clamp(
-      90.0,
-      screenSize.height - buttonSize - bottomSafeArea - 100,
-      // 100 is a buffer to avoid overlapping with the bottom navigation bar
-    );
+    final clampedX = currentX
+        .clamp(8.0, screenSize.width - _buttonSize - 8)
+        .toDouble();
+    final clampedY = currentY
+        .clamp(
+          90.0,
+          screenSize.height - _buttonSize - bottomSafeArea - 100,
+          // 100 is a buffer to avoid overlapping with the bottom navigation bar
+        )
+        .toDouble();
 
-    final panelLeft = (clampedX - panelWidth + buttonSize).clamp(
+    final panelLeft = (clampedX - panelWidth + _buttonSize).clamp(
       8.0,
       screenSize.width - panelWidth - 8,
     );
@@ -75,7 +127,7 @@ class _JeepneyRouteFloatingControlState
       children: [
         Positioned(
           left: panelLeft,
-          top: clampedY + buttonSize + 8,
+          top: clampedY + _buttonSize + 8,
           child: Offstage(
             offstage: !_isOpen,
             child: _JeepneyRouteDropdownPanel(
@@ -103,11 +155,17 @@ class _JeepneyRouteFloatingControlState
                   );
                 });
               },
-              onDrag: (deltaX, deltaY) {
-                setState(() {
-                  _position = Offset(clampedX + deltaX, clampedY + deltaY);
-                });
-              },
+              isDragging: _isDragging,
+              onDragStart: (details) => _startDragging(
+                details.globalPosition,
+                Offset(clampedX, clampedY),
+              ),
+              onDragUpdate: (details) => _updateDragging(
+                details.globalPosition,
+                screenSize,
+                bottomSafeArea,
+              ),
+              onDragEnd: _endDragging,
               onClose: () {
                 setState(() {
                   _isOpen = false;
@@ -119,30 +177,48 @@ class _JeepneyRouteFloatingControlState
         Positioned(
           left: clampedX,
           top: clampedY,
-          child: GestureDetector(
-            onPanUpdate: (details) {
-              setState(() {
-                _position = Offset(
-                  clampedX + details.delta.dx,
-                  clampedY + details.delta.dy,
-                );
-              });
-            },
-            onTap: () {
-              setState(() {
-                _isOpen = !_isOpen;
-              });
-            },
-            child: Material(
-              color: const Color.fromARGB(255, 41, 114, 110),
-              shape: const CircleBorder(),
-              elevation: 5,
-              child: SizedBox(
-                width: buttonSize,
-                height: buttonSize,
-                child: Icon(
-                  _isOpen ? Icons.close : Icons.alt_route,
-                  color: Colors.white,
+          child: MouseRegion(
+            cursor: _isDragging
+                ? SystemMouseCursors.grabbing
+                : SystemMouseCursors.grab,
+            child: GestureDetector(
+              onPanStart: (details) => _startDragging(
+                details.globalPosition,
+                Offset(clampedX, clampedY),
+              ),
+              onPanUpdate: (details) => _updateDragging(
+                details.globalPosition,
+                screenSize,
+                bottomSafeArea,
+              ),
+              onPanEnd: (_) => _endDragging(),
+              onPanCancel: _endDragging,
+              onTap: () {
+                setState(() {
+                  _isOpen = !_isOpen;
+                });
+              },
+              child: Material(
+                color: const Color.fromARGB(255, 41, 114, 110),
+                shape: const CircleBorder(
+                  side: BorderSide(
+                    color: Color.fromARGB(255, 0, 0, 0),
+                    width: 2,
+                  ),
+                ),
+                elevation: 5,
+                child: SizedBox(
+                  width: _buttonSize,
+                  height: _buttonSize,
+                  child: _isOpen
+                      ? const Icon(Icons.close, color: Colors.white)
+                      : Padding(
+                          padding: const EdgeInsets.all(5),
+                          child: Image.asset(
+                            'assets/img/Jeepney_Tricycle-icon.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -165,7 +241,10 @@ class _JeepneyRouteDropdownPanel extends StatefulWidget {
   final _JeepneyPanelSection selectedSection;
   final void Function(_JeepneyPanelSection section) onSectionSelected;
   final void Function(double deltaX, double deltaY) onResize;
-  final void Function(double deltaX, double deltaY) onDrag;
+  final bool isDragging;
+  final void Function(DragStartDetails details) onDragStart;
+  final void Function(DragUpdateDetails details) onDragUpdate;
+  final VoidCallback onDragEnd;
   final VoidCallback? onClose;
   final Future<List<Terminal>>? todaTerminalsFuture;
 
@@ -179,7 +258,10 @@ class _JeepneyRouteDropdownPanel extends StatefulWidget {
     required this.todaTerminalsFuture,
     required this.onSectionSelected,
     required this.onResize,
-    required this.onDrag,
+    required this.isDragging,
+    required this.onDragStart,
+    required this.onDragUpdate,
+    required this.onDragEnd,
     this.onClose,
   });
 
@@ -230,18 +312,27 @@ class _JeepneyRouteDropdownPanelState
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        GestureDetector(
-                          onPanUpdate: (details) {
-                            widget.onDrag(details.delta.dx, details.delta.dy);
-                          },
-                          child: Center(
-                            child: Container(
-                              width: 90,
-                              height: 7.5,
-                              margin: const EdgeInsets.only(bottom: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade400,
-                                borderRadius: BorderRadius.circular(3),
+                        MouseRegion(
+                          cursor: widget.isDragging
+                              ? SystemMouseCursors.grabbing
+                              : SystemMouseCursors.grab,
+                          child: GestureDetector(
+                            onPanStart: widget.onDragStart,
+                            onPanUpdate: widget.onDragUpdate,
+                            onPanEnd: (_) => widget.onDragEnd(),
+                            onPanCancel: widget.onDragEnd,
+                            child: SizedBox(
+                              height: 32,
+                              child: Center(
+                                child: Container(
+                                  width: 90,
+                                  height: 7.5,
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade400,
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -915,6 +1006,24 @@ class _JeepneyRouteDropdownPanelState
                                                         backgroundColor:
                                                             Colors.transparent,
                                                       );
+                                                      final transientUi = context
+                                                          .read<
+                                                            TransientUiProvider
+                                                          >();
+                                                      final registrationId =
+                                                          transientUi
+                                                              .registerBottomSheet(
+                                                                controller
+                                                                    .close,
+                                                              );
+                                                      controller.closed.then((
+                                                        _,
+                                                      ) {
+                                                        transientUi
+                                                            .unregisterBottomSheet(
+                                                              registrationId,
+                                                            );
+                                                      });
                                                     },
                                                   );
                                                 },

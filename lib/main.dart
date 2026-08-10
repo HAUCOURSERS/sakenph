@@ -11,6 +11,7 @@ import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_system_tasks.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
+import 'package:sakenph/providers/provider_transient_ui.dart';
 
 void main() async {
   runAtMain();
@@ -38,6 +39,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => SystemVariablesProvider()),
         ChangeNotifierProvider(create: (_) => SearchDetailsProvider()),
         ChangeNotifierProvider(create: (_) => SystemTasksProvder()),
+        ChangeNotifierProvider(create: (_) => TransientUiProvider()),
       ],
       child: const MyApp(),
     ),
