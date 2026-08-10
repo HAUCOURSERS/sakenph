@@ -3,15 +3,45 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:provider/provider.dart';
+import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/variables.dart' as global_vars;
 import 'package:sakenph/classes/jeepney_route.dart';
 import 'package:sakenph/classes/terminal_class.dart';
 import 'package:sakenph/api/local/env.dart';
+import 'package:sakenph/providers/provider_map_helper.dart';
+import 'package:sakenph/providers/provider_system_vars.dart';
+
+void startComputingForRoutes(BuildContext context) async {
+  SystemVariablesProvider systemVariablesProvider = context
+      .read<SystemVariablesProvider>();
+  MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
+
+  systemVariablesProvider.setAppCurrentState =
+      SystemState.waitingForBackendResponse;
+
+  Map<String, dynamic> backendResponse = await _queryForShortestPath(
+    mapHelperProvider.getSelectedFromLocationDetails!,
+    mapHelperProvider.getSelectedToLocationDetails!,
+    context,
+    traffic: systemVariablesProvider.includeTraffic,
+  );
+  if (backendResponse.isEmpty) {
+    // queryForShortestPath() will always return a non-empty map if backend response worked.
+    throw UnimplementedError(
+      "Note to developer: Add a retry button here since the backend response failed.",
+    );
+  } else {
+    mapHelperProvider.setSuggestedShortestPaths = backendResponse;
+    systemVariablesProvider.setAppCurrentState =
+        SystemState.showSuggestedRoutes;
+  }
+}
 
 /// Attempts to get json results by submitting origin and destination [LatLng] values.
 /// Returns a nullable <code>Map&lt;String, dynamic&gt;</code> value. BuildContext is passed
 /// to allow for context.read() calls to be used in this function.
-Future<Map<String, dynamic>> queryForShortestPath(
+Future<Map<String, dynamic>> _queryForShortestPath(
   LatLng origin,
   LatLng dest,
   BuildContext context, {
