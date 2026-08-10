@@ -76,7 +76,7 @@ flutter:
     - assets/map_styles/osm_bright2.json
     - assets/map_styles/liberty.json
     - assets/img/toda.png
-    - assets/img/Jeepney_Tricycle-icon.png
+    - assets/img/jeepney_tricycle-icon.png
     - assets/img/mapmarker.png
     - assets/img/mapmarker_red.png
     - assets/img/mapmarker_green.png

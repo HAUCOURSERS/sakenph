@@ -215,7 +215,7 @@ class _JeepneyRouteFloatingControlState
                       : Padding(
                           padding: const EdgeInsets.all(5),
                           child: Image.asset(
-                            'assets/img/Jeepney_Tricycle-icon.png',
+                            'assets/img/jeepney_tricycle-icon.png',
                             fit: BoxFit.contain,
                           ),
                         ),
