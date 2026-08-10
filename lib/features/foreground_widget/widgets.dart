@@ -213,7 +213,7 @@ class _JeepneyRouteFloatingControlState
                   child: _isOpen
                       ? const Icon(Icons.close, color: Colors.white)
                       : Padding(
-                          padding: const EdgeInsets.all(5),
+                          padding: const EdgeInsets.all(7),
                           child: Image.asset(
                             'assets/img/jeepney_tricycle-icon.png',
                             fit: BoxFit.contain,
