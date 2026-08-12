@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 
 import '../../providers/provider_map_helper.dart';
 
+import 'package:sakenph/globals/functions/formattings.dart';
+
 /// Added to import the backend service to use its functions for querying shortest paths and fetching jeepney routes.
 import 'package:sakenph/classes/jeepney_route.dart';
 import 'package:sakenph/classes/terminal_class.dart';
@@ -519,7 +521,7 @@ class _JeepneyRouteDropdownPanelState
                                                   ),
                                                 ),
                                                 title: Text(
-                                                  route.name,
+                                                  formatLabelForJeepneyName(route.name),
                                                   style: const TextStyle(
                                                     fontSize: 13,
                                                     fontWeight: FontWeight.w500,
