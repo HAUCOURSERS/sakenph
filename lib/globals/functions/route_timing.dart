@@ -21,8 +21,10 @@ class RouteSegmentTiming {
   });
 
   int get delaySeconds => math.max(0, actualSeconds - expectedSeconds);
-  int get totalExpectedSeconds => expectedSeconds + transferWaitSeconds;
-  int get totalActualSeconds => actualSeconds + transferWaitSeconds;
+  // Transfer wait is retained for the detail row, but is not included in the
+  // route ETA totals shown to the user.
+  int get totalExpectedSeconds => expectedSeconds;
+  int get totalActualSeconds => actualSeconds;
 }
 
 /// Aggregated timing for every segment in a route.

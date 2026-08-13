@@ -94,16 +94,13 @@ Future<Map<String, dynamic>> _queryForShortestPath(
 Future<List<JeepneyRoute>> fetchJeepRoutes() async {
   final response = await http.get(
     Uri.parse(
-      // For Mobile App
+      // For Mobile App Only
       //'http://${Env.API_ENDPOINT_LINK}:8000/jeep_routes',
       // For Web Browser
       'http://${Env.API_ENDPOINT_LINK}:8000/jeep_routes',
     ), // local backend service link for ui toggle
   );
-
-  if (response.statusCode != 200) {
-    throw Exception('Failed to load jeep routes');
-  }
+  
 
   final Map<String, dynamic> body = jsonDecode(response.body);
   final List<dynamic> routes = body['routes'];

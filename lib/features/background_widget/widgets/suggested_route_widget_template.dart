@@ -113,15 +113,21 @@ class SuggestedRouteWidgetTemplate extends StatelessWidget {
                 children: [
                   Icon(Icons.route, color: Colors.white, size: 20),
                   SizedBox(width: 8),
-                  Text(
-                    "Path #${choice_idx + 1}",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                      color: Colors.white,
-                      letterSpacing: 0.3,
+                  Expanded(
+                    child: Text(
+                      "Path #${choice_idx + 1}",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: Colors.white,
+                        letterSpacing: 0.3,
+                      ),
                     ),
                   ),
+                  if (choice_idx == 0) ...[
+                    SizedBox(width: 8),
+                    _BadgePill(label: "Lowest Fare"),
+                  ],
                 ],
               ),
             ),
@@ -387,12 +393,14 @@ class _BadgePill extends StatelessWidget {
     "Fastest Route": Color(0xFF0D904F),
     "Least Walking": Color(0xFF1A73E8),
     "Least Transfers": Color(0xFFE37400),
+    "Lowest Fare": Color.fromARGB(255, 98, 247, 165),
   };
 
   static const Map<String, IconData> _badgeIcons = {
     "Fastest Route": Icons.bolt,
     "Least Walking": Icons.directions_walk,
     "Least Transfers": Icons.swap_horiz,
+    "Lowest Fare": Icons.payments_outlined,
   };
 
   @override

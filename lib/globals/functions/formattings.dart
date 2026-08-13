@@ -51,7 +51,6 @@ Color hexToColor(String hex) {
 /// Backend Response formats jeepney names where there are no whitespaces, which looks
 /// terrible if to be displayed as it is in the route details
 String formatLabelForJeepneyName(String value) {
-
   String result = value.replaceAll('-Southbound', ' (Southbound)').replaceAll('-Northbound', ' (Northbound)').replaceAll('-', ' • ');
 
   // Insert a space before any uppercase letter that's preceded by a lowercase letter

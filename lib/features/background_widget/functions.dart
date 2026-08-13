@@ -153,22 +153,24 @@ List<String> rankSuggestedRouteIds(Map<String, dynamic> routeData) {
   ];
 
   rankedRoutes.sort((a, b) {
-    final sameRegularFare = (a.fare.$1 - b.fare.$1).abs() <= 0.005;
-    final sameDiscountedFare = (a.fare.$2 - b.fare.$2).abs() <= 0.005;
-    if (sameRegularFare && sameDiscountedFare) {
-      final timeComparison = a.travelTime.compareTo(b.travelTime);
-      if (timeComparison != 0) return timeComparison;
+    final regularFareComparison = a.fare.$1.compareTo(b.fare.$1);
+    if (regularFareComparison != 0) return regularFareComparison;
 
-      final flairPresenceComparison = (b.badges.isNotEmpty ? 1 : 0).compareTo(
-        a.badges.isNotEmpty ? 1 : 0,
-      );
-      if (flairPresenceComparison != 0) {
-        return flairPresenceComparison;
-      }
+    final discountedFareComparison = a.fare.$2.compareTo(b.fare.$2);
+    if (discountedFareComparison != 0) return discountedFareComparison;
 
-      final flairCountComparison = b.badges.length.compareTo(a.badges.length);
-      if (flairCountComparison != 0) return flairCountComparison;
+    final timeComparison = a.travelTime.compareTo(b.travelTime);
+    if (timeComparison != 0) return timeComparison;
+
+    final flairPresenceComparison = (b.badges.isNotEmpty ? 1 : 0).compareTo(
+      a.badges.isNotEmpty ? 1 : 0,
+    );
+    if (flairPresenceComparison != 0) {
+      return flairPresenceComparison;
     }
+
+    final flairCountComparison = b.badges.length.compareTo(a.badges.length);
+    if (flairCountComparison != 0) return flairCountComparison;
 
     return a.index.compareTo(b.index);
   });
