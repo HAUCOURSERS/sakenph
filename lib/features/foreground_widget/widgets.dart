@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 
 import '../../providers/provider_map_helper.dart';
 
+import 'package:sakenph/globals/functions/formattings.dart';
+
 /// Added to import the backend service to use its functions for querying shortest paths and fetching jeepney routes.
 import 'package:sakenph/classes/jeepney_route.dart';
 import 'package:sakenph/classes/terminal_class.dart';
@@ -32,7 +34,7 @@ class _JeepneyRouteFloatingControlState
   Offset? _dragStartPointer;
   Offset? _dragStartPosition;
   double _panelWidth = 280.0;
-  double _panelHeight = 320.0;
+  double _panelHeight = 380.0;
   _JeepneyPanelSection _selectedSection = _JeepneyPanelSection.jeepneyRoutes;
   Future<List<Terminal>>? _todaTerminalsFuture;
 
@@ -425,122 +427,132 @@ class _JeepneyRouteDropdownPanelState
                           Divider(height: 1, color: Colors.black54),
                           const SizedBox(height: 4),
                           Expanded(
-                            child: widget.routes.isEmpty
-                                ? const Center(
-                                    child: Text(
-                                      'No routes loaded',
-                                      style: TextStyle(color: Colors.grey),
-                                    ),
-                                  )
-                                : Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.stretch,
-                                    children: [
-                                      // Teal visual indicator clamped to the list area (below the divider)
-                                      Container(
-                                        width: 12,
-                                        padding: const EdgeInsets.only(left: 4),
-                                        alignment: Alignment.centerLeft,
-                                        child: Container(
-                                          width: 4,
-                                          decoration: BoxDecoration(
-                                            color: const Color.fromARGB(
-                                              255,
-                                              48,
-                                              143,
-                                              138,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              2,
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: widget.routes.isEmpty
+                                  ? const Center(
+                                      child: Text(
+                                        'No routes loaded',
+                                        style: TextStyle(color: Colors.grey),
+                                      ),
+                                    )
+                                  : Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        // Teal visual indicator clamped to the list area (below the divider)
+                                        Container(
+                                          width: 12,
+                                          padding: const EdgeInsets.only(
+                                            left: 4,
+                                          ),
+                                          alignment: Alignment.centerLeft,
+                                          child: Container(
+                                            width: 4,
+                                            decoration: BoxDecoration(
+                                              color: const Color.fromARGB(
+                                                255,
+                                                48,
+                                                143,
+                                                138,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(2),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                      // The actual scrollable list takes the remaining space
-                                      Expanded(
-                                        child: Scrollbar(
-                                          interactive: false,
-                                          thumbVisibility: false,
-                                          radius: const Radius.circular(6),
-                                          thickness: 7,
-                                          child: ListView.builder(
-                                            primary: true,
-                                            padding: const EdgeInsets.only(
-                                              bottom: 20,
-                                            ),
-                                            itemCount: widget.routes.length,
-                                            itemBuilder: (context, index) {
-                                              final route =
-                                                  widget.routes[index];
-                                              final isVisible = widget
-                                                  .visibleIds
-                                                  .contains(route.id);
+                                        // The actual scrollable list takes the remaining space
+                                        Expanded(
+                                          child: Scrollbar(
+                                            interactive: false,
+                                            thumbVisibility: false,
+                                            radius: const Radius.circular(6),
+                                            thickness: 7,
+                                            child: ListView.builder(
+                                              primary: true,
+                                              padding: const EdgeInsets.only(
+                                                bottom: 56,
+                                              ),
+                                              itemCount: widget.routes.length,
+                                              itemBuilder: (context, index) {
+                                                final route =
+                                                    widget.routes[index];
+                                                final isVisible = widget
+                                                    .visibleIds
+                                                    .contains(route.id);
 
-                                              return CheckboxListTile(
-                                                dense: true,
-                                                visualDensity:
-                                                    const VisualDensity(
-                                                      vertical: -1,
-                                                      horizontal: -4,
-                                                    ),
-                                                contentPadding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 12,
-                                                      vertical: 2,
-                                                    ),
-                                                value: isVisible,
-                                                activeColor:
-                                                    const Color.fromARGB(
-                                                      255,
-                                                      41,
-                                                      114,
-                                                      110,
-                                                    ),
-                                                checkColor: Colors.white,
-                                                secondary: Container(
-                                                  width: 18,
-                                                  height: 18,
-                                                  decoration: BoxDecoration(
-                                                    color: Color(
-                                                      int.parse(
-                                                        route.color
-                                                            .replaceFirst(
-                                                              '#',
-                                                              '0xff',
-                                                            ),
+                                                return CheckboxListTile(
+                                                  dense: true,
+                                                  visualDensity:
+                                                      const VisualDensity(
+                                                        vertical: -1,
+                                                        horizontal: -4,
+                                                      ),
+                                                  contentPadding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 12,
+                                                        vertical: 2,
+                                                      ),
+                                                  value: isVisible,
+                                                  activeColor:
+                                                      const Color.fromARGB(
+                                                        255,
+                                                        41,
+                                                        114,
+                                                        110,
+                                                      ),
+                                                  checkColor: Colors.white,
+                                                  secondary: Container(
+                                                    width: 18,
+                                                    height: 18,
+                                                    decoration: BoxDecoration(
+                                                      color: Color(
+                                                        int.parse(
+                                                          route.color
+                                                              .replaceFirst(
+                                                                '#',
+                                                                '0xff',
+                                                              ),
+                                                        ),
+                                                      ),
+                                                      shape: BoxShape.circle,
+                                                      border: Border.all(
+                                                        color: Colors
+                                                            .grey
+                                                            .shade200,
+                                                        width: 1.5,
                                                       ),
                                                     ),
-                                                    shape: BoxShape.circle,
-                                                    border: Border.all(
-                                                      color:
-                                                          Colors.grey.shade200,
-                                                      width: 1.5,
+                                                  ),
+                                                  title: Text(
+                                                    formatLabelForJeepneyName(
+                                                      route.name,
+                                                    ),
+                                                    style: const TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w500,
                                                     ),
                                                   ),
-                                                ),
-                                                title: Text(
-                                                  route.name,
-                                                  style: const TextStyle(
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                                onChanged: (shouldBeVisible) {
-                                                  context
-                                                      .read<MapHelperProvider>()
-                                                      .setJeepneyRouteVisibility(
-                                                        route,
-                                                        shouldBeVisible ??
-                                                            false,
-                                                      );
-                                                },
-                                              );
-                                            },
+                                                  onChanged: (shouldBeVisible) {
+                                                    context
+                                                        .read<
+                                                          MapHelperProvider
+                                                        >()
+                                                        .setJeepneyRouteVisibility(
+                                                          route,
+                                                          shouldBeVisible ??
+                                                              false,
+                                                        );
+                                                  },
+                                                );
+                                              },
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
+                                      ],
+                                    ),
+                            ),
                           ),
                         ] else ...[
                           Padding(
@@ -1137,7 +1149,7 @@ class _JeepneyRouteDropdownPanelState
                       cursor: SystemMouseCursors.resizeUpDown,
                       child: Icon(
                         Icons.drag_handle,
-                        size: 18,
+                        size: 28,
                         color: Colors.grey.shade600,
                       ),
                     ),

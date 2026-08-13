@@ -13,7 +13,9 @@ import 'package:sakenph/providers/provider_map_helper.dart';
 /// Used by _PreviewWindowForSuggestedPath. Builds the Row() widgets to form
 /// the display
 class RouteDetailsBuilder extends StatefulWidget {
-  const RouteDetailsBuilder({super.key});
+  final bool embedded;
+
+  const RouteDetailsBuilder({super.key, this.embedded = false});
 
   @override
   State<RouteDetailsBuilder> createState() => _RouteDetailsBuilderState();
@@ -53,10 +55,12 @@ class _RouteDetailsBuilderState extends State<RouteDetailsBuilder> {
         : routeDetails;
 
     final routeList = ListView.separated(
-      controller: _scrollController,
+      controller: widget.embedded ? null : _scrollController,
       primary: false,
-      shrinkWrap: true,
-      physics: const ClampingScrollPhysics(),
+      shrinkWrap: widget.embedded,
+      physics: widget.embedded
+          ? const NeverScrollableScrollPhysics()
+          : const ClampingScrollPhysics(),
       padding: EdgeInsets.only(right: kIsWeb ? 8 : 4),
       itemCount: displayRouteDetails.length + 1,
       itemBuilder: (context, index) {
@@ -90,6 +94,8 @@ class _RouteDetailsBuilderState extends State<RouteDetailsBuilder> {
       separatorBuilder: (context, index) =>
           Divider(height: 1, color: Colors.grey.withValues(alpha: 0.15)),
     );
+
+    if (widget.embedded) return routeList;
 
     return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: maxListHeight),
