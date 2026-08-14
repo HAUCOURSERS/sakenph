@@ -6,6 +6,7 @@ import 'package:sakenph/features/background_widget/content_state_switcher.dart';
 import 'package:sakenph/features/foreground_widget/functions.dart'
     show handleLocationPermission;
 import 'package:sakenph/features/foreground_widget/content_state_switcher.dart';
+import 'package:sakenph/features/foreground_widget/widgets/prototype_info.dart';
 import 'package:sakenph/globals/functions/system/on_homepage_init.dart';
 import 'package:sakenph/map_widget.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
@@ -19,6 +20,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePage extends State<HomePage> {
+  static bool _prototypeInfoDisplayed = false;
+
   late Future<Map<dynamic, dynamic>> json;
 
   @override
@@ -35,6 +38,18 @@ class _HomePage extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_prototypeInfoDisplayed) return;
+      _prototypeInfoDisplayed = true;
+      showDialog(
+        context: context,
+        builder: (context) {
+          return PrototypeInfo();
+        },
+      );
+    });
+
     handleLocationPermission(context);
     return Scaffold(
       appBar: AppBar(toolbarHeight: 0),
