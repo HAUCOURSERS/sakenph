@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:sakenph/features/foreground_widget/functions.dart';
 import 'package:sakenph/features/foreground_widget/widgets/route_details_builder.dart';
 import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/globals/functions/system/permissions.dart'
+    show handleLocationPermission;
 import 'package:sakenph/globals/functions/formattings.dart';
 import 'package:sakenph/globals/functions/route_timing.dart';
 import 'package:sakenph/globals/functions/utils_responsiveness.dart';
@@ -543,7 +545,7 @@ class _PreviewWindowForSuggestedPathState
                                                           ),
                                                           SizedBox(width: 6),
                                                           Text(
-                                                            "Select This Route",
+                                                            "Select This Routes",
                                                             style: TextStyle(
                                                               color:
                                                                   Colors.white,
@@ -647,7 +649,12 @@ class _PreviewWindowForSuggestedPathState
             Expanded(
               flex: 2,
               child: GestureDetector(
-                onTap: () => startTraveling(context),
+                onTap: () async {
+                  bool locationSet = await handleLocationPermission(context);
+                  if (locationSet) {
+                      startTraveling(context);
+                  }
+                },
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
