@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/features/background_widget/content_state_switcher.dart';
-import 'package:sakenph/features/foreground_widget/functions.dart'
+import 'package:sakenph/globals/functions/system/permissions.dart'
     show handleLocationPermission;
 import 'package:sakenph/features/foreground_widget/content_state_switcher.dart';
 import 'package:sakenph/features/foreground_widget/widgets/prototype_info.dart';
