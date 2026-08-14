@@ -800,9 +800,9 @@ class _JeepneyRouteDropdownPanelState
                                                               ),
                                                             );
                                                       } catch (e) {
-                                                        print(
-                                                          '[TODA] Failed to fly to terminal from list: $e',
-                                                        );
+                                                        // print(
+                                                        //   '[TODA] Failed to fly to terminal from list: $e',
+                                                        // );
                                                       }
 
                                                       widget.onClose?.call();

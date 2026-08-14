@@ -107,8 +107,6 @@ Future<List<NominatimPlace>> searchPlaces(
       ),
     );
 
-    print("ERROR: $e");
-
     switch (searchFieldType) {
       case SearchFieldType.from:
         searchDetailsProvider.setIsNominatimSearchFailed_TypeFrom = true;

@@ -52,7 +52,6 @@ class SystemTasksProvder extends ChangeNotifier {
   // ignore: non_constant_identifier_names
   void start_repeatingTask() {
     if (!_checkDependencies()) {
-      print("DEPENDENCIES FOR START_REPEATINGTASK() MISSING");
       return;
     }
     _locationUpdater = Timer.periodic(Duration(milliseconds: 500), (
@@ -62,13 +61,6 @@ class SystemTasksProvder extends ChangeNotifier {
       await _mapHelperProvider!.mapWidgetController.addUserMarker(
         _mapHelperProvider!.getUserCurrentGeoLoc,
         _mapHelperProvider!.getRotationFromLatLngHistory(),
-      );
-    });
-
-    // for testing
-    _testTimer = Timer.periodic(Duration(seconds: 1), (timer) {
-      print(
-        "[TEMP] Distance till destination: ${getDistanceFromLatLonInKm(_mapHelperProvider!.getUserCurrentGeoLoc.latitude, _mapHelperProvider!.getUserCurrentGeoLoc.longitude, _mapHelperProvider!.getSelectedToLocationDetails!.latitude, _mapHelperProvider!.getSelectedToLocationDetails!.longitude) * 1000} m",
       );
     });
 
@@ -88,7 +80,6 @@ class SystemTasksProvder extends ChangeNotifier {
     bool hasPerms = await getGeolocatorPermission();
     if (!hasPerms) return;
 
-    print("[TEMP] Stream started");
     final LocationSettings locationSettings = LocationSettings(
       accuracy: LocationAccuracy.high,
       distanceFilter: 1, // update every 1 meter

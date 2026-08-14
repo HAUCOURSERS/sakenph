@@ -51,17 +51,8 @@ Future<Map<String, dynamic>> _queryForShortestPath(
 
   try {
     final startTime = DateTime.now();
-    String localIp = global_vars.localIP;
-    // Position gpsLocation = await determinePosition();
-    print(
-      'http://${Env.API_ENDPOINT_LINK}:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}&traffic=$traffic',
-    );
-
     final response = await http.get(
       Uri.parse(
-        // local backend
-        //'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}&algo=astar&debug=true',
-
         // AWS EC2
         'http://${Env.API_ENDPOINT_LINK}:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}&traffic=$traffic',
         
@@ -69,21 +60,13 @@ Future<Map<String, dynamic>> _queryForShortestPath(
     );
 
     if (response.statusCode == 200) {
-      print("[TEMP] Recieved backend response");
       final endTime = DateTime.now();
-      print(endTime.difference(startTime).inMilliseconds);
       final Map<String, dynamic> json = jsonDecode(response.body);
-      //print(json['routes']['result-1'][0]['geometry'].toString());
-
-      //printLongString(json.toString());
-
       return json;
     } else {
-      print("[TEMP] [WARNING] REQUEST FAIL!");
       return {};
     }
   } catch (e) {
-    print("[TEMP] [WARNING] BACKEND REQUEST FAIL! $e");
     // will be developed IF will be developed.
     // systemVariablesProvider.setAppCurrentState = SystemState.backendRequestFail;
     return {};
@@ -94,9 +77,6 @@ Future<Map<String, dynamic>> _queryForShortestPath(
 Future<List<JeepneyRoute>> fetchJeepRoutes() async {
   final response = await http.get(
     Uri.parse(
-      // For Mobile App Only
-      //'http://${Env.API_ENDPOINT_LINK}:8000/jeep_routes',
-      // For Web Browser
       'http://${Env.API_ENDPOINT_LINK}:8000/jeep_routes',
     ), // local backend service link for ui toggle
   );
@@ -112,17 +92,10 @@ Future<List<JeepneyRoute>> fetchJeepRoutes() async {
 
 /// Fetches all TODA terminal points from the backend service.
 Future<List<Terminal>> fetchTodaTerminals() async {
-  print(
-    "[TEMP] TRY TO PARSE: ${'http://${Env.API_ENDPOINT_LINK}:8000/trike_terminals_list'}",
-   // "[TEMP] TRY TO PARSE: ${'http://${Env.API_ENDPOINT_LINK}:8000/trike_terminals_list'}",
-  );
   final response = await http.get(
     Uri.parse(
-      // For Mobile App
-      //'http://${Env.API_ENDPOINT_LINK}:8000/trike_terminals_list',
-      // For Web Browser
       'http://${Env.API_ENDPOINT_LINK}:8000/trike_terminals_list',
-    ), // local backend service link for TODA Terminals
+    ),
   );
 
   if (response.statusCode != 200) {

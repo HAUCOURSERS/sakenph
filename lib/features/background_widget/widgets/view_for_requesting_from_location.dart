@@ -80,7 +80,6 @@ class _ViewForRequestingFromLocationState
                         SizedBox(height: responsiveSizeHeight(30)),
                         GestureDetector(
                           onTap: () async {
-                            print("flag 1");
                             searchDetailsProvider.tryToEraseLocResults(
                               SearchFieldType.from,
                             );
