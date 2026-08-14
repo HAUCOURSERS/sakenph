@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/features/foreground_widget/functions.dart'
+    show handleLocationPermission;
 import 'package:sakenph/globals/functions/utils_responsiveness.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
@@ -31,6 +33,8 @@ class _UseCurrentLocationButtonState extends State<UseCurrentLocationButton> {
         color: _showColor ? Colors.grey.shade300 : Colors.transparent,
         child: GestureDetector(
           onTap: () async {
+            bool locationSet = await handleLocationPermission(context);
+            if (!locationSet) return;
             setState(() {
               _showColor = true;
             });
