@@ -1103,6 +1103,11 @@ class _MapWidget extends State<MapWidget> {
           annotation,
         ) async {
           if (layerId.toString().startsWith('toda_layer_')) {
+            if (systemVariablesProvider.appCurrentState ==
+                SystemState.peekAtRoute) {
+              return;
+            }
+
             final selected = _todaTerminals.firstWhere(
               (terminal) => 'toda_layer_${terminal.id}' == layerId,
               orElse: () => Terminal(
@@ -1118,6 +1123,12 @@ class _MapWidget extends State<MapWidget> {
                 await _flyToLoc(LatLng(selected.latitude, selected.longitude));
               } catch (e) {
                 // If animation fails, still show details
+              }
+
+              if (!context.mounted ||
+                  systemVariablesProvider.appCurrentState ==
+                      SystemState.peekAtRoute) {
+                return;
               }
 
               _showTerminalDetails(context, selected);

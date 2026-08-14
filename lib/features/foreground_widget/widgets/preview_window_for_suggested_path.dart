@@ -19,9 +19,7 @@ import 'package:sakenph/providers/provider_system_vars.dart';
 /// Includes the go back, select route, walk details and total fare from transportation
 /// methods.
 class PreviewWindowForSuggestedPath extends StatefulWidget {
-  final Map<String, dynamic> routeDetails;
-
-  const PreviewWindowForSuggestedPath({super.key, required this.routeDetails});
+  const PreviewWindowForSuggestedPath({super.key});
 
   @override
   State<PreviewWindowForSuggestedPath> createState() =>
@@ -41,17 +39,15 @@ class _PreviewWindowForSuggestedPathState
 
   @override
   Widget build(BuildContext context) {
-    SystemVariablesProvider systemVariablesProvider = context
-        .read<SystemVariablesProvider>();
-    MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
-    SearchDetailsProvider searchDetailsProvider = context
-        .read<SearchDetailsProvider>();
+    final systemVariablesProvider = context.read<SystemVariablesProvider>();
+    final mapHelperProvider = context.read<MapHelperProvider>();
+    final searchDetailsProvider = context.read<SearchDetailsProvider>();
 
-    String fromLocation =
+    final fromLocation =
         searchDetailsProvider.getFromLocTextController.text.isNotEmpty
         ? searchDetailsProvider.getFromLocTextController.text
         : "Your Current Location";
-    String toLocation =
+    final toLocation =
         searchDetailsProvider.getToLocTextController.text.isNotEmpty
         ? searchDetailsProvider.getToLocTextController.text
         : "Destination";
@@ -60,25 +56,23 @@ class _PreviewWindowForSuggestedPathState
       mapHelperProvider.getSuggestedShortestPaths,
       mapHelperProvider.getSelectedRouteId,
     );
-    double travelTime = routeTiming.actualSeconds.toDouble();
-    (double, double) fares = computeFareTotalForRoute(
+    final travelTime = routeTiming.actualSeconds.toDouble();
+    final fares = computeFareTotalForRoute(
       mapHelperProvider.getSuggestedShortestPaths,
       mapHelperProvider.getSelectedRouteId,
     );
-    int delaySeconds = routeTiming.delaySeconds;
-    bool isDelayed = delaySeconds > 0;
+    final delaySeconds = routeTiming.delaySeconds;
+    final isDelayed = delaySeconds > 0;
 
     return PopScope(
       canPop:
           systemVariablesProvider.appCurrentState != SystemState.peekAtRoute,
       onPopInvokedWithResult: (didPop, result) async {
-        await Future.delayed(Duration(milliseconds: 20));
-        systemVariablesProvider.setAppCurrentState =
-            SystemState.showSuggestedRoutes;
-        mapHelperProvider.setStopDrawing = true;
-        await Future.delayed(Duration(milliseconds: 40));
-        mapHelperProvider.mapWidgetController.clearLayersAndSources();
-        mapHelperProvider.setStopDrawing = false;
+        await _returnToSuggestedRoutes(
+          systemVariablesProvider: systemVariablesProvider,
+          mapHelperProvider: mapHelperProvider,
+          delayBeforeStateChange: const Duration(milliseconds: 20),
+        );
       },
       child: Stack(
         children: [
@@ -450,22 +444,16 @@ class _PreviewWindowForSuggestedPathState
           children: [
             Expanded(
               child: GestureDetector(
-                onTap: () async {
+                onTap: () {
                   EasyDebounce.debounce(
                     DebounceId.routeSelection.toString(),
                     const Duration(milliseconds: 40),
                     () async {
-                      final mapHelperProvider = context
-                          .read<MapHelperProvider>();
-                      context
-                              .read<SystemVariablesProvider>()
-                              .setAppCurrentState =
-                          SystemState.showSuggestedRoutes;
-                      mapHelperProvider.setStopDrawing = true;
-                      await Future.delayed(const Duration(milliseconds: 40));
-                      mapHelperProvider.mapWidgetController
-                          .clearLayersAndSources();
-                      mapHelperProvider.setStopDrawing = false;
+                      await _returnToSuggestedRoutes(
+                        systemVariablesProvider: context
+                            .read<SystemVariablesProvider>(),
+                        mapHelperProvider: context.read<MapHelperProvider>(),
+                      );
                     },
                   );
                 },
@@ -498,9 +486,9 @@ class _PreviewWindowForSuggestedPathState
               flex: 2,
               child: GestureDetector(
                 onTap: () async {
-                  bool locationSet = await handleLocationPermission(context);
-                  if (locationSet) {
-                      startTraveling(context);
+                  final locationSet = await handleLocationPermission(context);
+                  if (locationSet && context.mounted) {
+                    startTraveling(context);
                   }
                 },
                 child: Container(
@@ -576,6 +564,25 @@ class _PreviewWindowForSuggestedPathState
         ),
       ),
     );
+  }
+
+  Future<void> _returnToSuggestedRoutes({
+    required SystemVariablesProvider systemVariablesProvider,
+    required MapHelperProvider mapHelperProvider,
+    Duration delayBeforeStateChange = Duration.zero,
+  }) async {
+    if (delayBeforeStateChange != Duration.zero) {
+      await Future.delayed(delayBeforeStateChange);
+    }
+    systemVariablesProvider.setAppCurrentState =
+        SystemState.showSuggestedRoutes;
+    mapHelperProvider.setStopDrawing = true;
+    try {
+      await Future.delayed(const Duration(milliseconds: 40));
+      mapHelperProvider.mapWidgetController.clearLayersAndSources();
+    } finally {
+      mapHelperProvider.setStopDrawing = false;
+    }
   }
 
   void _moveSheetBy(BuildContext context, double deltaY) {

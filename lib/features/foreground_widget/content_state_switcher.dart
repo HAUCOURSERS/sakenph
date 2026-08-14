@@ -5,9 +5,9 @@ import 'package:sakenph/features/foreground_widget/widgets/preview_window_for_su
 import 'package:sakenph/features/foreground_widget/widgets/route_opener_button.dart';
 import 'package:sakenph/features/foreground_widget/widgets/selected_location_decision_helper.dart';
 import 'package:sakenph/features/foreground_widget/widgets/to_location_search_bar.dart';
-import 'package:sakenph/features/foreground_widget/widgets.dart' show JeepneyRouteFloatingControl;
+import 'package:sakenph/features/foreground_widget/widgets.dart'
+    show JeepneyRouteFloatingControl;
 import 'package:sakenph/globals/enums.dart';
-import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 import 'package:provider/provider.dart';
 
@@ -28,8 +28,8 @@ class _ForegroundWidgetState extends State<ForegroundWidget> {
     final systemState = context.select<SystemVariablesProvider, SystemState>(
       (provider) => provider.appCurrentState,
     );
-    final backgroundWidgetVisibility =
-        context.select<SystemVariablesProvider, bool>(
+    final backgroundWidgetVisibility = context
+        .select<SystemVariablesProvider, bool>(
           (provider) => provider.backgroundWidgetVisibility,
         );
     final showJeepneyControl =
@@ -56,7 +56,6 @@ class _ForegroundWidgetContentRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
     bool isFromLocDetailsEmpty = context.select<MapHelperProvider, bool>(
       (value) => value.getIsFromLocationDetailsEmpty,
     );
@@ -92,9 +91,7 @@ class _ForegroundWidgetContentRenderer extends StatelessWidget {
                 ],
               );
       case SystemState.peekAtRoute:
-        return PreviewWindowForSuggestedPath(
-          routeDetails: mapHelperProvider.getSuggestedShortestPaths,
-        );
+        return PreviewWindowForSuggestedPath();
       case SystemState.hideWidgets:
         return SizedBox.shrink();
       case SystemState.isCurrentlyTravelling:
