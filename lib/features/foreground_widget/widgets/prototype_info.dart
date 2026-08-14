@@ -33,7 +33,7 @@ class PrototypeInfo extends StatelessWidget {
             SizedBox(height: 12),
             Text(
               'You may also delete the app from your phone after you have finished testing the app. If you decide to keep it after the survey, please keep in mind'
-              ' that the app may be non-functional after the group\'s thesis period due to cloud hosting limitations.',
+              ' that the app may be non-functional after the group\'s thesis ended due to cloud hosting limitations.',
               textAlign: TextAlign.justify,
             ),
             SizedBox(height: 12),
