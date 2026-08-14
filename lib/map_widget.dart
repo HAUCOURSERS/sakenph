@@ -43,9 +43,6 @@ class MapWidgetController {
 
   void _detach() => _state = null;
 
-  Future<void> shortestPath(LatLng origin, LatLng dest) =>
-      _state?.shortestPath(origin, dest) ?? Future.value();
-
   Future<void> drawPath(
     Map<String, dynamic> pathJSON,
     BuildContext context, [
@@ -265,7 +262,6 @@ class _MapWidget extends State<MapWidget> {
     BuildContext context, [
     String iterationId = "",
   ]) async {
-    print("CALLED: ITERATION ID: $iterationId");
     MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
     final Map<String, dynamic> json = pathJSON;
     final RouteResponse multimodalRoute = RouteResponse.fromJson(json);
@@ -789,7 +785,7 @@ class _MapWidget extends State<MapWidget> {
       _todaTerminals = await fetchTodaTerminals();
       await addTodaLayers();
     } catch (e) {
-      print('[TEMP] Failed to load TODA terminals: $e');
+      // print('[TEMP] Failed to load TODA terminals: $e');
     }
   }
 
@@ -942,15 +938,12 @@ class _MapWidget extends State<MapWidget> {
 
   // UNUSED FUNCTION FOR NOW: used when clicked on a TODA Terminal icon
   Future<void> clickedTLayer(String layerId) async {
-    print("In function:");
     if (context.mounted) {
-      print("Context is mounted");
 
       int terminalId = int.parse(layerId.replaceAll('layer_', ""));
       final Terminal tappedTerminal = await DatabaseService().getTerminalById(
         terminalId,
       );
-      print("Terminal retrieved");
 
       final sheetController = Scaffold.of(context).showBottomSheet((context) {
         return Container(
@@ -1067,133 +1060,6 @@ class _MapWidget extends State<MapWidget> {
         const SymbolLayerProperties(iconImage: 'bus', iconSize: 1.5),
         minzoom: 8,
       );
-    }
-  }
-
-  // Function that calls result from shortestPathTest() in backend and renders the path
-  // TO DO:
-  // shortestPath() should also have src parameter, it should be retrieved from a separate coordinates value from the source/dest TextBox
-  //
-  // UNUSED FUNCTION FOR NOW: this is obsolete since parts of this function are to be used separately
-  Future<void> shortestPath(LatLng origin, LatLng dest) async {
-    // TODO: Remove this print statement once done checking if the function is working as intended
-    print("[TEMP] shortestPath() Method Called!");
-    String localIp = global_vars.localIP;
-
-    print(
-      'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
-    );
-    final response = await http.get(
-      Uri.parse(
-        'http://$localIp:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}',
-      ),
-    );
-
-    if (response.statusCode == 200) {
-      print("[TEMP] Recieved backend response");
-      final Map<String, dynamic> json = jsonDecode(response.body);
-      final RouteResponse multimodalRoute = RouteResponse.fromJson(json);
-
-      // Removes all existing route sources and layers to avoid duplicates
-      for (String i in routeLayerIds) {
-        _controller?.removeLayer(i);
-      }
-      routeLayerIds.clear();
-      for (String i in routeSourceIds) {
-        _controller?.removeSource(i);
-      }
-      routeSourceIds.clear();
-      final List<String> keys = multimodalRoute.routes.keys.toList();
-
-      int sourceLayerId = 1;
-      for (String result in keys) {
-        for (RouteSegment route in multimodalRoute.routes[result]!) {
-          String sourceId = "route-$sourceLayerId";
-          routeSourceIds.add(sourceId);
-          String layerId = "route-$sourceLayerId";
-          routeLayerIds.add(layerId);
-
-          LineLayerProperties layerStyle;
-          if (route.mode.type == 'walk') {
-            // Blue dotted lines to indicate walking route
-            layerStyle = LineLayerProperties(
-              lineColor: route.mode.details.color,
-              lineWidth: 3.0,
-              lineDasharray: [1, 1],
-            );
-          } else {
-            // Solid lines to indicate vehicle route
-            layerStyle = LineLayerProperties(
-              lineColor: route.mode.details.color,
-              lineWidth: 3.0,
-            );
-          }
-
-          // Defines the specific geometry of the route line
-          // route.geometry is a list of coordinate pairs that form a line
-          await _controller!.addGeoJsonSource(sourceId, {
-            'type': 'FeatureCollection',
-            'features': [
-              {
-                'type': 'Feature',
-                'properties': {},
-                'geometry': {
-                  'type': 'LineString',
-                  'coordinates': route.geometry,
-                },
-              },
-            ],
-          });
-
-          // Defines the style of the line
-          await _controller!.addLineLayer(sourceId, layerId, layerStyle);
-
-          sourceLayerId++;
-        }
-      }
-
-      // // Renders a separate and preferably distinguishable line for each route
-      // int sourceLayerId = 1;
-      // for (RouteSegment route in multimodalRoute.route) {
-      //   String sourceId = "route-$sourceLayerId";
-      //   routeSourceIds.add(sourceId);
-      //   String layerId = "route-$sourceLayerId";
-      //   routeLayerIds.add(layerId);
-
-      //   LineLayerProperties layerStyle;
-      //   if (route.mode.type == 'walk') {
-      //     // Blue dotted lines to indicate walking route
-      //     layerStyle = LineLayerProperties(
-      //       lineColor: route.mode.details.color,
-      //       lineWidth: 3.0,
-      //       lineDasharray: [1, 1],
-      //     );
-      //   } else {
-      //     // Solid lines to indicate vehicle route
-      //     layerStyle = LineLayerProperties(
-      //       lineColor: route.mode.details.color,
-      //       lineWidth: 3.0,
-      //     );
-      //   }
-
-      //   // Defines the specific geometry of the route line
-      //   // route.geometry is a list of coordinate pairs that form a line
-      //   await _controller!.addGeoJsonSource(sourceId, {
-      //     'type': 'FeatureCollection',
-      //     'features': [
-      //       {
-      //         'type': 'Feature',
-      //         'properties': {},
-      //         'geometry': {'type': 'LineString', 'coordinates': route.geometry},
-      //       },
-      //     ],
-      //   });
-
-      //   // Defines the style of the line
-      //   await _controller!.addLineLayer(sourceId, layerId, layerStyle);
-
-      //   sourceLayerId++;
-      // }
     }
   }
 

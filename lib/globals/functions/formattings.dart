@@ -1,10 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Flutter's print method can't print very long strings, so this method is used to print long strings in chunks of 800 characters.
-void printLongString(String text) {
-  final pattern = RegExp('.{1,800}'); // 800 chars per chunk
-  pattern.allMatches(text).forEach((match) => print(match.group(0)));
-}
 
 /// Converts time in seconds into formatted time. Ex: 1h 30m 15s
 String formatSecondsToHHMMSS(double totalSeconds) {
