@@ -8,6 +8,5 @@ import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_system_tasks.dart';
 
 void runAtHomePageInit(BuildContext context) {
-  context.read<MapHelperProvider>().fetchUserCurrentGeolocationAndSave();
   context.read<SystemTasksProvder>().mountProviders(context);
 }

@@ -1,59 +1,14 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions/formattings.dart';
 import 'package:sakenph/globals/functions/route_timing.dart';
-import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_system_tasks.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
-
-/// To get location perms
-Future<bool> handleLocationPermission(BuildContext context) async {
-  if (!context.mounted) return false;
-  bool serviceEnabled;
-  LocationPermission permission;
-
-  ScaffoldMessengerState scaffoldMessenger = ScaffoldMessenger.of(context);
-
-  serviceEnabled = await Geolocator.isLocationServiceEnabled();
-  if (!serviceEnabled) {
-    scaffoldMessenger.showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Location services are disabled. Please enable the services',
-        ),
-      ),
-    );
-    return false;
-  }
-  permission = await Geolocator.checkPermission();
-  if (permission == LocationPermission.denied) {
-    permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied) {
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('Location permissions are denied')),
-      );
-      return false;
-    }
-  }
-  if (permission == LocationPermission.deniedForever) {
-    scaffoldMessenger.showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Location permissions are permanently denied, we cannot request permissions.',
-        ),
-      ),
-    );
-    return false;
-  }
-  return true;
-}
 
 /// Runs the necessary code across context providers to setup the traveling state
 void startTraveling(BuildContext context) async {
