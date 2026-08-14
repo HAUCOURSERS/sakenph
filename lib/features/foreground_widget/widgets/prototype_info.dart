@@ -15,28 +15,33 @@ class PrototypeInfo extends StatelessWidget {
               'This is the prototype app for the "Commuter Guide Application with Multimodal Transport using A* and Yen\'s" capstone project.',
               textAlign: TextAlign.justify
             ),
-            SizedBox(height: 12),
+            SizedBox(height: 18),
+            Text(
+              'The scope of the app is within Angeles and Mabalacat City only, excluding Clark Freeport Zone.',
+              textAlign: TextAlign.justify
+            ),
+            SizedBox(height: 18),
             Text(
               'You may test features such as inputting your origin and your destination point using the search bar, or by long pressing a point on the map.',
               textAlign: TextAlign.justify
             ),
-            SizedBox(height: 12),
+            SizedBox(height: 18),
             Text(
               'You can also enable traffic data by clicking the (⚙) Gear icon on the search bar and toggle "Include Traffic" on.',
               textAlign: TextAlign.justify
             ),
-            SizedBox(height: 12),
+            SizedBox(height: 18),
             Text(
               'After you are done testing the app within a set period of time, please answer the Post-Survey form given to you in your inbox.',
               textAlign: TextAlign.justify
             ),
-            SizedBox(height: 12),
+            SizedBox(height: 18),
             Text(
               'You may also delete the app from your phone after you have finished testing the app. If you decide to keep it after the survey, please keep in mind'
-              ' that the app may be non-functional after the group\'s thesis ended due to cloud hosting limitations.',
+              ' that the app may be non-functional after the end of the group\'s thesis due to cloud hosting limitations.',
               textAlign: TextAlign.justify,
             ),
-            SizedBox(height: 12),
+            SizedBox(height: 18),
             Text(
               'Thank you for your participation in the survey.',
               textAlign: TextAlign.justify
@@ -45,10 +50,14 @@ class PrototypeInfo extends StatelessWidget {
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('OK'),
+        ElevatedButton(
+        onPressed: () => Navigator.pop(context),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color.fromARGB(255, 43, 138, 216),
+          foregroundColor: Colors.white,
         ),
+        child: const Text('OK'),
+      )
       ],
     );
   }
