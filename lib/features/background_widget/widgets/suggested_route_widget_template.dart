@@ -359,12 +359,25 @@ class SuggestedRouteWidgetTemplate extends StatelessWidget {
               color: isDiscounted ? Colors.green : Colors.grey[600],
             ),
             SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[700],
-                fontWeight: FontWeight.w500,
+            Text.rich(
+              TextSpan(
+                text: label,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w500,
+                ),
+                children: [
+                  if (isDiscounted)
+                    const TextSpan(
+                      text: " (Student/Senior/PWD)",
+                      style: TextStyle(
+                        fontWeight: FontWeight.normal,
+                        fontSize: 10,
+                        color: Color.fromARGB(255, 59, 59, 59),
+                      ),
+                    ),
+                ],
               ),
             ),
           ],
