@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/features/background_widget/content_state_switcher.dart';
 import 'package:sakenph/features/foreground_widget/functions.dart'
-    show fetchData, handleLocationPermission;
+    show handleLocationPermission;
 import 'package:sakenph/features/foreground_widget/content_state_switcher.dart';
 import 'package:sakenph/globals/functions/system/on_homepage_init.dart';
 import 'package:sakenph/map_widget.dart';
@@ -24,7 +24,6 @@ class _HomePage extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    json = fetchData();
     runAtHomePageInit(context);
   }
 

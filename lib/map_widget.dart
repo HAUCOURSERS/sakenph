@@ -257,7 +257,6 @@ class _MapWidget extends State<MapWidget> {
       borderColor: '#2563eb',
       borderWidth: 2.0,
     );
-    print("[TEMP] DONE DRAWING");
   }
 
   /// Uses json value obtained from backend and draws the path
@@ -777,7 +776,6 @@ class _MapWidget extends State<MapWidget> {
   }
 
   Future<void> _flyToLoc(LatLng coordinates) async {
-    print("TEMP: $coordinates");
     await _controller!.animateCamera(
       CameraUpdate.newLatLngZoom(
         LatLng(coordinates.latitude, coordinates.longitude),
@@ -1295,7 +1293,6 @@ class _MapWidget extends State<MapWidget> {
                 await _flyToLoc(LatLng(selected.latitude, selected.longitude));
               } catch (e) {
                 // If animation fails, still show details
-                print('[TODA] Failed to fly to terminal: $e');
               }
 
               _showTerminalDetails(context, selected);
