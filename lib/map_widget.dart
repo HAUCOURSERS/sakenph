@@ -939,7 +939,6 @@ class _MapWidget extends State<MapWidget> {
   // UNUSED FUNCTION FOR NOW: used when clicked on a TODA Terminal icon
   Future<void> clickedTLayer(String layerId) async {
     if (context.mounted) {
-
       int terminalId = int.parse(layerId.replaceAll('layer_', ""));
       final Terminal tappedTerminal = await DatabaseService().getTerminalById(
         terminalId,
@@ -1083,7 +1082,7 @@ class _MapWidget extends State<MapWidget> {
 
     return MapLibreMap(
       styleString: mapStyle,
-      doubleClickZoomEnabled: !kIsWeb,
+      doubleClickZoomEnabled: false,
 
       compassEnabled: true,
       compassViewPosition: CompassViewPosition.bottomRight,
