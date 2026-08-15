@@ -65,6 +65,7 @@ class ToLocationSearchBar extends StatelessWidget {
                     true;
                 context.read<SystemVariablesProvider>().setAppCurrentState =
                     SystemState.gatheringToLoc;
+                searchDetailsProvider.getToLocFocusNode.requestFocus();
               },
               decoration: InputDecoration(
                 isDense: true,

@@ -13,6 +13,7 @@ class SearchDetailsProvider extends ChangeNotifier {
   // For logic to be able to edit the contents of the textfields
   final TextEditingController _fromLocTextController = TextEditingController();
   final TextEditingController _toLocTextController = TextEditingController();
+  final FocusNode _fromLocFocusNode = FocusNode();
   final FocusNode _toLocFocusNode = FocusNode(); //
 
   // Obtained from interactive where you long-press the map
@@ -58,6 +59,8 @@ class SearchDetailsProvider extends ChangeNotifier {
   List<NominatimPlace> get getToLocSearchResults => _toLocSearchResults;
   TextEditingController get getFromLocTextController => _fromLocTextController;
   TextEditingController get getToLocTextController => _toLocTextController;
+
+  FocusNode get getFromLocFocusNode => _fromLocFocusNode;
   FocusNode get getToLocFocusNode => _toLocFocusNode;
 
   // /////////////////////////////////////////////////////////////////////////////////////////////

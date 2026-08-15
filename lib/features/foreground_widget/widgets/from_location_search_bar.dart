@@ -29,6 +29,7 @@ class FromLocationSearchBar extends StatelessWidget {
           children: [
             TextField(
               controller: searchDetailsProvider.getFromLocTextController,
+              focusNode: searchDetailsProvider.getFromLocFocusNode,
               onChanged: (value) {
                 searchDetailsProvider.tryToEraseLocResults(
                   SearchFieldType.from,
@@ -68,6 +69,7 @@ class FromLocationSearchBar extends StatelessWidget {
                     true;
                 context.read<SystemVariablesProvider>().setAppCurrentState =
                     SystemState.gatheringFromLoc;
+                searchDetailsProvider.getFromLocFocusNode.requestFocus();
               },
               decoration: InputDecoration(
                 isDense: true,
