@@ -19,8 +19,7 @@ class ActiveRouteTerminator extends StatelessWidget {
 
     /// Stops the tracking of the user's location and clears the map of any drawn layers and sources.
     void stopTracking() async {
-      MapHelperProvider mapHelperProvider = context
-          .read<MapHelperProvider>();
+      final MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
       context.read<SystemVariablesProvider>().setAppCurrentState =
           SystemState.gatheringToLoc;
       context.read<SystemTasksProvder>().stop_repeatingTask();
