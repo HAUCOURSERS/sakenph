@@ -27,8 +27,6 @@ class SystemTasksProvder extends ChangeNotifier {
   StreamSubscription<Position>? _positionStream; // holds position listener
   Timer?
   _locationUpdater; // holds the timer that updates the user marker on the map every 500ms
-  Timer? _testTimer; // for testing purposes only
-
   /// Mounts the required providers to this provider. This is required before starting any repeating tasks.
   void mountProviders(BuildContext context) {
     _systemVariablesProvider = context.read<SystemVariablesProvider>();
@@ -71,7 +69,6 @@ class SystemTasksProvder extends ChangeNotifier {
   // ignore: non_constant_identifier_names
   void stop_repeatingTask() {
     _locationUpdater!.cancel();
-    _testTimer!.cancel();
     _stopStream();
   }
 
