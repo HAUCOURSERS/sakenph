@@ -6,10 +6,10 @@ and see what routes they can take from three different modes (jeep, tricycle, wa
 
 ## Features
 
-•   Public transport trips with suggested multimodal routes in Angeles and Mabalacat
-•   Automatic fare calculation for jeepneys and tricycles
-•   Estimated Time of Arrival based on average mode speed and traffic conditions
-•   Display jeepney routes and tricycle terminal locations in the map
+-   Public transport trips with suggested multimodal routes in Angeles and Mabalacat
+-   Automatic fare calculation for jeepneys and tricycles
+-   Estimated Time of Arrival based on average mode speed and traffic conditions
+-   Display jeepney routes and tricycle terminal locations in the map
 
 > [!NOTE]
 > This requires the backend app to function properly. Please follow the instructions
@@ -19,8 +19,8 @@ and see what routes they can take from three different modes (jeep, tricycle, wa
 
 You may need to install the following to run the app
 
-•   Flutter
-•   Android SDK (^24)
+-   Flutter
+-   Android SDK (^24)
 
 ## How to connect to backend
 
