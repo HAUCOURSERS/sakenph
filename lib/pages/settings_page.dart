@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -26,20 +27,54 @@ class _SettingsPage extends State<SettingsPage> {
           ListTile(
             title: Text('Include Traffic'),
             trailing: Switch(
-              value: context
-                  .watch<SystemVariablesProvider>()
-                  .includeTraffic,
+              value: context.watch<SystemVariablesProvider>().includeTraffic,
               onChanged: (value) {
-                context.read<SystemVariablesProvider>().setIncludeTraffic = value;
+                context.read<SystemVariablesProvider>().setIncludeTraffic =
+                    value;
               },
             ),
           ),
           Padding(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.only(top: 0, bottom: 5),
+            child: Text(
+              'Traffic data utilized by the app may not be accurate.',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.only(top: 0, bottom: 5),
             child: Text(
               'Traffic data is provided by the TomTom Traffic API.',
-              style: TextStyle(fontSize: 13, color: const Color.fromARGB(255, 53, 53, 53)),
+              style: TextStyle(
+                fontSize: 13,
+                color: const Color.fromARGB(255, 53, 53, 53),
+              ),
               textAlign: TextAlign.center,
+            ),
+          ),
+
+          ListTile(
+            title: Text('DEBUG: Clear SharedPreferences'),
+            trailing: GestureDetector(
+              onTap: () async {
+                final SharedPreferences prefs =
+                    await SharedPreferences.getInstance();
+                await prefs.clear();
+                print("[TEMP] Successfully cleared preferences");
+              },
+              child: Container(
+                height: 20,
+                width: 40,
+                decoration: BoxDecoration(color: Colors.redAccent),
+                child: Center(
+                  child: Text("Reset", style: TextStyle(color: Colors.white)),
+                ),
+              ),
             ),
           ),
         ],

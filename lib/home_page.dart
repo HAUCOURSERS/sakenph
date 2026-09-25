@@ -8,9 +8,11 @@ import 'package:sakenph/globals/functions/system/permissions.dart'
 import 'package:sakenph/features/foreground_widget/content_state_switcher.dart';
 import 'package:sakenph/features/foreground_widget/widgets/prototype_info.dart';
 import 'package:sakenph/globals/functions/system/on_homepage_init.dart';
+import 'package:sakenph/globals/functions/system/permissions.dart';
 import 'package:sakenph/map_widget.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_system_tasks.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -36,19 +38,27 @@ class _HomePage extends State<HomePage> {
     context.read<SystemTasksProvder>().stop_repeatingTask();
   }
 
+  Future<void> asyncShowDialog() async {
+    final prefs = await SharedPreferences.getInstance();
+    final val = prefs.getBool('prototypeInfoDisplayed');
+
+    if (val == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_prototypeInfoDisplayed) return;
+        _prototypeInfoDisplayed = true;
+        showDialog(
+          context: context,
+          builder: (context) {
+            return PrototypeInfo();
+          },
+        );
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_prototypeInfoDisplayed) return;
-      _prototypeInfoDisplayed = true;
-      showDialog(
-        context: context,
-        builder: (context) {
-          return PrototypeInfo();
-        },
-      );
-    });
+    asyncShowDialog();
 
     handleLocationPermission(context);
     return Scaffold(

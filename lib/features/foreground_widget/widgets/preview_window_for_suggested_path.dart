@@ -375,6 +375,8 @@ class _PreviewWindowForSuggestedPathState
                                           child: RouteDetailsBuilder(),
                                         ),
 
+                                        _buildRouteDisclaimer(),
+
                                         _buildFareDisclaimer(),
 
                                         // Fare totals
@@ -512,6 +514,50 @@ class _PreviewWindowForSuggestedPathState
                       ),
                     ],
                   ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRouteDisclaimer() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.redAccent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFD9E2EC)),
+        ),
+        child: const Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.warning_amber_outlined, size: 15, color: Colors.white),
+            SizedBox(width: 7),
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  style: TextStyle(
+                    color: Color(0xFF364152),
+                    fontSize: 11,
+                    height: 1.3,
+                  ),
+                  children: [
+                    TextSpan(
+                      text:
+                          'These routes presented may change at any time. Be wary of reroutes.',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

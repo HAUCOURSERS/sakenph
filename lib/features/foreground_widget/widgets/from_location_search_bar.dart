@@ -30,6 +30,7 @@ class FromLocationSearchBar extends StatelessWidget {
             TextField(
               controller: searchDetailsProvider.getFromLocTextController,
               focusNode: searchDetailsProvider.getFromLocFocusNode,
+              onTapOutside: (event) {},
               onChanged: (value) {
                 searchDetailsProvider.tryToEraseLocResults(
                   SearchFieldType.from,
