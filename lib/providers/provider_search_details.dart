@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:sakenph/classes/nominatim_response.dart';
+import 'package:sakenph/features/background_widget/functions.dart';
 import 'package:sakenph/globals/enums.dart';
 
 /// Saves details that are heavily required by search logic.
@@ -24,6 +25,14 @@ class SearchDetailsProvider extends ChangeNotifier {
   bool _isActiveSearching_fromLoc = false;
   bool _isActiveSearching_toLoc = false;
 
+  // Gets set to true if the user uses the long press feature to decide the source/destination
+  // or when pressing the "Press to use your location" button for the fromLoc search.
+  //
+  // If true, any modification to the text will instantly clear the field since it's a pain to delete
+  // the "Your Current Location" / "Selected From Map" text if you want to start writing an actual place.
+  bool _isInputSpecial_fromLoc = false;
+  bool _isInputSpecial_toLoc = false;
+
   /// If true, it will grab the current geoloc value upon route computation.
   ///
   /// This had to be implemented due to an edge case where somehow when the user
@@ -38,6 +47,13 @@ class SearchDetailsProvider extends ChangeNotifier {
   bool _isNominatimSearchFailed_TypeTo = false; // toloc textfield
   // This bool value gets turned back to false if the search is tried again by either selecting the ToLocation loc or hitting retry
   bool _isBackendRouteFetchFailed = false;
+
+  String _fromLocTextfieldHintText = "Your Location";
+  String _toLocTextfieldHintText = "Your Destination";
+
+  // App starts with the location textfield present. Providing the app with the from loc will allow the to loc textfield to appear
+  // for the rest of the app's current runtime.
+  bool _hasObtainedFromLocAtLeastOnce = false;
 
   // /////////////////////////////////////////////////////////////////////////////////////////////
   // Getters
@@ -62,6 +78,14 @@ class SearchDetailsProvider extends ChangeNotifier {
 
   FocusNode get getFromLocFocusNode => _fromLocFocusNode;
   FocusNode get getToLocFocusNode => _toLocFocusNode;
+
+  bool get isInputSpecial_fromLoc => _isInputSpecial_fromLoc;
+  bool get isInputSpecial_toLoc => _isInputSpecial_toLoc;
+
+  String get fromLocTextfieldHintText => _fromLocTextfieldHintText;
+  String get toLocTextfieldHintText => _toLocTextfieldHintText;
+
+  bool get hasObtainedFromLocAtLeastOnce => _hasObtainedFromLocAtLeastOnce;
 
   // /////////////////////////////////////////////////////////////////////////////////////////////
   // Setters
@@ -96,6 +120,10 @@ class SearchDetailsProvider extends ChangeNotifier {
     _longPressedLocation = coordinates;
   }
 
+  set setHasObtainedFromLocAtLeastOnce(bool value) {
+    _hasObtainedFromLocAtLeastOnce = value;
+  }
+
   /// Will only notify listeners if provided a different value from the existing value
   set setActiveSearching_fromLoc(bool value) {
     if (_isActiveSearching_fromLoc == value) return;
@@ -110,9 +138,51 @@ class SearchDetailsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  set setIsInputSpecial_fromLoc(bool value) {
+    _isInputSpecial_fromLoc = value;
+  }
+
+  set setIsInputSpecial_toLoc(bool value) {
+    _isInputSpecial_toLoc = value;
+  }
+
+  set setFromLocTextfieldHintText(String value) {
+    _fromLocTextfieldHintText = value;
+    notifyListeners();
+  }
+
+  set setToLocTextfieldHintText(String value) {
+    _toLocTextfieldHintText = value;
+    notifyListeners();
+  }
+
   // /////////////////////////////////////////////////////////////////////////////////////////////
   // Functions
   // /////////////////////////////////////////////////////////////////////////////////////////////
+
+  /// Gets the top result from nominatim search results. May return a null if the
+  /// search results is blank (where a "No Places Found" result shows up in the search results)
+  NominatimPlace? getFirstValidPlaceSearchResult(
+    SearchFieldType searchFieldType,
+  ) {
+    if (searchFieldType == SearchFieldType.from) {
+      if (_fromLocSearchResults.length == 1 &&
+              _fromLocSearchResults[0].name == "No Places Found" ||
+          !isPlaceWithinScope(_fromLocSearchResults[0].displayName)) {
+        return null;
+      } else {
+        return _fromLocSearchResults[0];
+      }
+    } else {
+      if (_toLocSearchResults.length == 1 &&
+              _toLocSearchResults[0].name == "No Places Found" ||
+          !isPlaceWithinScope(_toLocSearchResults[0].displayName)) {
+        return null;
+      } else {
+        return _toLocSearchResults[0];
+      }
+    }
+  }
 
   /// Tries to clear search results if the user attempts to type more again
   void tryToEraseLocResults(SearchFieldType type) {

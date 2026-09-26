@@ -55,3 +55,5 @@ enum DebounceId {
 
 /// Used at <code>provider_search_details.dart</code>
 enum SearchFieldType { from, to }
+
+enum TutorialStage { stage1 }

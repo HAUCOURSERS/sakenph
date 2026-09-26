@@ -12,7 +12,8 @@ import 'package:sakenph/api/local/env.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
-void startComputingForRoutes(BuildContext context) async {
+/// Upon execution, it will get the fromloc and toloc details and perform an api call to the backend server.
+Future<void> startComputingForRoutes(BuildContext context) async {
   SystemVariablesProvider systemVariablesProvider = context
       .read<SystemVariablesProvider>();
   MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
@@ -55,7 +56,6 @@ Future<Map<String, dynamic>> _queryForShortestPath(
       Uri.parse(
         // AWS EC2
         'http://${Env.API_ENDPOINT_LINK}:8000/k_shortest_paths?src=${origin.latitude},${origin.longitude}&dest=${dest.latitude},${dest.longitude}&traffic=$traffic',
-        
       ),
     );
 
@@ -80,7 +80,6 @@ Future<List<JeepneyRoute>> fetchJeepRoutes() async {
       'http://${Env.API_ENDPOINT_LINK}:8000/jeep_routes',
     ), // local backend service link for ui toggle
   );
-  
 
   final Map<String, dynamic> body = jsonDecode(response.body);
   final List<dynamic> routes = body['routes'];
@@ -93,9 +92,7 @@ Future<List<JeepneyRoute>> fetchJeepRoutes() async {
 /// Fetches all TODA terminal points from the backend service.
 Future<List<Terminal>> fetchTodaTerminals() async {
   final response = await http.get(
-    Uri.parse(
-      'http://${Env.API_ENDPOINT_LINK}:8000/trike_terminals_list',
-    ),
+    Uri.parse('http://${Env.API_ENDPOINT_LINK}:8000/trike_terminals_list'),
   );
 
   if (response.statusCode != 200) {

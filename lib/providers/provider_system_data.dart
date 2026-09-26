@@ -9,4 +9,12 @@ class SystemDataProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('prototypeInfoDisplayed', true);
   }
+
+  /**
+   * Clears SharedPreferences app data
+   */
+  void clearSharedPreferences() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+  }
 }

@@ -1,12 +1,17 @@
 import 'dart:convert';
 
+import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:provider/provider.dart';
+import 'package:sakenph/api/nominatim.dart';
+import 'package:sakenph/classes/nominatim_response.dart';
 import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/globals/functions/fore_and_background_functions.dart';
 import 'package:sakenph/globals/functions/formattings.dart';
 import 'package:sakenph/globals/functions/route_timing.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
+import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_system_tasks.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
@@ -123,4 +128,136 @@ buildTravelDetails(Map<String, dynamic> routeData, String route_id) {
   }
 
   return (totalAmt, totalAmtDiscounted);
+}
+
+/// Used by the textfields to decide the color of the textfield.<br/>
+/// @param isFocused - if true, the color would forcefully be white. Otherwise, it will be red/green depending on hasSelectedValidLocation<br/>
+/// @param hasSelectedValidLocation - the boolean value is usually supplied by the function user. Check MapHelperProvider if there's saved information regarding to from/to location details
+Color manageTextfieldColor(
+  bool isFocused,
+  bool hasSelectedValidLocation,
+  bool isTextfieldEmpty,
+) {
+  if (isFocused && isTextfieldEmpty) return Colors.white;
+  if (hasSelectedValidLocation) return Color.fromARGB(255, 188, 230, 199);
+  if (!isFocused && !hasSelectedValidLocation && !isTextfieldEmpty)
+    return Color.fromARGB(255, 230, 188, 188);
+  return Colors.white;
+}
+
+/// Used by FromLocationSearchBar.
+void fromLocTextFieldOnChanged(
+  SearchDetailsProvider searchDetailsProvider,
+  String value,
+  MapHelperProvider mapHelperProvider,
+) {
+  /// Auto-wipe the selected loc details per textfield modification to deal with use case where the user forgets to change their choice and unexpected results would occur.
+  mapHelperProvider.tryToEraseSelectedFromLocDetails();
+
+  /// Auto-wipes the textfield if any modification is done while the textfield is special.
+  if (searchDetailsProvider.isInputSpecial_fromLoc) {
+    // To return it back to normal
+    searchDetailsProvider.setFromLocTextfieldHintText = "Your Location";
+    // To disable the fast delete behavior of FromLocTextField
+    searchDetailsProvider.setIsInputSpecial_fromLoc = false;
+    // To hide the dropdown results
+    searchDetailsProvider.setActiveSearching_fromLoc = false;
+  } else {
+    // Keeps the location results clean while typing
+    searchDetailsProvider.tryToEraseLocResults(SearchFieldType.from);
+    // Hides the retry button since the user attempts to search once more
+    searchDetailsProvider.setIsNominatimSearchFailed_TypeFrom = false;
+    // Makes the dropdown results able to appear
+    searchDetailsProvider.setActiveSearching_fromLoc = value.isNotEmpty;
+    if (value.isNotEmpty) {
+      EasyDebounce.debounce(
+        DebounceId.nominatim_fromLocationSearch.toString(),
+        Duration(seconds: 2),
+        () async {
+          searchDetailsProvider.saveLocSearchResults(
+            await searchPlaces(
+              value,
+              searchDetailsProvider,
+              SearchFieldType.from,
+            ),
+            SearchFieldType.from,
+          );
+        },
+      );
+    } else {
+      /// Covers the use case of: If the user clears out the entire textfield section
+      EasyDebounce.cancel(DebounceId.nominatim_fromLocationSearch.toString());
+    }
+  }
+}
+
+/// Used by ToLocationSearchBar.
+void toLocTextFieldOnChanged(
+  SearchDetailsProvider searchDetailsProvider,
+  String value,
+  MapHelperProvider mapHelperProvider,
+) {
+  /// Auto-wipe the selected loc details per textfield modification to deal with use case where the user forgets to change their choice and unexpected results would occur.
+  mapHelperProvider.tryToEraseSelectedToLocDetails();
+
+  /// Auto-wipes the textfield if any modification is done while the textfield is special.
+  if (searchDetailsProvider.isInputSpecial_toLoc) {
+    // To return it back to normal
+    searchDetailsProvider.setToLocTextfieldHintText = "Your Destination";
+    // To disable the fast delete behavior of FromLocTextField
+    searchDetailsProvider.setIsInputSpecial_toLoc = false;
+    // To hide the dropdown results
+    searchDetailsProvider.setActiveSearching_toLoc = false;
+  } else {
+    // Keeps the location results clean while typing
+    searchDetailsProvider.tryToEraseLocResults(SearchFieldType.to);
+    // Hides the retry button since the user attempts to search once more
+    searchDetailsProvider.setIsNominatimSearchFailed_TypeTo = false;
+    // Makes the dropdown results able to appear
+    searchDetailsProvider.setActiveSearching_toLoc = value.isNotEmpty;
+    if (value.isNotEmpty) {
+      EasyDebounce.debounce(
+        DebounceId.nominatim_toLocationSearch.toString(),
+        Duration(seconds: 2),
+        () async {
+          searchDetailsProvider.saveLocSearchResults(
+            await searchPlaces(
+              value,
+              searchDetailsProvider,
+              SearchFieldType.to,
+            ),
+            SearchFieldType.to,
+          );
+        },
+      );
+    } else {
+      /// Covers the use case of: If the user clears out the entire textfield section
+      EasyDebounce.cancel(DebounceId.nominatim_fromLocationSearch.toString());
+    }
+  }
+}
+
+/// Tries to get the first valid result of a textfield's search field and save it
+/// for later use.
+void tryToGetFirstResultAndSave(
+  SearchDetailsProvider searchDetailsProvider,
+  SearchFieldType searchFieldType,
+  MapHelperProvider mapHelperProvider,
+  SystemVariablesProvider systemVariablesProvider,
+  BuildContext context,
+) {
+  NominatimPlace? firstResult = searchDetailsProvider
+      .getFirstValidPlaceSearchResult(searchFieldType);
+
+  // The null check is important to prevent unwanted api calls due to incorrect information
+  if (firstResult == null) return;
+  processLocationInformation(
+    searchFieldType,
+    mapHelperProvider,
+    searchDetailsProvider,
+    systemVariablesProvider,
+    context,
+    firstResult,
+    false,
+  );
 }

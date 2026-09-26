@@ -55,7 +55,7 @@ class MapHelperProvider extends ChangeNotifier {
 
   bool get getIsFromLocationDetailsEmpty =>
       _selectedFromLocationDetails == null;
-  bool get getIsToLocationDetailsEmpty => _selectedToLocationDetails != null;
+  bool get getIsToLocationDetailsEmpty => _selectedToLocationDetails == null;
 
   LatLng? get getSelectedFromLocationDetails => _selectedFromLocationDetails;
   LatLng? get getSelectedToLocationDetails => _selectedToLocationDetails;
@@ -77,6 +77,14 @@ class MapHelperProvider extends ChangeNotifier {
     );
     _userCurrentGeoLoc = LatLng(position.latitude, position.longitude);
   }
+
+  /// Data is inserted usually by functions in backend_service.dart
+  Map<String, dynamic> get getSuggestedShortestPaths =>
+      _suggestedShortestPathsAStar;
+  bool get getIsSuggestedShortestPathsEmpty =>
+      _suggestedShortestPathsAStar.isEmpty;
+
+  bool get shouldStopDrawing => _stopDrawing;
 
   /// Added for loading jeepney routes from the backend.
   Future<void> loadJeepneyRoutes() async {
@@ -182,14 +190,6 @@ class MapHelperProvider extends ChangeNotifier {
     }
   }
 
-  /// Data is inserted usually by functions in backend_service.dart
-  Map<String, dynamic> get getSuggestedShortestPaths =>
-      _suggestedShortestPathsAStar;
-  bool get getIsSuggestedShortestPathsEmpty =>
-      _suggestedShortestPathsAStar.isEmpty;
-
-  bool get shouldStopDrawing => _stopDrawing;
-
   /// When someone searches for shortest routes, the backend may return more than one.<br/>
   /// When displaying data, you'd wanna just get one of the routes.<br/>
   ///<br/>
@@ -234,6 +234,26 @@ class MapHelperProvider extends ChangeNotifier {
   set setUserCurrentGeoLoc(LatLng latlng) {
     _userCurrentGeoLoc = latlng;
     notifyListeners();
+  }
+
+  // /////////////////////////////////////////////////////////////////////////////////////////////
+  // Functions
+  // /////////////////////////////////////////////////////////////////////////////////////////////
+
+  /// Attempts to erase selected from loc details
+  void tryToEraseSelectedFromLocDetails() {
+    if (_selectedFromLocationDetails != null) {
+      _selectedFromLocationDetails = null;
+      notifyListeners();
+    }
+  }
+
+  /// Attempts to erase selected to loc details
+  void tryToEraseSelectedToLocDetails() {
+    if (_selectedToLocationDetails != null) {
+      _selectedToLocationDetails = null;
+      notifyListeners();
+    }
   }
 
   Future<void> fetchUserCurrentGeolocationAndSave() async {

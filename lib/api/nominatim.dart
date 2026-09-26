@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:sakenph/features/background_widget/functions.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
 
@@ -41,7 +42,19 @@ Future<List<NominatimPlace>> searchPlaces(
           .toList();
 
       if (returnList.isNotEmpty) {
-        return jsonList.map((e) => NominatimPlace.fromJson(e)).toList();
+        final inScope = <NominatimPlace>[];
+        final outOfScope = <NominatimPlace>[];
+
+        for (final place in returnList) {
+          if (isPlaceWithinScope(place.displayName)) {
+            inScope.add(place);
+          } else {
+            outOfScope.add(place);
+          }
+        }
+
+        returnList = [...inScope, ...outOfScope];
+        return returnList;
       } else {
         List<NominatimPlace> errorReturn = [];
         errorReturn.add(

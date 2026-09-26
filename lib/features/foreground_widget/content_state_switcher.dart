@@ -8,6 +8,7 @@ import 'package:sakenph/features/foreground_widget/widgets/to_location_search_ba
 import 'package:sakenph/features/foreground_widget/widgets.dart'
     show JeepneyRouteFloatingControl;
 import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 import 'package:provider/provider.dart';
 
@@ -56,9 +57,10 @@ class _ForegroundWidgetContentRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    bool isFromLocDetailsEmpty = context.select<MapHelperProvider, bool>(
-      (value) => value.getIsFromLocationDetailsEmpty,
-    );
+    bool hasObtainedFromLocAtLeastOnce = context
+        .select<SearchDetailsProvider, bool>(
+          (value) => value.hasObtainedFromLocAtLeastOnce,
+        );
     bool hasSearchedForRoutes = context.select<MapHelperProvider, bool>(
       (value) => !value.getIsSuggestedShortestPathsEmpty,
     );
@@ -76,7 +78,7 @@ class _ForegroundWidgetContentRenderer extends StatelessWidget {
       case SystemState.waitingForBackendResponse:
       case SystemState.showSuggestedRoutes:
       case SystemState.backendRequestFail:
-        return (isFromLocDetailsEmpty)
+        return (!hasObtainedFromLocAtLeastOnce)
             ? FromLocationSearchBar()
             : Column(
                 children: [

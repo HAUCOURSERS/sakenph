@@ -46,10 +46,14 @@ class SelectedLocationDecisionHelper extends StatelessWidget {
                 systemVariablesProvider.setBackgroundWidgetVisibility = false;
                 systemVariablesProvider.setAppCurrentState =
                     SystemState.gatheringFromLoc;
+                await mapHelperProvider.mapWidgetController
+                    .fullRemoveSourceLayer(
+                      'source_selectedPoint',
+                      'layer_selectedPoint',
+                    );
               }
             },
-            child: Container(
-              color: Colors.transparent,
+            child: SizedBox(
               width: MediaQuery.sizeOf(context).width,
               height: MediaQuery.sizeOf(context).height,
             ),
@@ -65,18 +69,31 @@ class SelectedLocationDecisionHelper extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   GestureDetector(
-                    onTap: () {
+                    onTap: () async {
+                      // for special behavior in unique inputs
+                      searchDetailsProvider.setIsInputSpecial_fromLoc = true;
+                      // wipes the text so the hint text shows up
+                      searchDetailsProvider.getFromLocTextController.text = "";
+                      // sets the hint text
+                      searchDetailsProvider.setFromLocTextfieldHintText =
+                          "Selected From Map";
+                      // to prevent odd behavior related to the autofill
+                      searchDetailsProvider.tryToEraseLocResults(
+                        SearchFieldType.from,
+                      );
+                      // putting the system state to default
                       systemVariablesProvider.setAppCurrentState =
                           SystemState.gatheringFromLoc;
-                      mapHelperProvider.mapWidgetController
+                      // to prevent unwanted visible view of the search results field
+                      searchDetailsProvider.setActiveSearching_fromLoc = false;
+                      await mapHelperProvider.mapWidgetController
                           .fullRemoveSourceLayer(
                             'source_selectedPoint',
                             'layer_selectedPoint',
                           );
                       LatLng longPressedLocation =
                           searchDetailsProvider.getLongPressedLocation;
-                      searchDetailsProvider.getFromLocTextController.text =
-                          "Selected From Map";
+                      searchDetailsProvider.getFromLocTextController.text = "";
                       mapHelperProvider.setFromLocationDetails_withLatLng(
                         longPressedLocation.latitude,
                         longPressedLocation.longitude,
@@ -102,19 +119,31 @@ class SelectedLocationDecisionHelper extends StatelessWidget {
                     SizedBox(height: responsiveSizeHeight(15)),
                   if (!mapHelperProvider.getIsFromLocationDetailsEmpty)
                     GestureDetector(
-                      onTap: () {
-                        // Standard functions for setting toLocDetails
+                      onTap: () async {
+                        /// Standard functions for setting toLocDetails
+                        // for special behavior in unique inputs
+                        searchDetailsProvider.setIsInputSpecial_toLoc = true;
+                        // wipes the text so the hint text shows up
+                        searchDetailsProvider.getToLocTextController.text = "";
+                        // sets the hint text
+                        searchDetailsProvider.setToLocTextfieldHintText =
+                            "Selected From Map";
+                        // to prevent odd behavior related to the autofill
+                        searchDetailsProvider.tryToEraseLocResults(
+                          SearchFieldType.to,
+                        );
+                        // putting the system state to default
                         systemVariablesProvider.setAppCurrentState =
                             SystemState.gatheringFromLoc;
-                        mapHelperProvider.mapWidgetController
+                        // to prevent unwanted visible view of the search results field
+                        searchDetailsProvider.setActiveSearching_toLoc = false;
+                        await mapHelperProvider.mapWidgetController
                             .fullRemoveSourceLayer(
                               'source_selectedPoint',
                               'layer_selectedPoint',
                             );
                         LatLng longPressedLocation =
                             searchDetailsProvider.getLongPressedLocation;
-                        searchDetailsProvider.getToLocTextController.text =
-                            "Selected From Map";
                         mapHelperProvider.setToLocationDetails_withLatLng(
                           longPressedLocation.latitude,
                           longPressedLocation.longitude,
@@ -145,6 +174,7 @@ class SelectedLocationDecisionHelper extends StatelessWidget {
                   SizedBox(height: responsiveSizeHeight(15)),
                   GestureDetector(
                     onTap: () {
+                      searchDetailsProvider.setIsInputSpecial_toLoc = true;
                       systemVariablesProvider.setAppCurrentState =
                           SystemState.gatheringFromLoc;
                       mapHelperProvider.mapWidgetController

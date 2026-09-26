@@ -26,6 +26,10 @@ class _ViewForRequestingFromLocationState
   Widget build(BuildContext context) {
     MediaQuery.sizeOf(context); // force reload upon resolution change
 
+    final bool hasObtainedFromLocAtLeastOnce = context
+        .select<SearchDetailsProvider, bool>(
+          (value) => value.hasObtainedFromLocAtLeastOnce,
+        );
     final bool isFromLocResultsEmpty = context
         .select<SearchDetailsProvider, bool>(
           (value) => value.getFromLocSearchResults.isEmpty,
@@ -151,7 +155,7 @@ class _ViewForRequestingFromLocationState
     return Column(
       children: [
         SizedBox(height: responsiveSizeHeight(60)),
-        if (!context.read<MapHelperProvider>().getIsFromLocationDetailsEmpty)
+        if (hasObtainedFromLocAtLeastOnce)
           SizedBox(height: responsiveSizeHeight(60)),
         UseCurrentLocationButton(),
         SizedBox(height: responsiveSizeHeight(10)),

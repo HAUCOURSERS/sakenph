@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:sakenph/providers/provider_system_data.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -62,10 +63,7 @@ class _SettingsPage extends State<SettingsPage> {
             title: Text('DEBUG: Clear SharedPreferences'),
             trailing: GestureDetector(
               onTap: () async {
-                final SharedPreferences prefs =
-                    await SharedPreferences.getInstance();
-                await prefs.clear();
-                print("[TEMP] Successfully cleared preferences");
+                context.read<SystemDataProvider>().clearSharedPreferences();
               },
               child: Container(
                 height: 20,

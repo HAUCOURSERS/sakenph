@@ -4,6 +4,7 @@ import 'package:sakenph/api/backend_service.dart';
 import 'package:sakenph/classes/nominatim_response.dart';
 import 'package:sakenph/features/background_widget/functions.dart';
 import 'package:sakenph/globals/enums.dart';
+import 'package:sakenph/globals/functions/fore_and_background_functions.dart';
 import 'package:sakenph/globals/functions/utils_responsiveness.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
@@ -34,6 +35,11 @@ class _SearchResultRendererState extends State<SearchResultRenderer> {
   Widget build(BuildContext context) {
     // force rebuild upon res change
     MediaQuery.sizeOf(context);
+    MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
+    SystemVariablesProvider systemVariablesProvider = context
+        .read<SystemVariablesProvider>();
+    SearchDetailsProvider searchDetailsProvider = context
+        .read<SearchDetailsProvider>();
 
     bool isPlaceOutOfScope = !isPlaceWithinScope(widget.nomiPlace.displayName);
 
@@ -43,29 +49,15 @@ class _SearchResultRendererState extends State<SearchResultRenderer> {
       child: GestureDetector(
         onTap: () async {
           if (widget.nomiPlace.name != "No Places Found") {
-            MapHelperProvider mapHelperProvider = context
-                .read<MapHelperProvider>();
-            SystemVariablesProvider systemVariablesProvider = context
-                .read<SystemVariablesProvider>();
-            SearchDetailsProvider searchDetailsProvider = context
-                .read<SearchDetailsProvider>();
-            switch (widget.searchFieldType) {
-              case SearchFieldType.from:
-                mapHelperProvider.setFromLocationDetails = widget.nomiPlace;
-                systemVariablesProvider.setAppCurrentState =
-                    SystemState.gatheringToLoc;
-                searchDetailsProvider.setFromLocTextfieldText =
-                    widget.nomiPlace.name;
-                searchDetailsProvider.requestFocusTowardsLocTextfield();
-                break;
-              case SearchFieldType.to:
-                mapHelperProvider.setToLocationDetails = widget.nomiPlace;
-                startComputingForRoutes(context);
-                searchDetailsProvider.setToLocTextfieldText =
-                    widget.nomiPlace.name;
-                searchDetailsProvider.unfocusFromLocTextfield();
-                break;
-            }
+            processLocationInformation(
+              widget.searchFieldType,
+              mapHelperProvider,
+              searchDetailsProvider,
+              systemVariablesProvider,
+              context,
+              widget.nomiPlace,
+              true,
+            );
           }
           if (!mounted) return;
           setState(() {
@@ -121,7 +113,8 @@ class _SearchResultRendererState extends State<SearchResultRenderer> {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          if (isPlaceOutOfScope)
+                          if (isPlaceOutOfScope &&
+                              widget.nomiPlace.name != "No Places Found")
                             Padding(
                               padding: EdgeInsets.only(top: 4),
                               child: Row(

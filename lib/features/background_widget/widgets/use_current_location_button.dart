@@ -20,8 +20,46 @@ class UseCurrentLocationButton extends StatefulWidget {
 class _UseCurrentLocationButtonState extends State<UseCurrentLocationButton> {
   bool _showColor = false;
 
+  void _onTap(
+    SearchDetailsProvider searchDetailsProvider,
+    MapHelperProvider mapHelperProvider,
+    SystemVariablesProvider systemVariablesProvider,
+  ) async {
+    // reattempt to get location permissions
+    bool locationSet = await handleLocationPermission(context);
+    if (!locationSet) return;
+    // show color temporarily to make the user feel like they actually pressed a button
+    setState(() {
+      _showColor = true;
+    });
+    searchDetailsProvider.setHasObtainedFromLocAtLeastOnce = true;
+    // set the value to true since this is a unique input type aside from the usual manual loc name typing
+    searchDetailsProvider.setIsInputSpecial_fromLoc = true;
+    // use the user's current geoloc as from location
+    mapHelperProvider.useCurrentUserGeoLocAsOrigin();
+    // move the state to gatheringToLoc so the transition to using the to location textfield would be smooth
+    systemVariablesProvider.setAppCurrentState = SystemState.gatheringToLoc;
+    // move the focus to the second textfield
+    searchDetailsProvider.requestFocusTowardsLocTextfield();
+    // rename the hint text to this. modifying the hint text was used because relying on modifying textfield text was introducing complications
+    searchDetailsProvider.setFromLocTextfieldHintText =
+        "Your Current GeoLocation";
+    // cleanup to be sure
+    searchDetailsProvider.getFromLocTextController.text = "";
+    // revert the button back to its original color which is none/white
+    await Future.delayed(Duration(milliseconds: 100));
+    setState(() {
+      _showColor = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    SearchDetailsProvider searchDetailsProvider = context
+        .read<SearchDetailsProvider>();
+    MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
+    SystemVariablesProvider systemVariablesProvider = context
+        .read<SystemVariablesProvider>();
     return Align(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -32,28 +70,11 @@ class _UseCurrentLocationButtonState extends State<UseCurrentLocationButton> {
             color: _showColor ? Colors.grey.shade300 : Colors.transparent,
             child: GestureDetector(
               onTap: () async {
-                bool locationSet = await handleLocationPermission(context);
-                if (!locationSet) return;
-                setState(() {
-                  _showColor = true;
-                });
-                SearchDetailsProvider searchDetailsProvider = context
-                    .read<SearchDetailsProvider>();
-                MapHelperProvider mapHelperProvider = context
-                    .read<MapHelperProvider>();
-                SystemVariablesProvider systemVariablesProvider = context
-                    .read<SystemVariablesProvider>();
-                mapHelperProvider.useCurrentUserGeoLocAsOrigin();
-                systemVariablesProvider.setAppCurrentState =
-                    SystemState.gatheringToLoc;
-                searchDetailsProvider.requestFocusTowardsLocTextfield();
-
-                searchDetailsProvider.setFromLocTextfieldText =
-                    "Your Current Location";
-                await Future.delayed(Duration(milliseconds: 100));
-                setState(() {
-                  _showColor = false;
-                });
+                _onTap(
+                  searchDetailsProvider,
+                  mapHelperProvider,
+                  systemVariablesProvider,
+                );
               },
               child: Container(
                 width: responsiveSizeWidth(
