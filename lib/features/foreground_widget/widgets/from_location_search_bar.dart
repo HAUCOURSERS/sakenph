@@ -8,7 +8,9 @@ import 'package:sakenph/globals/functions/utils_responsiveness.dart';
 import 'package:sakenph/pages/settings_page.dart' show SettingsPage;
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
+import 'package:sakenph/providers/provider_system_data.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
+import 'package:sakenph/providers/provider_tutorial_mechanics.dart';
 
 /// A textfield widget that is used by the user to input their origin location
 class FromLocationSearchBar extends StatefulWidget {
@@ -38,6 +40,9 @@ class _FromLocationSearchBarState extends State<FromLocationSearchBar> {
     context.select<MapHelperProvider, LatLng?>(
       (value) => value.getSelectedFromLocationDetails,
     );
+    SystemDataProvider systemDataProvider = context.read<SystemDataProvider>();
+    TutorialMechanicsProvider tutorialMechanicsProvider = context
+        .read<TutorialMechanicsProvider>();
 
     return Align(
       alignment: Alignment.topCenter,
@@ -50,6 +55,10 @@ class _FromLocationSearchBarState extends State<FromLocationSearchBar> {
           children: [
             Focus(
               onFocusChange: (hasFocus) {
+                /// For entering step 2 in tutorial
+                if (hasFocus && systemDataProvider.isTutorialOngoing) {
+                  tutorialMechanicsProvider.moveToStage02();
+                }
                 setState(() {
                   isFocused = hasFocus;
                 });

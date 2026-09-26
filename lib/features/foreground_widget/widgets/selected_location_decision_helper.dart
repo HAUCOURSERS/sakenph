@@ -115,9 +115,9 @@ class SelectedLocationDecisionHelper extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (!mapHelperProvider.getIsFromLocationDetailsEmpty)
+                  if (searchDetailsProvider.hasObtainedFromLocAtLeastOnce)
                     SizedBox(height: responsiveSizeHeight(15)),
-                  if (!mapHelperProvider.getIsFromLocationDetailsEmpty)
+                  if (searchDetailsProvider.hasObtainedFromLocAtLeastOnce)
                     GestureDetector(
                       onTap: () async {
                         /// Standard functions for setting toLocDetails
@@ -174,7 +174,7 @@ class SelectedLocationDecisionHelper extends StatelessWidget {
                   SizedBox(height: responsiveSizeHeight(15)),
                   GestureDetector(
                     onTap: () {
-                      searchDetailsProvider.setIsInputSpecial_toLoc = true;
+                      // return to the default systemstate since it's just going back
                       systemVariablesProvider.setAppCurrentState =
                           SystemState.gatheringFromLoc;
                       mapHelperProvider.mapWidgetController

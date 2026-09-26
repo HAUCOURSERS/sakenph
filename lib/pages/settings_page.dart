@@ -15,6 +15,9 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPage extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
+    SystemVariablesProvider systemVariablesProvider = context
+        .read<SystemVariablesProvider>();
+    SystemDataProvider systemDataProvider = context.read<SystemDataProvider>();
     return Scaffold(
       appBar: AppBar(
         systemOverlayStyle: SystemUiOverlayStyle(
@@ -30,8 +33,7 @@ class _SettingsPage extends State<SettingsPage> {
             trailing: Switch(
               value: context.watch<SystemVariablesProvider>().includeTraffic,
               onChanged: (value) {
-                context.read<SystemVariablesProvider>().setIncludeTraffic =
-                    value;
+                systemVariablesProvider.setIncludeTraffic = value;
               },
             ),
           ),
@@ -63,7 +65,7 @@ class _SettingsPage extends State<SettingsPage> {
             title: Text('DEBUG: Clear SharedPreferences'),
             trailing: GestureDetector(
               onTap: () async {
-                context.read<SystemDataProvider>().clearSharedPreferences();
+                systemDataProvider.clearSharedPreferences();
               },
               child: Container(
                 height: 20,

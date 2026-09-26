@@ -5,7 +5,9 @@ import 'package:sakenph/globals/functions/system/permissions.dart';
 import 'package:sakenph/globals/functions/utils_responsiveness.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
+import 'package:sakenph/providers/provider_system_data.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
+import 'package:sakenph/providers/provider_tutorial_mechanics.dart';
 
 /// When pressed, it will get the user's current location and passes it to [SystemVariablesProvider]
 /// as origin location reference.
@@ -24,7 +26,12 @@ class _UseCurrentLocationButtonState extends State<UseCurrentLocationButton> {
     SearchDetailsProvider searchDetailsProvider,
     MapHelperProvider mapHelperProvider,
     SystemVariablesProvider systemVariablesProvider,
+    SystemDataProvider systemDataProvider,
+    TutorialMechanicsProvider tutorialMechanicsProvider,
   ) async {
+    if (systemDataProvider.isTutorialOngoing) {
+      tutorialMechanicsProvider.moveToStage03();
+    }
     // reattempt to get location permissions
     bool locationSet = await handleLocationPermission(context);
     if (!locationSet) return;
@@ -60,6 +67,9 @@ class _UseCurrentLocationButtonState extends State<UseCurrentLocationButton> {
     MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
     SystemVariablesProvider systemVariablesProvider = context
         .read<SystemVariablesProvider>();
+    SystemDataProvider systemDataProvider = context.read<SystemDataProvider>();
+    TutorialMechanicsProvider tutorialMechanicsProvider = context
+        .read<TutorialMechanicsProvider>();
     return Align(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -74,6 +84,8 @@ class _UseCurrentLocationButtonState extends State<UseCurrentLocationButton> {
                   searchDetailsProvider,
                   mapHelperProvider,
                   systemVariablesProvider,
+                  systemDataProvider,
+                  tutorialMechanicsProvider,
                 );
               },
               child: Container(

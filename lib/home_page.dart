@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/features/background_widget/content_state_switcher.dart';
+import 'package:sakenph/features/tutorial_widget/tutorial_widget_manager.dart';
 import 'package:sakenph/globals/functions/system/permissions.dart'
     show handleLocationPermission;
 import 'package:sakenph/features/foreground_widget/content_state_switcher.dart';
@@ -78,6 +79,9 @@ class _HomePage extends State<HomePage> {
           /// Renders widgets that are intended to only show up within the safe
           /// area and to show up above the other widgets
           ForegroundWidget(),
+
+          /// Renders the tutorial widgets if needed
+          TutorialWidgetManager(),
         ],
       ),
     );

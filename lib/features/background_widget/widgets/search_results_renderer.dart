@@ -8,7 +8,9 @@ import 'package:sakenph/globals/functions/fore_and_background_functions.dart';
 import 'package:sakenph/globals/functions/utils_responsiveness.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
+import 'package:sakenph/providers/provider_system_data.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
+import 'package:sakenph/providers/provider_tutorial_mechanics.dart';
 
 /// Takes in information of a [NominatimPlace] object and creates a widget for
 /// ListView out of it.
@@ -40,6 +42,9 @@ class _SearchResultRendererState extends State<SearchResultRenderer> {
         .read<SystemVariablesProvider>();
     SearchDetailsProvider searchDetailsProvider = context
         .read<SearchDetailsProvider>();
+    SystemDataProvider systemDataProvider = context.read<SystemDataProvider>();
+    TutorialMechanicsProvider tutorialMechanicsProvider = context
+        .read<TutorialMechanicsProvider>();
 
     bool isPlaceOutOfScope = !isPlaceWithinScope(widget.nomiPlace.displayName);
 
@@ -49,6 +54,16 @@ class _SearchResultRendererState extends State<SearchResultRenderer> {
       child: GestureDetector(
         onTap: () async {
           if (widget.nomiPlace.name != "No Places Found") {
+            // for tutorial
+            if (systemDataProvider.isTutorialOngoing) {
+              if (tutorialMechanicsProvider.getCurrentTutorialStage ==
+                  TutorialStage.stage02) {
+                tutorialMechanicsProvider.moveToStage03();
+              } else if (tutorialMechanicsProvider.getCurrentTutorialStage ==
+                  TutorialStage.stage04) {
+                tutorialMechanicsProvider.moveToStage05();
+              }
+            }
             processLocationInformation(
               widget.searchFieldType,
               mapHelperProvider,

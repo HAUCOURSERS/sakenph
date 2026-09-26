@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class PrototypeInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    SystemDataProvider systemDataProvider = context.read<SystemDataProvider>();
     return AlertDialog(
       title: const Text('Welcome!'),
       content: SingleChildScrollView(
@@ -52,16 +53,34 @@ class PrototypeInfo extends StatelessWidget {
         ),
       ),
       actions: [
-        ElevatedButton(
-          onPressed: () {
-            _stopPrototypeMessageAppearance();
-            Navigator.pop(context);
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color.fromARGB(255, 43, 138, 216),
-            foregroundColor: Colors.white,
-          ),
-          child: const Text('OK'),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ElevatedButton(
+              onPressed: () {
+                print("[TEMP] Tutorial Started!");
+                _stopPrototypeMessageAppearance();
+                systemDataProvider.startTutorial();
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromARGB(255, 43, 138, 216),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Start Tutorial'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                _stopPrototypeMessageAppearance();
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromARGB(255, 216, 43, 43),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Skip Tutorial'),
+            ),
+          ],
         ),
       ],
     );

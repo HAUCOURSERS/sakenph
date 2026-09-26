@@ -9,9 +9,11 @@ import 'package:sakenph/home_page.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
+import 'package:sakenph/providers/provider_system_data.dart';
 import 'package:sakenph/providers/provider_system_tasks.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 import 'package:sakenph/providers/provider_transient_ui.dart';
+import 'package:sakenph/providers/provider_tutorial_mechanics.dart';
 
 void main() async {
   runAtMain();
@@ -36,10 +38,12 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => MapHelperProvider()),
-        ChangeNotifierProvider(create: (_) => SystemVariablesProvider()),
         ChangeNotifierProvider(create: (_) => SearchDetailsProvider()),
+        ChangeNotifierProvider(create: (_) => SystemDataProvider()),
         ChangeNotifierProvider(create: (_) => SystemTasksProvder()),
+        ChangeNotifierProvider(create: (_) => SystemVariablesProvider()),
         ChangeNotifierProvider(create: (_) => TransientUiProvider()),
+        ChangeNotifierProvider(create: (_) => TutorialMechanicsProvider()),
       ],
       child: const MyApp(),
     ),

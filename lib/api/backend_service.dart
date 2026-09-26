@@ -10,10 +10,18 @@ import 'package:sakenph/classes/jeepney_route.dart';
 import 'package:sakenph/classes/terminal_class.dart';
 import 'package:sakenph/api/local/env.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
+import 'package:sakenph/providers/provider_system_data.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
+import 'package:sakenph/providers/provider_tutorial_mechanics.dart';
 
 /// Upon execution, it will get the fromloc and toloc details and perform an api call to the backend server.
 Future<void> startComputingForRoutes(BuildContext context) async {
+  SystemDataProvider systemDataProvider = context.read<SystemDataProvider>();
+  TutorialMechanicsProvider tutorialMechanicsProvider = context
+      .read<TutorialMechanicsProvider>();
+  if (systemDataProvider.isTutorialOngoing) {
+    tutorialMechanicsProvider.moveToStage05();
+  }
   SystemVariablesProvider systemVariablesProvider = context
       .read<SystemVariablesProvider>();
   MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
@@ -33,6 +41,9 @@ Future<void> startComputingForRoutes(BuildContext context) async {
       "Note to developer: Add a retry button here since the backend response failed.",
     );
   } else {
+    if (systemDataProvider.isTutorialOngoing) {
+      tutorialMechanicsProvider.moveToStage06();
+    }
     mapHelperProvider.setSuggestedShortestPaths = backendResponse;
     systemVariablesProvider.setAppCurrentState =
         SystemState.showSuggestedRoutes;

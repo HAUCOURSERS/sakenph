@@ -15,12 +15,14 @@ import 'package:sakenph/classes/json_response.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
+import 'package:sakenph/providers/provider_system_data.dart';
 import 'dart:math' show min, max, pi, sin, cos, asin, atan2, Point;
 
 import 'package:sakenph/providers/provider_system_vars.dart';
 
 /// Added to import the backend service to use its functions for querying shortest paths and fetching jeepney routes.
 import 'package:sakenph/classes/jeepney_route.dart';
+import 'package:sakenph/providers/provider_tutorial_mechanics.dart';
 
 /// Holds the view for the map
 class MapWidget extends StatefulWidget {
@@ -1079,6 +1081,9 @@ class _MapWidget extends State<MapWidget> {
         .read<SystemVariablesProvider>();
     SearchDetailsProvider searchDetailsProvider = context
         .read<SearchDetailsProvider>();
+    TutorialMechanicsProvider tutorialMechanicsProvider = context
+        .read<TutorialMechanicsProvider>();
+    SystemDataProvider systemDataProvider = context.read<SystemDataProvider>();
 
     return MapLibreMap(
       styleString: mapStyle,
@@ -1165,6 +1170,19 @@ class _MapWidget extends State<MapWidget> {
       onMapClick: (point, coordinates) {},
 
       onMapLongClick: (point, coordinates) async {
+        // if tutorial is active, disable the long press logic for now
+        if (systemDataProvider.isTutorialOngoing &&
+            (tutorialMechanicsProvider.getCurrentTutorialStage !=
+                    TutorialStage.stage11 ||
+                tutorialMechanicsProvider.getCurrentTutorialStage !=
+                    TutorialStage.stage12 ||
+                tutorialMechanicsProvider.getCurrentTutorialStage !=
+                    TutorialStage.stage13 ||
+                tutorialMechanicsProvider.getCurrentTutorialStage !=
+                    TutorialStage.stage14)) {
+          return;
+        }
+
         SystemState currentState = systemVariablesProvider.appCurrentState;
 
         // Disable this behavior if user is in these systemstates.
