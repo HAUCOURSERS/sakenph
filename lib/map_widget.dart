@@ -7,6 +7,7 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:http/http.dart' as http;
 import 'package:sakenph/api/database_service.dart';
 import 'package:sakenph/api/backend_service.dart';
+import 'package:sakenph/features/foreground_widget/functions.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions/computations.dart';
 import 'package:sakenph/globals/variables.dart' as global_vars show localIP;
@@ -799,117 +800,7 @@ class _MapWidget extends State<MapWidget> {
           : 'Unknown location',
     );
 
-    late PersistentBottomSheetController controller;
-    controller = Scaffold.of(context).showBottomSheet((ctx) {
-      final theme = Theme.of(ctx);
-      return Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 18,
-              offset: const Offset(0, -8),
-            ),
-          ],
-        ),
-        padding: EdgeInsets.fromLTRB(
-          20,
-          16,
-          20,
-          16 + MediaQuery.viewPaddingOf(ctx).bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurface.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    terminal.name,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'TODA',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            FutureBuilder<String>(
-              future: futureLocationLabel,
-              builder: (ctx2, snapshot) {
-                final label =
-                    snapshot.connectionState == ConnectionState.waiting
-                    ? 'Resolving barangay...'
-                    : snapshot.hasError
-                    ? 'Unknown location'
-                    : snapshot.data ?? 'Unknown location';
-                return Row(
-                  children: [
-                    Icon(
-                      Icons.place,
-                      size: 18,
-                      color: theme.colorScheme.primary,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(label, style: theme.textTheme.bodyMedium),
-                    ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                onPressed: () => controller.close(),
-                child: const Text('Close'),
-              ),
-            ),
-          ],
-        ),
-      );
-    }, backgroundColor: Colors.transparent);
+    renderTodaBottomSheet(context, terminal, futureLocationLabel);
   }
 
   // Adjusts camera based on coordinates
@@ -1170,17 +1061,27 @@ class _MapWidget extends State<MapWidget> {
       onMapClick: (point, coordinates) {},
 
       onMapLongClick: (point, coordinates) async {
-        // if tutorial is active, disable the long press logic for now
+        // if tutorial is active, disable the long press logic for now until said stages are reached
         if (systemDataProvider.isTutorialOngoing &&
-            (tutorialMechanicsProvider.getCurrentTutorialStage !=
-                    TutorialStage.stage11 ||
-                tutorialMechanicsProvider.getCurrentTutorialStage !=
+            !(tutorialMechanicsProvider.getCurrentTutorialStage ==
                     TutorialStage.stage12 ||
-                tutorialMechanicsProvider.getCurrentTutorialStage !=
+                tutorialMechanicsProvider.getCurrentTutorialStage ==
                     TutorialStage.stage13 ||
-                tutorialMechanicsProvider.getCurrentTutorialStage !=
-                    TutorialStage.stage14)) {
+                tutorialMechanicsProvider.getCurrentTutorialStage ==
+                    TutorialStage.stage14 ||
+                tutorialMechanicsProvider.getCurrentTutorialStage ==
+                    TutorialStage.stage15 ||
+                tutorialMechanicsProvider.getCurrentTutorialStage ==
+                    TutorialStage.stage16)) {
           return;
+        }
+
+        searchDetailsProvider.closeCurrentBottomSheet();
+
+        if (systemDataProvider.isTutorialOngoing) {
+          // these two are present because stage 12 and 14 requires long pressing the map
+          tutorialMechanicsProvider.moveToStage13();
+          tutorialMechanicsProvider.moveToStage15();
         }
 
         SystemState currentState = systemVariablesProvider.appCurrentState;

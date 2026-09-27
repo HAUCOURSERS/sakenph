@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions/transient_ui.dart';
 import 'package:sakenph/globals/functions/utils_responsiveness.dart';
+import 'package:sakenph/providers/provider_search_details.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
 
 /// Appears if the user has queried for routes and valid routes showed up. Relying
@@ -15,6 +16,7 @@ class RouteOpenerButton extends StatelessWidget {
       child: GestureDetector(
         onTap: () {
           dismissTransientUi(context);
+          context.read<SearchDetailsProvider>().closeCurrentBottomSheet();
           context.read<SystemVariablesProvider>().setAppCurrentState =
               SystemState.showSuggestedRoutes;
           context
@@ -32,7 +34,7 @@ class RouteOpenerButton extends StatelessWidget {
             vertical: responsiveSizeHeight(14),
           ),
           decoration: BoxDecoration(
-             color: Color.fromARGB(255, 48, 99, 119),
+            color: Color.fromARGB(255, 48, 99, 119),
             border: Border.all(color: Colors.black, width: 1),
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
@@ -49,7 +51,7 @@ class RouteOpenerButton extends StatelessWidget {
               Icon(
                 Icons.explore,
                 size: responsiveSizeHeight(20),
-                 color: Colors.white,
+                color: Colors.white,
               ),
               SizedBox(width: 8),
               Text(
@@ -58,7 +60,7 @@ class RouteOpenerButton extends StatelessWidget {
                 style: TextStyle(
                   fontSize: responsiveSizeHeight(16),
                   fontWeight: FontWeight.w600,
-                   color: Colors.white,
+                  color: Colors.white,
                 ),
               ),
             ],

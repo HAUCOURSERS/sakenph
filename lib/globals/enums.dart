@@ -72,4 +72,5 @@ enum TutorialStage {
   stage13,
   stage14,
   stage15,
+  stage16,
 }

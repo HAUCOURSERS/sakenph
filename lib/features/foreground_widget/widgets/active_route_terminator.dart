@@ -7,19 +7,26 @@ import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions/computations.dart';
 import 'package:sakenph/globals/functions/utils_responsiveness.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
+import 'package:sakenph/providers/provider_search_details.dart';
+import 'package:sakenph/providers/provider_system_data.dart';
 import 'package:sakenph/providers/provider_system_tasks.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
+import 'package:sakenph/providers/provider_tutorial_mechanics.dart';
 
 /// If the user wants to terminate their travel towards a location, select this.
 class ActiveRouteTerminator extends StatelessWidget {
-
-
   @override
   Widget build(BuildContext context) {
+    SystemDataProvider systemDataProvider = context.read<SystemDataProvider>();
+    TutorialMechanicsProvider tutorialMechanicsProvider = context
+        .read<TutorialMechanicsProvider>();
+    SearchDetailsProvider searchDetailsProvider = context
+        .read<SearchDetailsProvider>();
+    MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
 
     /// Stops the tracking of the user's location and clears the map of any drawn layers and sources.
     void stopTracking() async {
-      final MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
+      MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
       context.read<SystemVariablesProvider>().setAppCurrentState =
           SystemState.gatheringToLoc;
       context.read<SystemTasksProvder>().stop_repeatingTask();
@@ -31,6 +38,7 @@ class ActiveRouteTerminator extends StatelessWidget {
       mapHelperProvider.mapWidgetController.clearLayersAndSources();
       mapHelperProvider.setStopDrawing = false;
     }
+
     // force the widget to re-render every time the user moves, so that the distance till destination is updated
     context.select<MapHelperProvider, LatLng>(
       (value) => value.getUserCurrentGeoLoc,
@@ -59,6 +67,19 @@ class ActiveRouteTerminator extends StatelessWidget {
           SizedBox(height: responsiveSizeHeight(20)),
           GestureDetector(
             onTap: () async {
+              if (systemDataProvider.isTutorialOngoing &&
+                  tutorialMechanicsProvider.getCurrentTutorialStage ==
+                      TutorialStage.stage08) {
+                tutorialMechanicsProvider.moveToStage09();
+                // wipe the data
+                mapHelperProvider.tryToEraseSelectedFromLocDetails();
+                mapHelperProvider.tryToEraseSelectedToLocDetails();
+                searchDetailsProvider.setHasObtainedFromLocAtLeastOnce = false;
+                searchDetailsProvider.tryToEraseLocResults(
+                  SearchFieldType.from,
+                );
+                searchDetailsProvider.tryToEraseLocResults(SearchFieldType.to);
+              }
               stopTracking();
             },
             child: Center(
@@ -78,7 +99,7 @@ class ActiveRouteTerminator extends StatelessWidget {
                       borderRadius: BorderRadius.circular(5),
                     ),
                     child: Text(
-                      "Stop Tracking",
+                      "Stop Travelling",
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: max(20, responsiveSizeHeight(20)),

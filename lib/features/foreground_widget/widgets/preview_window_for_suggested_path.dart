@@ -11,7 +11,9 @@ import 'package:sakenph/globals/functions/route_timing.dart';
 import 'package:sakenph/globals/functions/utils_responsiveness.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
+import 'package:sakenph/providers/provider_system_data.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
+import 'package:sakenph/providers/provider_tutorial_mechanics.dart';
 
 /// When the user selects a path from the suggested paths display, the widgets
 /// that will show up will come from this.
@@ -435,6 +437,9 @@ class _PreviewWindowForSuggestedPathState
   }
 
   Widget _buildActionButtons(BuildContext context) {
+    SystemDataProvider systemDataProvider = context.read<SystemDataProvider>();
+    TutorialMechanicsProvider tutorialMechanicsProvider = context
+        .read<TutorialMechanicsProvider>();
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -490,6 +495,9 @@ class _PreviewWindowForSuggestedPathState
                 onTap: () async {
                   final locationSet = await handleLocationPermission(context);
                   if (locationSet && context.mounted) {
+                    if (systemDataProvider.isTutorialOngoing) {
+                      tutorialMechanicsProvider.moveToStage08();
+                    }
                     startTraveling(context);
                   }
                 },

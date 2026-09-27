@@ -6,14 +6,17 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:provider/provider.dart';
 import 'package:sakenph/api/nominatim.dart';
 import 'package:sakenph/classes/nominatim_response.dart';
+import 'package:sakenph/classes/terminal_class.dart';
 import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions/fore_and_background_functions.dart';
 import 'package:sakenph/globals/functions/formattings.dart';
 import 'package:sakenph/globals/functions/route_timing.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
+import 'package:sakenph/providers/provider_system_data.dart';
 import 'package:sakenph/providers/provider_system_tasks.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
+import 'package:sakenph/providers/provider_tutorial_mechanics.dart';
 
 /// Runs the necessary code across context providers to setup the traveling state
 void startTraveling(BuildContext context) async {
@@ -260,4 +263,131 @@ void tryToGetFirstResultAndSave(
     firstResult,
     false,
   );
+}
+
+void renderTodaBottomSheet(
+  BuildContext context,
+  Terminal terminal,
+  Future<String> futureLocationLabel,
+) {
+  late final PersistentBottomSheetController sheetController;
+  sheetController = Scaffold.of(context).showBottomSheet((ctx) {
+    SystemDataProvider systemDataProvider = context.read<SystemDataProvider>();
+    TutorialMechanicsProvider tutorialMechanicsProvider = context
+        .read<TutorialMechanicsProvider>();
+    if (systemDataProvider.isTutorialOngoing) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        tutorialMechanicsProvider.moveToStage11();
+      });
+    }
+    final theme = Theme.of(ctx);
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 18,
+            offset: const Offset(0, -8),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        16,
+        20,
+        16 + MediaQuery.viewPaddingOf(ctx).bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurface.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  terminal.name,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'TODA',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          FutureBuilder<String>(
+            future: futureLocationLabel,
+            builder: (ctx2, snapshot) {
+              final label = snapshot.connectionState == ConnectionState.waiting
+                  ? 'Resolving barangay...'
+                  : snapshot.hasError
+                  ? 'Unknown location'
+                  : snapshot.data ?? 'Unknown location';
+              return Row(
+                children: [
+                  Icon(Icons.place, size: 18, color: theme.colorScheme.primary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(label, style: theme.textTheme.bodyMedium),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: () {
+                sheetController.close();
+                print("[TEMP] close trigger");
+              },
+              child: const Text('Close'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }, backgroundColor: Colors.transparent);
+
+  context.read<SearchDetailsProvider>().setTodaBottomSheetPointerData =
+      sheetController;
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sakenph/globals/enums.dart';
+
 /**
 (exiting the app resets the tutorial)
 
@@ -48,8 +49,10 @@ class TutorialMechanicsProvider extends ChangeNotifier {
     }
   }
 
+  // due to circumstances, jump from stage 3 to 5 is possible.
   void moveToStage05() {
-    if (_currentTutorialStage == TutorialStage.stage04) {
+    if (_currentTutorialStage == TutorialStage.stage03 ||
+        _currentTutorialStage == TutorialStage.stage04) {
       _currentTutorialStage = TutorialStage.stage05;
       notifyListeners();
     }
@@ -121,6 +124,13 @@ class TutorialMechanicsProvider extends ChangeNotifier {
   void moveToStage15() {
     if (_currentTutorialStage == TutorialStage.stage14) {
       _currentTutorialStage = TutorialStage.stage15;
+      notifyListeners();
+    }
+  }
+
+  void moveToStage16() {
+    if (_currentTutorialStage == TutorialStage.stage15) {
+      _currentTutorialStage = TutorialStage.stage16;
       notifyListeners();
     }
   }

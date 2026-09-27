@@ -10,7 +10,9 @@ import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions/formattings.dart';
 import 'package:sakenph/globals/functions/route_timing.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
+import 'package:sakenph/providers/provider_system_data.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
+import 'package:sakenph/providers/provider_tutorial_mechanics.dart';
 
 /// Widget where route details are already processed.
 ///
@@ -44,6 +46,10 @@ class SuggestedRouteWidgetTemplate extends StatelessWidget {
     final routeTiming = computeRouteTiming(pathJSON, route_id);
     double travelTime = routeTiming.actualSeconds.toDouble();
     MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
+
+    SystemDataProvider systemDataProvider = context.read<SystemDataProvider>();
+    TutorialMechanicsProvider tutorialMechanicsProvider = context
+        .read<TutorialMechanicsProvider>();
     (double, double) fareRates = computeFareTotalForRoute(pathJSON, route_id);
     Set<String> badges = computeRouteBadges(
       mapHelperProvider.getSuggestedShortestPaths,
@@ -59,6 +65,10 @@ class SuggestedRouteWidgetTemplate extends StatelessWidget {
           DebounceId.routeSelection.toString(),
           Duration(milliseconds: 50),
           () async {
+            // advance tutorial progression
+            if (systemDataProvider.isTutorialOngoing) {
+              tutorialMechanicsProvider.moveToStage07();
+            }
             // Draw Path
             context.read<MapHelperProvider>().mapWidgetController.drawPath(
               pathJSON,

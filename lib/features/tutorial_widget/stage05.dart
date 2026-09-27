@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:sakenph/providers/provider_system_data.dart';
-import 'package:sakenph/providers/provider_tutorial_mechanics.dart';
 
 class Stage05 extends StatefulWidget {
   const Stage05({super.key});
@@ -42,7 +39,7 @@ class _Stage05State extends State<Stage05> {
                   right: 10,
                 ),
                 child: Text(
-                  "5/15",
+                  "5/16",
                   style: TextStyle(
                     fontSize: 18,
                     color: Colors.black,

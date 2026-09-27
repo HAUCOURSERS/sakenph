@@ -55,6 +55,9 @@ class SearchDetailsProvider extends ChangeNotifier {
   // for the rest of the app's current runtime.
   bool _hasObtainedFromLocAtLeastOnce = false;
 
+  // gets given a value later
+  PersistentBottomSheetController? _todaBottomSheet;
+
   // /////////////////////////////////////////////////////////////////////////////////////////////
   // Getters
   // /////////////////////////////////////////////////////////////////////////////////////////////
@@ -86,6 +89,9 @@ class SearchDetailsProvider extends ChangeNotifier {
   String get toLocTextfieldHintText => _toLocTextfieldHintText;
 
   bool get hasObtainedFromLocAtLeastOnce => _hasObtainedFromLocAtLeastOnce;
+
+  PersistentBottomSheetController? get getTodaBottomSheetPointer =>
+      _todaBottomSheet;
 
   // /////////////////////////////////////////////////////////////////////////////////////////////
   // Setters
@@ -156,6 +162,10 @@ class SearchDetailsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  set setTodaBottomSheetPointerData(PersistentBottomSheetController widget) {
+    _todaBottomSheet = widget;
+  }
+
   // /////////////////////////////////////////////////////////////////////////////////////////////
   // Functions
   // /////////////////////////////////////////////////////////////////////////////////////////////
@@ -165,22 +175,27 @@ class SearchDetailsProvider extends ChangeNotifier {
   NominatimPlace? getFirstValidPlaceSearchResult(
     SearchFieldType searchFieldType,
   ) {
-    if (searchFieldType == SearchFieldType.from) {
-      if (_fromLocSearchResults.length == 1 &&
-              _fromLocSearchResults[0].name == "No Places Found" ||
-          !isPlaceWithinScope(_fromLocSearchResults[0].displayName)) {
-        return null;
+    // may trigger from unique inputs such as selected from map and using current geoloc
+    try {
+      if (searchFieldType == SearchFieldType.from) {
+        if (_fromLocSearchResults.length == 1 &&
+                _fromLocSearchResults[0].name == "No Places Found" ||
+            !isPlaceWithinScope(_fromLocSearchResults[0].displayName)) {
+          return null;
+        } else {
+          return _fromLocSearchResults[0];
+        }
       } else {
-        return _fromLocSearchResults[0];
+        if (_toLocSearchResults.length == 1 &&
+                _toLocSearchResults[0].name == "No Places Found" ||
+            !isPlaceWithinScope(_toLocSearchResults[0].displayName)) {
+          return null;
+        } else {
+          return _toLocSearchResults[0];
+        }
       }
-    } else {
-      if (_toLocSearchResults.length == 1 &&
-              _toLocSearchResults[0].name == "No Places Found" ||
-          !isPlaceWithinScope(_toLocSearchResults[0].displayName)) {
-        return null;
-      } else {
-        return _toLocSearchResults[0];
-      }
+    } catch (exception) {
+      return null;
     }
   }
 
@@ -221,5 +236,13 @@ class SearchDetailsProvider extends ChangeNotifier {
 
   void unfocusFromLocTextfield() {
     _toLocFocusNode.unfocus();
+  }
+
+  /// Closes any present bottom sheet for this variable. Allows any part of the
+  /// app to close the bottomsheet that displays the toda details when needed.
+  void closeCurrentBottomSheet() {
+    if (_todaBottomSheet != null) {
+      _todaBottomSheet!.close();
+    }
   }
 }

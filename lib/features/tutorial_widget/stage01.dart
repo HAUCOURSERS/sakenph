@@ -40,7 +40,7 @@ class _Stage01State extends State<Stage01> {
                     right: 10,
                   ),
                   child: Text(
-                    "1/15",
+                    "1/16",
                     style: TextStyle(
                       fontSize: 18,
                       color: Colors.black,

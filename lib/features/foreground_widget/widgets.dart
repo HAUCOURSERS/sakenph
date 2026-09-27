@@ -3,6 +3,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:provider/provider.dart';
+import 'package:sakenph/features/foreground_widget/functions.dart';
+import 'package:sakenph/providers/provider_search_details.dart';
+import 'package:sakenph/providers/provider_system_data.dart';
+import 'package:sakenph/providers/provider_tutorial_mechanics.dart';
 
 import '../../providers/provider_map_helper.dart';
 
@@ -88,6 +92,9 @@ class _JeepneyRouteFloatingControlState
 
   @override
   Widget build(BuildContext context) {
+    SystemDataProvider systemDataProvider = context.read<SystemDataProvider>();
+    TutorialMechanicsProvider tutorialMechanicsProvider = context
+        .read<TutorialMechanicsProvider>();
     final routes = context.select<MapHelperProvider, List<JeepneyRoute>>(
       (provider) => provider.jeepneyRoutes,
     );
@@ -197,6 +204,9 @@ class _JeepneyRouteFloatingControlState
               onPanCancel: _endDragging,
               onTap: () {
                 setState(() {
+                  if (systemDataProvider.isTutorialOngoing) {
+                    tutorialMechanicsProvider.moveToStage10();
+                  }
                   _isOpen = !_isOpen;
                 });
               },
@@ -294,6 +304,10 @@ class _JeepneyRouteDropdownPanelState
   @override
   Widget build(BuildContext context) {
     final visibleCount = widget.visibleIds.length;
+    SearchDetailsProvider searchDetailsProvider = context
+        .read<SearchDetailsProvider>();
+    TransientUiProvider transientUiProvider = context
+        .read<TransientUiProvider>();
 
     return Material(
       color: Colors.white,
@@ -819,223 +833,28 @@ class _JeepneyRouteDropdownPanelState
                                                           );
 
                                                       // Then show a persistent bottom sheet (non-modal) so UI remains interactive
-                                                      late PersistentBottomSheetController
-                                                      controller;
-                                                      controller = Scaffold.of(context).showBottomSheet(
-                                                        (ctx) {
-                                                          final theme =
-                                                              Theme.of(ctx);
-                                                          return Container(
-                                                            decoration: BoxDecoration(
-                                                              color: theme
-                                                                  .colorScheme
-                                                                  .surface,
-                                                              borderRadius:
-                                                                  const BorderRadius.only(
-                                                                    topLeft:
-                                                                        Radius.circular(
-                                                                          24,
-                                                                        ),
-                                                                    topRight:
-                                                                        Radius.circular(
-                                                                          24,
-                                                                        ),
-                                                                  ),
-                                                              boxShadow: [
-                                                                BoxShadow(
-                                                                  color: Colors
-                                                                      .black26,
-                                                                  blurRadius:
-                                                                      18,
-                                                                  offset:
-                                                                      const Offset(
-                                                                        0,
-                                                                        -8,
-                                                                      ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                            padding:
-                                                                EdgeInsets.fromLTRB(
-                                                                  20,
-                                                                  16,
-                                                                  20,
-                                                                  16 +
-                                                                      MediaQuery.viewPaddingOf(
-                                                                        ctx,
-                                                                      ).bottom,
-                                                                ),
-                                                            child: Column(
-                                                              mainAxisSize:
-                                                                  MainAxisSize
-                                                                      .min,
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .stretch,
-                                                              children: [
-                                                                Center(
-                                                                  child: Container(
-                                                                    width: 40,
-                                                                    height: 4,
-                                                                    margin:
-                                                                        const EdgeInsets.only(
-                                                                          bottom:
-                                                                              16,
-                                                                        ),
-                                                                    decoration: BoxDecoration(
-                                                                      color: theme
-                                                                          .colorScheme
-                                                                          .onSurface
-                                                                          .withOpacity(
-                                                                            0.2,
-                                                                          ),
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
-                                                                            2,
-                                                                          ),
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                                Row(
-                                                                  children: [
-                                                                    Expanded(
-                                                                      child: Text(
-                                                                        terminal
-                                                                            .name,
-                                                                        style: theme
-                                                                            .textTheme
-                                                                            .titleMedium
-                                                                            ?.copyWith(
-                                                                              fontWeight: FontWeight.w700,
-                                                                            ),
-                                                                      ),
-                                                                    ),
-                                                                    Container(
-                                                                      padding: const EdgeInsets.symmetric(
-                                                                        horizontal:
-                                                                            10,
-                                                                        vertical:
-                                                                            6,
-                                                                      ),
-                                                                      decoration: BoxDecoration(
-                                                                        color: theme
-                                                                            .colorScheme
-                                                                            .primary
-                                                                            .withOpacity(
-                                                                              0.12,
-                                                                            ),
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(
-                                                                              12,
-                                                                            ),
-                                                                      ),
-                                                                      child: Text(
-                                                                        'TODA',
-                                                                        style: theme.textTheme.labelMedium?.copyWith(
-                                                                          color: theme
-                                                                              .colorScheme
-                                                                              .primary,
-                                                                          fontWeight:
-                                                                              FontWeight.w600,
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                                const SizedBox(
-                                                                  height: 14,
-                                                                ),
-                                                                FutureBuilder<
-                                                                  String
-                                                                >(
-                                                                  future:
-                                                                      futureLocationLabel,
-                                                                  builder:
-                                                                      (
-                                                                        ctx2,
-                                                                        snapshot,
-                                                                      ) {
-                                                                        final label =
-                                                                            snapshot.connectionState ==
-                                                                                ConnectionState.waiting
-                                                                            ? 'Resolving barangay...'
-                                                                            : snapshot.hasError
-                                                                            ? 'Unknown location'
-                                                                            : snapshot.data ??
-                                                                                  'Unknown location';
-                                                                        return Row(
-                                                                          children: [
-                                                                            Icon(
-                                                                              Icons.place,
-                                                                              size: 18,
-                                                                              color: theme.colorScheme.primary,
-                                                                            ),
-                                                                            const SizedBox(
-                                                                              width: 10,
-                                                                            ),
-                                                                            Expanded(
-                                                                              child: Text(
-                                                                                label,
-                                                                                style: theme.textTheme.bodyMedium,
-                                                                              ),
-                                                                            ),
-                                                                          ],
-                                                                        );
-                                                                      },
-                                                                ),
-                                                                const SizedBox(
-                                                                  height: 20,
-                                                                ),
-                                                                SizedBox(
-                                                                  width: double
-                                                                      .infinity,
-                                                                  child: ElevatedButton(
-                                                                    style: ElevatedButton.styleFrom(
-                                                                      shape: RoundedRectangleBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(
-                                                                              14,
-                                                                            ),
-                                                                      ),
-                                                                      padding: const EdgeInsets.symmetric(
-                                                                        vertical:
-                                                                            14,
-                                                                      ),
-                                                                    ),
-                                                                    onPressed: () =>
-                                                                        controller
-                                                                            .close(),
-                                                                    child:
-                                                                        const Text(
-                                                                          'Close',
-                                                                        ),
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          );
-                                                        },
-                                                        backgroundColor:
-                                                            Colors.transparent,
+                                                      renderTodaBottomSheet(
+                                                        context,
+                                                        terminal,
+                                                        futureLocationLabel,
                                                       );
-                                                      final transientUi = context
-                                                          .read<
-                                                            TransientUiProvider
-                                                          >();
+
                                                       final registrationId =
-                                                          transientUi
+                                                          transientUiProvider
                                                               .registerBottomSheet(
-                                                                controller
+                                                                searchDetailsProvider
+                                                                    .getTodaBottomSheetPointer!
                                                                     .close,
                                                               );
-                                                      controller.closed.then((
-                                                        _,
-                                                      ) {
-                                                        transientUi
-                                                            .unregisterBottomSheet(
-                                                              registrationId,
-                                                            );
-                                                      });
+                                                      searchDetailsProvider
+                                                          .getTodaBottomSheetPointer!
+                                                          .closed
+                                                          .then((_) {
+                                                            transientUiProvider
+                                                                .unregisterBottomSheet(
+                                                                  registrationId,
+                                                                );
+                                                          });
                                                     },
                                                   );
                                                 },

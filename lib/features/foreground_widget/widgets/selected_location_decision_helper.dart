@@ -7,7 +7,9 @@ import 'package:sakenph/globals/enums.dart';
 import 'package:sakenph/globals/functions/utils_responsiveness.dart';
 import 'package:sakenph/providers/provider_map_helper.dart';
 import 'package:sakenph/providers/provider_search_details.dart';
+import 'package:sakenph/providers/provider_system_data.dart';
 import 'package:sakenph/providers/provider_system_vars.dart';
+import 'package:sakenph/providers/provider_tutorial_mechanics.dart';
 
 /// Loads buttons that the user can use to decide what to do with the selected location.
 /// The buttons will either set the source/destination values based on the long-pressed coordinates in the maplibre map.
@@ -21,6 +23,9 @@ class SelectedLocationDecisionHelper extends StatelessWidget {
     SystemVariablesProvider systemVariablesProvider = context
         .read<SystemVariablesProvider>();
     MapHelperProvider mapHelperProvider = context.read<MapHelperProvider>();
+    SystemDataProvider systemDataProvider = context.read<SystemDataProvider>();
+    TutorialMechanicsProvider tutorialMechanicsProvider = context
+        .read<TutorialMechanicsProvider>();
 
     return Stack(
       children: [
@@ -70,6 +75,11 @@ class SelectedLocationDecisionHelper extends StatelessWidget {
                 children: [
                   GestureDetector(
                     onTap: () async {
+                      searchDetailsProvider.setHasObtainedFromLocAtLeastOnce =
+                          true;
+                      if (systemDataProvider.isTutorialOngoing) {
+                        tutorialMechanicsProvider.moveToStage14();
+                      }
                       // for special behavior in unique inputs
                       searchDetailsProvider.setIsInputSpecial_fromLoc = true;
                       // wipes the text so the hint text shows up
@@ -120,6 +130,10 @@ class SelectedLocationDecisionHelper extends StatelessWidget {
                   if (searchDetailsProvider.hasObtainedFromLocAtLeastOnce)
                     GestureDetector(
                       onTap: () async {
+                        if (systemDataProvider.isTutorialOngoing) {
+                          tutorialMechanicsProvider.moveToStage16();
+                        }
+
                         /// Standard functions for setting toLocDetails
                         // for special behavior in unique inputs
                         searchDetailsProvider.setIsInputSpecial_toLoc = true;
